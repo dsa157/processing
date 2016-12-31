@@ -11,18 +11,27 @@ void setup()
   noFill();
   stroke(255);
   rectMode(CENTER);
-  for (int j = 0; j < rows; j++) {
-    for (int i = 0; i < cols; i++) {
+  for (int j = 1; j < rows-1; j++) {
+    for (int i = 1; i < cols-1; i++) {
       grid[i][j] = new Cell(i,j);
     }
+  }
+}
+
+void mouseMoved() {
+  int i = mouseX/int(w)%cols;
+  int j = mouseY/int(w)%rows;
+  //println(i,j);
+  if (i>0 && i <cols-1 && j>0 && j < rows-1) {
+    grid[i][j].speed = 3;
   }
 }
 
 
 void draw() {
   background(0);
-  for (int j=0; j<rows; j++) {
-    for (int i=0; i<cols; i++) {
+  for (int j=1; j<rows-1; j++) {
+    for (int i=1; i<cols-1; i++) {
       Cell c = grid[i][j];
       c.display();
     }
@@ -34,16 +43,18 @@ void draw() {
 class Cell {
   int row;
   int col;
+  int counter=0;
   int multiplier = 1;
-  float ax0 = 100;
-  float ay0 = 100;
-  float bx0 = 100;
-  float by0 = 300;
-  float cx0 = 300;
-  float cy0 = 100;
-  float dx0 = 300;
-  float dy0 = 300;
-  float speed = 0;
+  float ax0 = 0;
+  float ay0 = 0;
+  float bx0 = 0;
+  float by0 = 0;
+  float cx0 = 0;
+  float cy0 = 0;
+  float dx0 = 0;
+  float dy0 = 0;
+  float speed = 1;
+  float rad = 1;
 
   float ax = 0;
   float ay = 0;
@@ -53,19 +64,22 @@ class Cell {
   float cy = 0;
   float dx = 0;
   float dy = 0;
-  int lowerSpeed = 15;
-  int upperSpeed = 20;
+  float lowerSpeed = -1;
+  float upperSpeed = -5;
 
   // Cell Constructor
   Cell(int i, int j) {
     col = i;
     row = j;
-    randomSeed(millis() * i * j);
-    speed = random(lowerSpeed,upperSpeed);
+    randomSeed(row+col * millis());
+    randomSeed(row * millis());
+    //speed = random(-1, 1);
+    multiplier = int(random(1, 5));
   } 
 
   void display() {
     //background(0);
+    //frameRate(5);
     pushMatrix();
     float tx = (col*w) + w/2;
     float ty = (row*w) + w/2;
@@ -81,13 +95,12 @@ class Cell {
     cy0 = ty - h;
     dx0 = tx - h+w;
     dy0 = ty - h+w;
-    //println(i,j);
-    if (speed > upperSpeed) { multiplier = -1; }
-    if (speed < lowerSpeed) { multiplier = 1; }  
-    speed = speed + (multiplier * .1 * speed);
-    //speed = 15 * row * col * millis();
-
-    rotate(radians(speed));
+    counter++;
+    float multiplier = 2; //.05;
+    rad = radians((frameCount * multiplier * speed) % 360);
+    //println(rad);
+    rotate(rad);
+    if ((speed > 1) && (frameCount % 200 == 0)) speed--;
     stroke(255);
     rect(0, 0, w2, w2);
     float h2 = w2/2;
