@@ -3,15 +3,10 @@ int cols = 45;
 int rows = 30;
 float w = 20;
 float w2 = 8;
-int backgroundColor = 200;
-int lineColor = 120;
-int lineColor2 = 10;
-//float lowerSpeed = -1;
-//float upperSpeed = -5;
+int backgroundColor = 0;
+int lineColor = 200;
+int lineColor2 = 100;
 float speed = 1.0;
-
-
-//int theFrameRate = 500;
 
 Cell[][] grid = new Cell[cols][rows];
 
@@ -43,7 +38,6 @@ void mouseMoved() {
 
 
 void draw() {
-      //if (frameCount < 2) {
   background(backgroundColor);
 
   for (int j=1; j<rows-1; j++) {
@@ -53,8 +47,7 @@ void draw() {
       c.display();
     }
   }
-      //}
-    }
+}
 
 
 //------------------------------------------------------------------

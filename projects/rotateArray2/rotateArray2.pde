@@ -3,8 +3,8 @@ int sz = 50;
 int colorStart=25;
 
 // Number of columns and rows in the grid
-int cols = 6;
-int rows = 10;
+int cols = 45;
+int rows = 90;
 
 int num = 4;
 Cell[][] grid;
@@ -13,7 +13,7 @@ Cell[][] grid;
 void setup()
 {
   counter=0.0;
-  size(300,500);
+  size(1600,1000);
   fill(255);
   stroke(255);
   grid = new Cell[rows][cols];
