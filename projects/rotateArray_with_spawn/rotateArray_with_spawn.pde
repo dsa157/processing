@@ -4,19 +4,19 @@ int cols = 45;
 int rows = 30;
 float w = 20;
 float w2 = 8;
-int backgroundColor = 0;
-int lineColor = 255;
+int backgroundColor = 255;
+int lineColor = 0;
 float speed = 1.0;
 int spawns = 0;
-int spawnMax0 = 3;
+int spawnMax0 = 2;
 int spawnDelay = 20; //how many frames to wait between spawns
 // make it random but no more than the defined spawnMax0
 int spawnMax = int(random(spawnMax0)) + 1;
-int genMax = 4;
+int genMax = 5;
 int gens = 0;
 int fillColorStep = 255/(genMax+1);
 int angle=5;        //angle increments during rotation
-boolean testMode = false;
+boolean testMode = true;
 
 Cell[][] grid = new Cell[cols][rows];
 
@@ -52,6 +52,8 @@ void spawn() {
       Cell c = getCell(spawnCol,spawnRow);
       if (c != null) {
         c.spawn();
+      } else {
+        println("nope-spawn bad");
       }
 }
 
@@ -121,43 +123,39 @@ class Cell {
     if (spawns == spawnMax) {
       return;
     }
-    if (unspawned()) {
+    //if (unspawned()) {
       gen = 0;
       setColor();
       for (int i=1; i<=genMax; i++) {
-        int x=1;
-        x++;
-        gen1(i);
+        generate(i);
       }
-    }
+    //}
   }
   
   void setColor() {
+    color c = color(255, 0, 0); 
     myFill = 0;
   }
 
-  void changeGen() {
-    myFill=gen * fillColorStep;
+  void changeGen(int offset) {
+    myFill=offset * fillColorStep;
   }
  
   boolean unspawned() {
     return gen < 0;
   }
 
-  void gen1(int offset) {
-    //for (int i=0; i<gen; i++) {
-      //print(" ");
-    //}
-    //println("gen1: " + this + "," + myCol + "," + myRow);
+  void generate(int offset) {
+    //println("generate: " + myCol + "," + myRow);
     if (gen < genMax) {
-      for(int i=(myCol-offset); i <= myCol+offset; i++) {  
+      for(int i=(myCol-(offset)); i <= myCol+(offset); i++) {  
         for(int j=(myRow-offset); j<= myRow+offset; j++) {
           Cell c = getCell(i,j);
           if (c != null) {
             if (c != this) {
               if (c.gen < 0) {
                 c.gen = gen+offset;
-                c.changeGen();
+                c.changeGen(abs(i-myCol)+abs(j-myRow)+offset);
               }
             }
            }
@@ -172,8 +170,6 @@ class Cell {
       float tx = (myCol*w) + w/2;
       float ty = (myRow*w) + w/2;
       translate(tx, ty);
-      //fill(myLineColor * 10);
-      //noStroke();
       rect(0, 0, w, w);
       popMatrix();
     }
@@ -220,7 +216,7 @@ class Cell2 extends Cell {
     pushMatrix();
     drawRect1();
     counter++;
-    setRotation();
+    //setRotation();
     setAngle();
     setLineColor();
     drawRect2();
@@ -300,10 +296,12 @@ class Cell2 extends Cell {
     myFill=backgroundColor;
   }
 
-  void changeGen() {
-    super.changeGen();
-    myFill=backgroundColor;
-    myAngle = (gen * 5) * angle;
+  void changeGen(int offset) {
+    super.changeGen(offset);
+    if (myFill < backgroundColor) {
+      myFill=backgroundColor;
+      myAngle = offset * angle;
+    }
   }
 
 }
