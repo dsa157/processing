@@ -4,19 +4,19 @@ int cols = 45;
 int rows = 30;
 float w = 20;
 float w2 = 8;
-int backgroundColor = 255;
-int lineColor = 0;
-int lineColor2 = 100;
+int backgroundColor = 0;
+int lineColor = 255;
 float speed = 1.0;
 int spawns = 0;
-int spawnMax0 = 6;
+int spawnMax0 = 3;
 int spawnDelay = 20; //how many frames to wait between spawns
 // make it random but no more than the defined spawnMax0
 int spawnMax = int(random(spawnMax0)) + 1;
-int genMax = 3;
+int genMax = 4;
+int gens = 0;
 int fillColorStep = 255/(genMax+1);
-int angle=5;
-boolean testMode = true;
+int angle=5;        //angle increments during rotation
+boolean testMode = false;
 
 Cell[][] grid = new Cell[cols][rows];
 
@@ -26,8 +26,8 @@ void setup()
   noFill();
   stroke(lineColor);
   rectMode(CENTER);
-  for (int j = 1; j < rows-1; j++) {
-    for (int i = 1; i < cols-1; i++) {
+  for (int j = 1; j < rows-1; j++) {      // start at 1 and got to rows-1 so there is a 1 unit margin
+    for (int i = 1; i < cols-1; i++) {    // start at 1 and got to col-1 so there is a 1 unit margin
       int clr = i + j;
       //println("setup " + i + "," + j);
       if (testMode) {
@@ -63,8 +63,8 @@ void mouseClicked() {
 
 void draw() {
   background(backgroundColor);
-  for (int j=1; j<rows-1; j++) {
-    for (int i=1; i<cols-1; i++) {
+  for (int j=0; j<rows; j++) {
+    for (int i=0; i<cols; i++) {
       Cell c = getCell(i,j);
       if (c != null) {
         stroke(c.myLineColor);
@@ -103,16 +103,16 @@ class Cell {
   
     int myCol=0;
     int myRow=0;
-    int myLineColor=0;
+    int myLineColor=-1;
     int myFill=backgroundColor;
     int multiplier = 1;
     int gen = -1;
     
-    Cell(int i, int j, int lineColor) {
+    Cell(int i, int j, int lc) {
       myCol = i;
       myRow = j;
       myLineColor=lineColor;
-      randomSeed(myRow+myCol * millis());
+      randomSeed(myRow+myCol * millis()); //<>//
       randomSeed(myRow * millis());
       multiplier = int(random(1, 5));
   } 
@@ -214,7 +214,6 @@ class Cell2 extends Cell {
     randomSeed(myRow+myCol * millis());
     randomSeed(myRow * millis());
     multiplier = int(random(1, 5));
-
   }
   
   void display() {
@@ -247,17 +246,20 @@ class Cell2 extends Cell {
   }
   
   void setRotation() {
-    float multiplier = 2; //.05;
-    rad = radians((frameCount * multiplier * mySpeed) + myAngle % 360);
+    //multiplier = 2; //.05;
+    //rad = radians((frameCount * multiplier * mySpeed) + myAngle % 360);
+    rad = radians(frameCount + myAngle % 360);
     //println(rad);
     rotate(rad);
     if ((mySpeed > 1) && (frameCount % 200 == 0)) {
+        // slowdown every 200 frames
         mySpeed--;
     }
   }
   
   void setAngle() {
     if ((myAngle > 0) && (frameCount % 100 == 0)) {
+        // recalc every 100 frames
         myAngle = myAngle - angle;
         if (myAngle < 0) myAngle = 0;
     }
@@ -265,10 +267,10 @@ class Cell2 extends Cell {
   
   void setLineColor() {
     if (myLineColor != lineColor) {
-      if (myLineColor > lineColor) {
-        myLineColor--;
+      if (myLineColor > lineColor) { //<>//
+        //myLineColor--;
       } else {
-        myLineColor++;
+        //myLineColor++;
       }
     }
   }
