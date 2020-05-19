@@ -1,7 +1,7 @@
 int backgroundColor = 255;
 int lineColor = 200;
-int cols = 2;
-int rows = 2;
+int cols = 9;
+int rows = 6;
 int cnt=0;
 float w=100;
 int skipFrames = 10;
@@ -13,8 +13,6 @@ void setup() {
   size(900,600);
   noFill();
   noStroke();
-  stroke(lineColor);
-  //rectMode(CENTER);
   fill(150);
   for (int j = 0; j < rows; j++) {      // start at 1 and got to rows-1 so there is a 1 unit margin
     for (int i = 0; i < cols; i++) {    // start at 1 and got to col-1 so there is a 1 unit margin
@@ -41,13 +39,6 @@ Cell getCell(int thisCol, int thisRow) {
   }
     return null;
 }
-
-/*
-void mouseClick() {
-  loop();
-  drawGrid();
-}
-*/
 
 void drawCell() {
   if (frameCount % skipFrames == 0) {
@@ -76,7 +67,7 @@ void drawGrid() {
 }
 
 void draw() {
-  //drawCell();
+  drawCell();
 }
 
 
@@ -108,32 +99,18 @@ class Cell {
     arc(myCol*w+(w/2), (myRow*w)+w, w, w, PI, 2 * PI, OPEN);
   }
 
-  void drawHalfRight2(float multiplier, int colOffset, int rowOffset) {
-    return;
-    /*
-    fill(myBackground);
-    float col = myCol*w + (colOffset * multiplier * w/2);
-    float row = myRow*w + (rowOffset * multiplier * w/2);
-    float width = w*multiplier;
-    rect(col,row,width,width);
-    fill(myFill);
-    col=col+(w/2) + (colOffset * multiplier * w/2);
-    arc(col, row, width, width, HALF_PI, PI + HALF_PI, OPEN);
-    */
-  }
-
   void drawHalfRight(float multiplier) {
     fill(myBackground);
     rect(myCol*w,myRow*w,w,w);
     fill(myFill);
-    arc(myCol*w, (myRow*w)+(w/2), w, w, HALF_PI, PI + HALF_PI, OPEN);
+    arc((myCol*w)+w, (myRow*w)+(w/2), w, w, HALF_PI, PI + HALF_PI, OPEN);
   }
 
   void drawHalfLeft(float multiplier) {
     fill(myBackground);
     rect(myCol*w,myRow*w,w,w);
     fill(myFill);
-    arc(myCol*w-(w), (myRow*w)+(w/2), w, w, PI + HALF_PI, 2*PI + HALF_PI, OPEN);
+    arc(myCol*w, (myRow*w)+(w/2), w, w, PI + HALF_PI, 2*PI + HALF_PI, OPEN);
   }
   
   void drawEmptyCell() {
@@ -144,15 +121,15 @@ class Cell {
 
   void drawShape(float multiplier) {
     String shapeNum=str(int(random(1,5)));
-    drawHalfRight(multiplier);
-    /*
+    println(myCol + "," + myRow + "-" + myFill + "," + myBackground);
+    
     switch(shapeNum) {
       case "1": drawHalfTop(multiplier); break;
       case "2": drawHalfBottom(multiplier); break;
       case "3": drawHalfLeft(multiplier); break;
-      case "4": drawHalfRight(multiplier, -1, -1); break;
+      case "4": drawHalfRight(multiplier); break;
     }
-    */
+    
   }
   
   void setRandomInverse() {
@@ -173,9 +150,9 @@ class Cell {
         stroke(0);
         rect(myCol*w,myRow*w,w,w);
         noStroke();
-        //drawHalfRight(0.5, 0, -1);
+        //drawHalfRight(0.5);
       } else {
-        drawShape(1);
+        drawShape(0.5);
       }
     }
     catch(Exception e) {
