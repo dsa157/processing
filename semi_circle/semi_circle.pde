@@ -7,19 +7,24 @@ float w=100;
 int skipFrames = 10;
 boolean testMode = false;
 Cell[][] grid = new Cell[cols][rows];
+  PShape s;
 
 
 void setup() {
   size(900,600);
   noFill();
   noStroke();
-  fill(150);
-  for (int j = 0; j < rows; j++) {      // start at 1 and got to rows-1 so there is a 1 unit margin
+  
+  
+  s = createShape(ARC, 50, 55, 70, 70, PI, PI+QUARTER_PI);
+  
+  /*for (int j = 0; j < rows; j++) {      // start at 1 and got to rows-1 so there is a 1 unit margin
     for (int i = 0; i < cols; i++) {    // start at 1 and got to col-1 so there is a 1 unit margin
       grid[i][j] = new Cell(i,j);
     }
   }
   drawGrid();
+  */
 }
 
 Cell getCell(int thisCol, int thisRow) {
@@ -67,7 +72,11 @@ void drawGrid() {
 }
 
 void draw() {
-  drawCell();
+ // drawCell();
+   s.setStroke(0);
+   s = createShape(ARC, 100, 100, 100, 0, PI, OPEN);
+   s.setFill(100); //<>//
+
 }
 
 
@@ -85,11 +94,40 @@ class Cell {
     myLineColor=0;
   } 
     
-  void drawHalfTop(float multiplier) {
+  void drawHalfTop(float multiplier, int quadrant) {
     fill(myBackground);
-    rect(myCol*w,myRow*w,w,w);
+    float cOffset = 0;
+    float rOffset=0;
+    float w2 = w * multiplier;
+    float row = myRow*w;
+    float col = myCol*w;
+
+    if (quadrant == 1) {
+      cOffset = -1 * w2/2;
+      rOffset = 0;
+    }
+    if (quadrant == 2) {
+      col = col + w2;
+      cOffset = -1 * w2/2 + w2;
+      rOffset = 0;
+    }
+    if (quadrant == 3) {
+      row = row + w2;
+      cOffset = -1 * w2/2;
+      rOffset = 0;
+    }
+    if (quadrant == 4) {
+      col = col + w2;
+      row = row + w2;
+      cOffset = -1 * w2/2 + w2;
+      rOffset = 0;
+    }
+    
+    rect(col,row,w2,w2);
     fill(myFill);
-    arc(myCol*w+(w/2), myRow*w, w, w, 0, PI, OPEN);
+    col=myCol*w+(w/2)+cOffset;
+    row=row+rOffset;
+    arc(col, row, w2, w2, 0, PI, OPEN);
   }
 
   void drawHalfBottom(float multiplier) {
@@ -122,14 +160,18 @@ class Cell {
   void drawShape(float multiplier) {
     String shapeNum=str(int(random(1,5)));
     println(myCol + "," + myRow + "-" + myFill + "," + myBackground);
-    
+    drawHalfTop(multiplier, multiplier==1?0:1);
+    drawHalfTop(multiplier, multiplier==1?0:2);
+    drawHalfTop(multiplier, multiplier==1?0:3);
+    drawHalfTop(multiplier, multiplier==1?0:4);
+    /*
     switch(shapeNum) {
       case "1": drawHalfTop(multiplier); break;
       case "2": drawHalfBottom(multiplier); break;
       case "3": drawHalfLeft(multiplier); break;
       case "4": drawHalfRight(multiplier); break;
     }
-    
+    */
   }
   
   void setRandomInverse() {
@@ -152,7 +194,7 @@ class Cell {
         noStroke();
         //drawHalfRight(0.5);
       } else {
-        drawShape(0.5);
+        drawShape(.5);
       }
     }
     catch(Exception e) {
