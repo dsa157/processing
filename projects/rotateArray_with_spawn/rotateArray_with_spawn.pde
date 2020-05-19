@@ -57,10 +57,14 @@ void spawn() {
       }
 }
 
-void mouseClicked() {
+void resetSpawns() {
   spawns=0;
   loop();
   spawn();
+}
+
+void mouseClicked() {
+  resetSpawns();
 }
 
 void draw() {
@@ -83,10 +87,10 @@ void draw() {
 }
 
 Cell getCell(int thisCol, int thisRow) {
-  if (thisCol<0 || thisCol>cols) {
+  if (thisCol<0 || thisCol>cols-1) {  //account for the 1 cell margin
     return null;
   }
-  if (thisRow<0 || thisRow>rows) {
+  if (thisRow<0 || thisRow>rows-1) {  //account for the 1 cell margin
     return null;
   }
   try {
@@ -94,15 +98,15 @@ Cell getCell(int thisCol, int thisRow) {
     return c;
   }
   catch(Exception e) {
-    //println("oops getCell: " + thisCol + "," + thisRow);
-    return null;
+    println("oops getCell: " + thisCol + "," + thisRow);
+    exit();
   }
+    return null;
 }
 
 
 //------------------------------------------------------------------
 class Cell {
-  
     int myCol=0;
     int myRow=0;
     int myLineColor=-1;
@@ -126,7 +130,8 @@ class Cell {
     //if (unspawned()) {
       gen = 0;
       setColor();
-      for (int i=1; i<=genMax; i++) {
+      gens = int(random(1, genMax)); 
+      for (int i=1; i<=gens; i++) {
         generate(i);
       }
     //}
