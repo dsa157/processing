@@ -1,4 +1,4 @@
-int sz = 500; //<>// //<>//
+int sz = 500; //<>// //<>// //<>// //<>//
 float w = 500;
 int skipFrames = 1;
 int cols=1;
@@ -27,29 +27,10 @@ void setup()
 void draw()
 {
   if (frameCount % skipFrames == 0) {
-    //drawCell();
     background(0);
     noStroke();
-
-    
     y1.display();
-/*    //print("y1.myX=" + y1.myX + "\n");
-    //y11.myX=100;
-    y11.level=2;
-    y11.speed=2;
-    //y11.display();
 
-    //y111.myX=50;
-    y111.level=3;
-    y111.speed=4;
-    //y111.display();
-
-    //y112.myX=50;
-    y112.level=3;
-    y112.speed=4;
-    y112.position = 1;
-    //y112.display();
-    */
   }
 } 
 
@@ -125,6 +106,7 @@ class YinYang {
   }
 
   void addDot() {
+    print("addDot\n");
     fill(0);
     if (myFill == 0) {
       fill(255);
@@ -145,13 +127,7 @@ class YinYang {
   void rotateShape() {
     counter++;
     translate(w/2, w/2);
-    if (level > 1) {
-      //translate(position * level-1 * w/2, 0);
-    }
     rotate(speed * counter*TWO_PI/360);
-    //if (level > 1) {
-    //  translate(w/2, w/2);
-   // }
     translate(-w/2, -w/2);
   }
 
@@ -164,26 +140,26 @@ class YinYang {
      if (j==1) { translate(-w/4,w/4); }
      if (j==2) { translate(w/4,-w/4); }
      if (j==3) { translate(w/4,w/4); }
-     scale(.5);
      }
      */
-  }
+     scale(0.5);
+
+  } //<>//
 
   void display() {
-    pushMatrix();
+    pushMatrix(); //<>//
     //noStroke();
 
-    //translate(myCol*w+w,myRow*w+w);
-    //scaleShape();
+    translate(0,(w/4));
+    scaleShape();
     if (a != null) {
       //a.display();
       //a.rotateShape();
     }
     if (b != null) {
-      b.display();
+      //b.display();
       //b.rotateShape();
     }
-    scale(0.5, 0.5);
     rotateShape();
 
     //rotateShape();
