@@ -5,26 +5,35 @@
 
 int EVEN = 1;
 int RAND = 2;
-int maxFrames = 5;
-int maxColors = 10;
+int WARM = 3;
+int COOL = 4;
 
+int maxFrames = 10;
+int maxColors = 4;
+String colorImage = "Storm.png";
+//String colorImage = "Innoculation.jpg";
 
 //int[] palette = {#3E3949, #2A264E, #E4DED3, #958C31, #766C5C, #6C63A1};
 int[] palette = {#3E3949, #2A264E, #E4DED3, #958C31, #766C5C, #000000};
 int[] discreteColors = {10, 20, 33, 50, 75};
 Gradient g;
-PImage img;
+PImage colorImg;
 int click=1;
 //int frameCount = 0;
 String outFilePrefix = "test";
+int imageWidth, imageHeight;
 
 void setup() {
   size(800,1118);
+//  size(1600,1067);
+  //size(800,534);
+  imageWidth = width;
+  imageHeight = height;
   imageMode(CENTER);
-  img = loadImage("gray1.png");
-  g = new Gradient(EVEN, palette);
+  colorImg = loadImage(colorImage);
+  g = new Gradient(colorImg, RAND, palette);
   background(255);
-  stroke(255);
+  //stroke(255);
   //noStroke();
 }
 
@@ -32,8 +41,9 @@ void draw() {
   if (frameCount <= maxFrames) {
     click=0;
     g.draw();
-    g.drawDiscreteColors(discreteColors);
-    //g.mapColors(img);
+    //g.drawDiscreteColors(discreteColors);
+    g.mapColors();
+    //g.overlay();
     String outFileName = outFilePrefix+"-####.png"; 
     saveFrame(outFileName);
   } 
@@ -42,24 +52,22 @@ void draw() {
   }
 }
 
-void mouseClicked() {
-  println("---");
-  click=1;
-}
-
 class Gradient {
   
   color from; 
   color to; 
-  PImage myImg;
+  PImage myImg, grayImg, tempImg;
   int gradientType = EVEN;
   
   int[] myPalette;
   int paletteSize = 0;
   color[] gradValues = new color[width];
   
-  Gradient(int gType, int[] palette) {
+  Gradient(PImage img, int gType, int[] palette) {
     myPalette = palette;
+    myImg = img;
+    grayImg = myImg.copy();
+    grayImg.filter(GRAY);
     paletteSize = palette.length;
     gradientType = gType;
   }
@@ -72,8 +80,8 @@ class Gradient {
         if (j<width) {
           gradValues[j]=newColor;
         }
-        line(j,0,j,height);
-        stroke(newColor);
+        //line(j,0,j,height);
+        //stroke(newColor);
       }
   }
   
@@ -97,7 +105,6 @@ class Gradient {
       }
       from = color(myPalette[i]);
       to=color(myPalette[i+1]);
-      println(from, to);
       lerpColors(ndx,prev,from,to);
     }
   }
@@ -108,6 +115,7 @@ class Gradient {
 
   color getColorByPercentPosition(int i) {
     int percentPosition = getPercentPosition(i);
+    //println("getColorByPercentPosition", i, percentPosition);
     color c = gradValues[percentPosition];
     //println("getColorByPercentPosition=", percentPosition, c);
     return c;
@@ -116,6 +124,10 @@ class Gradient {
   color getPercentPosition(int i) {
     float percent = width * (i * 1.0)/100;
     int percentPosition = int(percent);
+    // make sure we don't extend past the array size
+    if (percentPosition == width) {
+      percentPosition = width - 1;
+    }
     return percentPosition;
   }
 
@@ -132,9 +144,22 @@ class Gradient {
     }
   }
   
-  void mapColors(PImage img1) {
-    myImg = img1;
-    PImage tempImg = myImg;
+  void generateRandomPalette() {
+    int[] gradPalette = new int[maxColors+1];
+    gradPalette[0] = color(0);
+    for (int i=1; i<maxColors; i++) {
+      float r = random(128,255);
+      float g = random(128,255);
+      float b = random(128,255);
+      color c = color(r,g,b);
+      gradPalette[i] = c;
+    }
+    myPalette = gradPalette;
+    paletteSize = myPalette.length;
+  }
+
+  void mapColors() {
+    tempImg = grayImg.copy();
     tempImg.loadPixels();
     for (int i=0; i<tempImg.pixels.length; i++) {
       color c = tempImg.pixels[i];
@@ -143,20 +168,21 @@ class Gradient {
       tempImg.pixels[i] = getColorByPercentPosition(percentBrightness);
     }
     tempImg.updatePixels();
-    image(tempImg,width/2,height/2,img.width,img.height);    
+    
+    // draw the temp image, then overlay the original at 50% opacity
+    tint(255, 255); //<>//
+    image(myImg,width/2,height/2,imageWidth,imageHeight);  
+    tint(255, 64);
+    PImage blurredImg = tempImg.copy();
+    blurredImg.filter(BLUR, 6.0);
+    image(blurredImg,width/2,height/2,imageWidth,imageHeight);    
+    //tint(255, 128);
+    //image(colorImg,width/2,height/2,imageWidth,imageHeight);  
   }
-  
-  void generateRandomPalette() {
-    int[] tmpPalette = new int[maxColors];
-    for (int i=0; i<maxColors; i++) {
-      float r = random(255);
-      float g = random(255);
-      float b = random(255);
-      color c = color(r,g,b);
-      tmpPalette[i] = c;
-    }
-    myPalette = tmpPalette;
-    paletteSize = myPalette.length;
+    
+  void overlay() {
+    //loadPixels();
+    image(tempImg,width/2,height/2,imageWidth,imageHeight);     //<>//
   }
 
 }
