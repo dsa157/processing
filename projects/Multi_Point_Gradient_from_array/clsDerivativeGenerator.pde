@@ -21,7 +21,7 @@ class DerivativeGenerator {
 
   
   color[] gradValues = new color[width];
-  String[] logInfo = new String[1];
+  String[] imageMetaData = new String[4];
 
   
   DerivativeGenerator(PImage img, int gType) {
@@ -40,7 +40,7 @@ class DerivativeGenerator {
   }
   
   String getOutFileName() {
-    return outFilePrefix + "-c" + colorIteration + "-z" + zoomLevel + ".png";
+    return outFilePrefix + "-c" + colorIteration + "-z" + zoomLevel;
   }
 
   void lerpColors(int ndx, int prev, color from, color to) {
@@ -58,7 +58,6 @@ class DerivativeGenerator {
   
   void draw() {
     generateRandomPalette();
-    println(savePaletteAsHexStrings());
     int ndx = 0;
     int prev = 0;
     for (int i=0; i<paletteSize-1; i++) {
@@ -132,6 +131,7 @@ class DerivativeGenerator {
   void mapColors() {
     for (int z=1; z<=maxZooms; z++) {
       zoomLevel = z;
+      println("Processing " + getOutFileName() + ".png");
       tempImg = grayImg.copy();
       tempImg.loadPixels();
       for (int i=0; i<tempImg.pixels.length; i++) {
@@ -142,7 +142,8 @@ class DerivativeGenerator {
       }
       tempImg.updatePixels();
       overlay();
-      saveFrame(getOutFileName());
+      saveFrame(getOutFileName() + ".png");
+      saveImageMetaData();
     }
   } //<>//
     
@@ -167,11 +168,11 @@ class DerivativeGenerator {
     }
   }
   
-  void addLogInfo(String s) {
+  void addImageMetaData(String s) {
     //params[0] = "FileName: " + outFilePrefix + "-" + outputCount+".png"; ;
     //params[1] = "outPutCount: " + outputCount;
     //logParameters(outputCount, params);
-    append(logInfo, s);
+    append(imageMetaData, s);
   }
   
   String savePaletteAsHexStrings() {
@@ -185,8 +186,12 @@ class DerivativeGenerator {
     return retString;
   }
 
-  void logParameters() {
-    //saveStrings(logFileName, logInfo);
+  void saveImageMetaData() {
+    imageMetaData[0] = "FileName: " + getOutFileName() + ".png";
+    imageMetaData[1] = "Palette: " + savePaletteAsHexStrings();
+    imageMetaData[2] = "Zoom Level: " + zoomLevel;
+    imageMetaData[3] = "Color Iteration: " + colorIteration;
+    saveStrings(getOutFileName() + ".txt", imageMetaData);
   }
 
 } 

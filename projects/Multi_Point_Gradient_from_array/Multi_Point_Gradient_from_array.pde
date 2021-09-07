@@ -7,7 +7,7 @@ int maxColorIterations = 3;
 int maxZooms = 3;
 int maxPaletteColors = 5;
 //String colorImage = "Storm.png";
-//String colorImage = "Innoculation.jpg";
+//String colorImage = "Innoculation-NFT-00001.jpg";
 String colorImage = "Mandala-1a-2.png";
 
 DerivativeGenerator dg;
