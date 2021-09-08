@@ -9,7 +9,7 @@ class DerivativeGenerator {
   
   color from; 
   color to; 
-  PImage myImg, grayImg, tempImg;
+  BaseImage bImg;
   int gradientType = EVEN;
   
   int[] myPalette;
@@ -24,10 +24,8 @@ class DerivativeGenerator {
   String[] imageMetaData = new String[4];
 
   
-  DerivativeGenerator(PImage img, int gType) {
-    myImg = img;
-    grayImg = myImg.copy();
-    grayImg.filter(GRAY);
+  DerivativeGenerator(BaseImage img, int gType) {
+    bImg = img;
     gradientType = gType;
   }
   
@@ -40,7 +38,7 @@ class DerivativeGenerator {
   }
   
   String getOutFileName() {
-    return outFilePrefix + "-c" + colorIteration + "-z" + zoomLevel;
+    return bImg.getOutFileName(colorIteration, zoomLevel);
   }
 
   void lerpColors(int ndx, int prev, color from, color to) {
@@ -131,8 +129,9 @@ class DerivativeGenerator {
   void mapColors() {
     for (int z=1; z<=maxZooms; z++) {
       zoomLevel = z;
-      println("Processing " + getOutFileName() + ".png");
-      tempImg = grayImg.copy();
+      println("Processing " + getOutFileName() + ".png (" + imageCount++ + "/" + maxImages + ")");
+      bImg.setTempImg(bImg.getGrayImg());
+      PImage tempImg = bImg.getTempImg();
       tempImg.loadPixels();
       for (int i=0; i<tempImg.pixels.length; i++) {
         color c = tempImg.pixels[i];
@@ -154,26 +153,26 @@ class DerivativeGenerator {
   void overlay() {
     // draw the temp image, then overlay the original at 50% opacity
     tint(255, 255);
-    zoom(myImg, zoomLevel);
+    zoom(bImg.colorImg, zoomLevel);
     tint(255, 64);
-    PImage blurredImg = tempImg.copy();
+    PImage blurredImg = bImg.getTempImg().copy();
     blurredImg.filter(BLUR, 6.0);
     zoom(blurredImg, zoomLevel);
     tint(255, 128);
     if (overlayGray) {
-      zoom(grayImg, zoomLevel);
+      zoom(bImg.getGrayImg(), zoomLevel);
     }
     if (overlayColor) {
-      zoom(grayImg, zoomLevel);
+      zoom(bImg.getColorImg(), zoomLevel);
     }
   }
   
-  void addImageMetaData(String s) {
-    //params[0] = "FileName: " + outFilePrefix + "-" + outputCount+".png"; ;
-    //params[1] = "outPutCount: " + outputCount;
-    //logParameters(outputCount, params);
-    append(imageMetaData, s);
-  }
+  //void addImageMetaData(String s) {
+  //  //params[0] = "FileName: " + outFilePrefix + "-" + outputCount+".png"; ;
+  //  //params[1] = "outPutCount: " + outputCount;
+  //  //logParameters(outputCount, params);
+  //  append(imageMetaData, s);
+  //}
   
   String savePaletteAsHexStrings() {
     String retString = "{ ";
