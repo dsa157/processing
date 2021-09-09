@@ -1,4 +1,4 @@
-// class for processing source images to create variations of gradient, zoom, etc
+// class for processing source images to create variations of gradient, zoom, etc //<>//
 
 int EVEN = 1;
 int RAND = 2;
@@ -6,54 +6,55 @@ int WARM = 3;
 int COOL = 4;
 
 class DerivativeGenerator {
-  
+
   color from; 
   color to; 
   BaseImage bImg;
   int gradientType = EVEN;
-  
+
   int[] myPalette;
   int paletteSize = 0;
   int zoomLevel = 1;
   int colorIteration = 1;
   boolean overlayGray = false;
   boolean overlayColor = false;
+  int xOffset = 0;
+  int yOffset = 0;
+  String outputFolder = "output";
 
-  
   color[] gradValues = new color[width];
   String[] imageMetaData = new String[4];
 
-  
   DerivativeGenerator(BaseImage img, int gType) {
     bImg = img;
     gradientType = gType;
   }
-  
+
   void setZoomLevel(int zl) {
     zoomLevel = zl;
   }
-  
+
   void setColorIteration(int ci) {
     colorIteration = ci;
   }
-  
+
   String getOutFileName() {
     return bImg.getOutFileName(colorIteration, zoomLevel);
   }
 
   void lerpColors(int ndx, int prev, color from, color to) {
-      int segmentWidth = ndx - prev;
-      for (int j=prev; j<ndx; j++) {
-        float y = 1.0 - (ndx-j)/(segmentWidth * 1.0);
-        color newColor = lerpColor(from, to, y); 
-        if (j<width) {
-          gradValues[j]=newColor;
-        }
-        //line(j,0,j,height);
-        //stroke(newColor);
+    int segmentWidth = ndx - prev;
+    for (int j=prev; j<ndx; j++) {
+      float y = 1.0 - (ndx-j)/(segmentWidth * 1.0);
+      color newColor = lerpColor(from, to, y); 
+      if (j<width) {
+        gradValues[j]=newColor;
       }
+      //line(j,0,j,height);
+      //stroke(newColor);
+    }
   }
-  
+
   void draw() {
     generateRandomPalette();
     int ndx = 0;
@@ -62,21 +63,19 @@ class DerivativeGenerator {
       prev = ndx;
       if (i == paletteSize-2) {
         ndx = width;
-      }
-      else {
+      } else {
         if (gradientType == EVEN) {
           ndx = i * int(width/paletteSize);
-        }
-        else {
+        } else {
           ndx = int(random(ndx, width));
         }
       }
       from = color(myPalette[i]);
       to=color(myPalette[i+1]);
-      lerpColors(ndx,prev,from,to);
+      lerpColors(ndx, prev, from, to);
     }
   }
-  
+
   color getColorByPosition(int i) {
     return gradValues[i];
   }
@@ -111,15 +110,15 @@ class DerivativeGenerator {
       rect(percentPosition, rectWidth, rectWidth, rectWidth);
     }
   }
-  
+
   void generateRandomPalette() {
     int[] gradPalette = new int[maxPaletteColors+1];
     gradPalette[0] = color(0);
     for (int i=1; i<maxPaletteColors; i++) {
-      float r = random(128,255);
-      float g = random(128,255);
-      float b = random(128,255);
-      color c = color(r,g,b);
+      float r = random(128, 255);
+      float g = random(128, 255);
+      float b = random(128, 255);
+      color c = color(r, g, b);
       gradPalette[i] = c;
     }
     myPalette = gradPalette;
@@ -141,13 +140,47 @@ class DerivativeGenerator {
       }
       tempImg.updatePixels();
       overlay();
-      saveFrame(getOutFileName() + ".png");
+      saveFrame(outputFolder + "/" + getOutFileName() + ".png");
       saveImageMetaData();
     }
-  } //<>//
-    
+  }
+
+  // deterime whether zoomX is to the right or the left of center
+  int getXHalf() {
+    if (zoomX > width/2) {
+      return -1;
+    } else {
+      return 1;
+    }
+  }
+
+  // deterime whether zoomY is above or below center
+  int getYHalf() {
+    if (zoomY > height/2) {
+      return -1;
+    } else {
+      return 1;
+    }
+  }
+
   void zoom(PImage img, int zoomLevel) {
-    image(img, width/2, height/2, imageWidth*zoomLevel, imageHeight*zoomLevel);    
+    if (zoomLevel == 1) {
+      image(img, width/2, height/2, imageWidth*zoomLevel, imageHeight*zoomLevel);
+      // after the rendering of the first unzoomed image, calculate the point where the next zooms will be centered
+      if (zoomX == 0) {
+        // if not defined, set to center
+        zoomX = width/2;
+        zoomY = height/2;
+      }
+      xOffset = abs(zoomX - width/2) * getXHalf();
+      yOffset = abs(zoomY - height/2) * getYHalf();
+    } 
+    else {
+      pushMatrix();
+      translate(xOffset*zoomLevel, yOffset*zoomLevel);
+      image(img, width/2, height/2, imageWidth*zoomLevel, imageHeight*zoomLevel); 
+      popMatrix();
+    }
   }
 
   void overlay() {
@@ -166,14 +199,14 @@ class DerivativeGenerator {
       zoom(bImg.getColorImg(), zoomLevel);
     }
   }
-  
+
   //void addImageMetaData(String s) {
   //  //params[0] = "FileName: " + outFilePrefix + "-" + outputCount+".png"; ;
   //  //params[1] = "outPutCount: " + outputCount;
   //  //logParameters(outputCount, params);
   //  append(imageMetaData, s);
   //}
-  
+
   String savePaletteAsHexStrings() {
     String retString = "{ ";
     for (int i=0; i<myPalette.length; i++) {
@@ -190,7 +223,6 @@ class DerivativeGenerator {
     imageMetaData[1] = "Palette: " + savePaletteAsHexStrings();
     imageMetaData[2] = "Zoom Level: " + zoomLevel;
     imageMetaData[3] = "Color Iteration: " + colorIteration;
-    saveStrings(getOutFileName() + ".txt", imageMetaData);
+    saveStrings(outputFolder + "/" + getOutFileName() + ".txt", imageMetaData);
   }
-
 } 
