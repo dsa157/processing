@@ -33,8 +33,8 @@ BaseImage bImg;
 
 void setup() {
 //  size(800,1118);    // Storm
-//  size(1600,1067);   // Innoculation
-//  size(800,534);     // Innoculation small
+//  size(1600,1067);   // Innoculation        - zoom at 904,349
+//  size(800,534);     // Innoculation small  - zoom at 452,176
   size(400,400);       // Mandala small
   imageWidth = width;
   imageHeight = height;

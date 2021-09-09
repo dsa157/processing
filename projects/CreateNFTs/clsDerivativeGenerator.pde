@@ -153,12 +153,12 @@ class DerivativeGenerator {
   void overlay() {
     // draw the temp image, then overlay the original at 50% opacity
     tint(255, 255);
-    zoom(bImg.colorImg, zoomLevel);
-    tint(255, 64);
+    zoom(bImg.getColorImg(), zoomLevel);
+    bImg.setTint(0);
     PImage blurredImg = bImg.getTempImg().copy();
-    blurredImg.filter(BLUR, 6.0);
+    blurredImg.filter(BLUR, bImg.getBlurValue());
     zoom(blurredImg, zoomLevel);
-    tint(255, 128);
+    bImg.setTint(1);
     if (overlayGray) {
       zoom(bImg.getGrayImg(), zoomLevel);
     }
