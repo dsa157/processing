@@ -50,12 +50,14 @@ class DerivativeGenerator {
       if (j<width) {
         gradValues[j]=newColor;
       }
-      //line(j,0,j,height);
-      //stroke(newColor);
+      if (saveGradientImage) {
+        line(j,0,j,height);
+        stroke(newColor);
+      }
     }
   }
 
-  void draw() {
+  void generateGradient() {
     generateRandomPalette();
     int ndx = 0;
     int prev = 0;
@@ -73,6 +75,10 @@ class DerivativeGenerator {
       from = color(myPalette[i]);
       to=color(myPalette[i+1]);
       lerpColors(ndx, prev, from, to);
+    }
+    if (saveGradientImage) {
+      saveFrame(outputFolder + "/" + getOutFileName() + "-gradient.png");
+      background(255);
     }
   }
 
@@ -126,22 +132,24 @@ class DerivativeGenerator {
   }
 
   void mapColors() {
-    for (int z=1; z<=maxZooms; z++) {
-      zoomLevel = z;
-      println("Processing " + getOutFileName() + ".png (" + imageCount++ + "/" + maxImages + ")");
-      bImg.setTempImg(bImg.getGrayImg());
-      PImage tempImg = bImg.getTempImg();
-      tempImg.loadPixels();
-      for (int i=0; i<tempImg.pixels.length; i++) {
-        color c = tempImg.pixels[i];
-        float b = brightness(c);
-        int percentBrightness = int((b/255.0)*100.0);
-        tempImg.pixels[i] = getColorByPercentPosition(percentBrightness);
+    if (saveOutputImage) {
+      for (int z=1; z<=maxZooms; z++) {
+        zoomLevel = z;
+        println("Processing " + getOutFileName() + ".png (" + imageCount++ + "/" + maxImages + ")");
+        bImg.setTempImg(bImg.getGrayImg());
+        PImage tempImg = bImg.getTempImg();
+        tempImg.loadPixels();
+        for (int i=0; i<tempImg.pixels.length; i++) {
+          color c = tempImg.pixels[i];
+          float b = brightness(c);
+          int percentBrightness = int((b/255.0)*100.0);
+          tempImg.pixels[i] = getColorByPercentPosition(percentBrightness);
+        }
+        tempImg.updatePixels();
+        overlay();
+        saveFrame(outputFolder + "/" + getOutFileName() + ".png");
+        saveImageMetaData();
       }
-      tempImg.updatePixels();
-      overlay();
-      saveFrame(outputFolder + "/" + getOutFileName() + ".png");
-      saveImageMetaData();
     }
   }
 
@@ -200,13 +208,6 @@ class DerivativeGenerator {
     }
   }
 
-  //void addImageMetaData(String s) {
-  //  //params[0] = "FileName: " + outFilePrefix + "-" + outputCount+".png"; ;
-  //  //params[1] = "outPutCount: " + outputCount;
-  //  //logParameters(outputCount, params);
-  //  append(imageMetaData, s);
-  //}
-
   String savePaletteAsHexStrings() {
     String retString = "{ ";
     for (int i=0; i<myPalette.length; i++) {
@@ -219,10 +220,12 @@ class DerivativeGenerator {
   }
 
   void saveImageMetaData() {
-    imageMetaData[0] = "FileName: " + getOutFileName() + ".png";
-    imageMetaData[1] = "Palette: " + savePaletteAsHexStrings();
-    imageMetaData[2] = "Zoom Level: " + zoomLevel;
-    imageMetaData[3] = "Color Iteration: " + colorIteration;
-    saveStrings(outputFolder + "/" + getOutFileName() + ".txt", imageMetaData);
+    if (saveMetaData) {
+      imageMetaData[0] = "FileName: " + getOutFileName() + ".png";
+      imageMetaData[1] = "Palette: " + savePaletteAsHexStrings();
+      imageMetaData[2] = "Zoom Level: " + zoomLevel;
+      imageMetaData[3] = "Color Iteration: " + colorIteration;
+      saveStrings(outputFolder + "/" + getOutFileName() + ".txt", imageMetaData);
+    }
   }
 } 

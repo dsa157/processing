@@ -1,7 +1,11 @@
-int maxDerivatives = 1;
-int maxColorIterations = 3;
+int maxDerivatives = 3;
+int maxColorIterations = 10;
 int maxZooms = 3;
-int maxPaletteColors = 5;
+int maxPaletteColors = 7;
+boolean saveMetaData = false;
+boolean saveGradientImage = false;
+boolean saveOutputImage = true;
+
 
 int maxImages = maxDerivatives * maxColorIterations * maxZooms;
 int imageCount = 1;
@@ -13,9 +17,9 @@ int imageCount = 1;
 //};
 
 String imageList[] = {
-//  "Innoculation-NFT-00003.png",
 //  "Innoculation-NFT-00002.png",
-  "Innoculation-NFT-00001.png"
+  "Innoculation-NFT-00001.png",
+  "Innoculation-NFT-00003.png"
 };
 int zoomX = 452;
 int zoomY = 176;
@@ -32,6 +36,10 @@ int zoomY = 176;
 DerivativeGenerator dg;
 int imageWidth, imageHeight;
 BaseImage bImg;
+int currentDerivative=0;
+int currentZoom=0;
+int currentColorIteration=0;
+
 
 void setup() {
 //  size(800,1118);    // Storm
@@ -42,21 +50,28 @@ void setup() {
   imageHeight = height;
   imageMode(CENTER);
   
-  bImg = new BaseImage(imageList[0]);
-  dg = new DerivativeGenerator(bImg, RAND);
   background(255);
   //stroke(255);
   //noStroke();
 }
 
+//BaseImage getNextImage() {
+//  BaseImage b new BaseImage(imageList[currentDerivative]);
+//}
+
 void draw() {
   if (frameCount <= maxColorIterations) {
-     dg.setColorIteration(frameCount);
-     dg.draw();
-    //g.drawDiscreteColors(discreteColors);
-    dg.mapColors();
+    println("frameCount: " + frameCount);
+    for (int i=0; i<maxDerivatives; i++) {
+      bImg = new BaseImage(imageList[i]);
+      dg = new DerivativeGenerator(bImg, EVEN);
+      dg.setColorIteration(frameCount);
+      dg.generateGradient();
+      dg.mapColors();
+    }
   } 
   else {
+    println("done.");
     exit();
   }
 }

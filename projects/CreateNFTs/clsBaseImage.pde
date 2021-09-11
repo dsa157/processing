@@ -6,16 +6,8 @@ class BaseImage {
 
   protected PImage colorImg, grayImg, tempImg;
   protected String outFilePrefix = "";
-  protected int[] tintOpacity = {64, 128};
+  protected int[] tintOpacity = {100, 128};
   protected float blurValue = 6.0;
-
-  // default to center of image
-  Point[] zoomPoints = {new Point(width/2, height/2), 
-    new Point(width/2, height/2), 
-    new Point(width/2, height/2), 
-    new Point(width/2, height/2), 
-    new Point(width/2, height/2)
-  };
 
   BaseImage(String fileName) {
     outFilePrefix = fileName.substring(0, fileName.length()-4);
