@@ -1,10 +1,17 @@
-int maxDerivatives = 3;
-int maxColorIterations = 10;
-int maxZooms = 3;
+int maxDerivatives = 1;
+int maxColorIterations = 2;
+int maxZooms = 1;
 int maxPaletteColors = 7;
+float defaultBlur = 10.0;
+int[] defaultTintOpacity = {150, 200}; // blurred image at 100/255 (~40%), color overlay at 128/255 (~50%)
+
 boolean saveMetaData = false;
-boolean saveGradientImage = false;
+boolean saveGradientImage = true;
+boolean saveGrayImage = true;
+boolean saveBlurredImage = true;
 boolean saveOutputImage = true;
+boolean overlayGray = true;
+
 
 
 int maxImages = maxDerivatives * maxColorIterations * maxZooms;
@@ -17,10 +24,11 @@ int imageCount = 1;
 //};
 
 String imageList[] = {
-//  "Innoculation-NFT-00002.png",
-  "Innoculation-NFT-00001.png",
+  //  "Innoculation-NFT-00002.png",
+  "Innoculation-NFT-00001.png", 
   "Innoculation-NFT-00003.png"
 };
+
 int zoomX = 452;
 int zoomY = 176;
 
@@ -42,15 +50,16 @@ int currentColorIteration=0;
 
 
 void setup() {
-//  size(800,1118);    // Storm
-//  size(1600,1067);   // Innoculation      - zoom at 904,349
-  size(800,534);     // Innoculation small  - zoom at 452,176
-//  size(400,400);       // Mandala small
+  //  size(800,1118);    // Storm
+  //  size(1600,1067);   // Innoculation      - zoom at 904,349
+  size(800, 534);     // Innoculation small  - zoom at 452,176
+  //  size(400,400);       // Mandala small
   imageWidth = width;
   imageHeight = height;
   imageMode(CENTER);
-  
-  background(255);
+  colorMode(RGB, 255, 255, 255);
+
+  background(0);
   //stroke(255);
   //noStroke();
 }
@@ -69,8 +78,7 @@ void draw() {
       dg.generateGradient();
       dg.mapColors();
     }
-  } 
-  else {
+  } else {
     println("done.");
     exit();
   }

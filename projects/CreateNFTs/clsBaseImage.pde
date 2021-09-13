@@ -6,13 +6,12 @@ class BaseImage {
 
   protected PImage colorImg, grayImg, tempImg;
   protected String outFilePrefix = "";
-  protected int[] tintOpacity = {100, 128};
-  protected float blurValue = 6.0;
+  protected int[] tintOpacity = defaultTintOpacity;
+  protected float blurValue = defaultBlur;
 
   BaseImage(String fileName) {
     outFilePrefix = fileName.substring(0, fileName.length()-4);
     colorImg = loadImage(fileName);
-    //image(colorImg, width/2, height/2, width, height); 
     setGrayImg(colorImg);
   }
   

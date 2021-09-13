@@ -16,8 +16,7 @@ class DerivativeGenerator {
   int paletteSize = 0;
   int zoomLevel = 1;
   int colorIteration = 1;
-  boolean overlayGray = false;
-  boolean overlayColor = false;
+  boolean overlayColor = !overlayGray;
   int xOffset = 0;
   int yOffset = 0;
   String outputFolder = "output";
@@ -77,6 +76,7 @@ class DerivativeGenerator {
       lerpColors(ndx, prev, from, to);
     }
     if (saveGradientImage) {
+      tint(255, 255);
       saveFrame(outputFolder + "/" + getOutFileName() + "-gradient.png");
       background(255);
     }
@@ -121,9 +121,9 @@ class DerivativeGenerator {
     int[] gradPalette = new int[maxPaletteColors+1];
     gradPalette[0] = color(0);
     for (int i=1; i<maxPaletteColors; i++) {
-      float r = random(128, 255);
-      float g = random(128, 255);
-      float b = random(128, 255);
+      float r = random(255); //random(128, 255);
+      float g = random(255); //random(128, 255);
+      float b = random(255); //random(128, 255);
       color c = color(r, g, b);
       gradPalette[i] = c;
     }
@@ -136,6 +136,11 @@ class DerivativeGenerator {
       for (int z=1; z<=maxZooms; z++) {
         zoomLevel = z;
         println("Processing " + getOutFileName() + ".png (" + imageCount++ + "/" + maxImages + ")");
+        tint(255, 255);
+        if (saveGrayImage) {
+          zoom(bImg.getGrayImg(), zoomLevel);
+          saveFrame(outputFolder + "/" + getOutFileName() + "-gray.png");
+        }
         bImg.setTempImg(bImg.getGrayImg());
         PImage tempImg = bImg.getTempImg();
         tempImg.loadPixels();
@@ -146,7 +151,7 @@ class DerivativeGenerator {
           tempImg.pixels[i] = getColorByPercentPosition(percentBrightness);
         }
         tempImg.updatePixels();
-        overlay();
+        overlay2();
         saveFrame(outputFolder + "/" + getOutFileName() + ".png");
         saveImageMetaData();
       }
@@ -199,6 +204,11 @@ class DerivativeGenerator {
     PImage blurredImg = bImg.getTempImg().copy();
     blurredImg.filter(BLUR, bImg.getBlurValue());
     zoom(blurredImg, zoomLevel);
+    if (saveBlurredImage) {
+      zoom(blurredImg, zoomLevel);
+      saveFrame(outputFolder + "/" + getOutFileName() + "-blur.png");
+    }
+
     bImg.setTint(1);
     if (overlayGray) {
       zoom(bImg.getGrayImg(), zoomLevel);
@@ -206,6 +216,23 @@ class DerivativeGenerator {
     if (overlayColor) {
       zoom(bImg.getColorImg(), zoomLevel);
     }
+  }
+
+  void overlay2() {
+    // draw the temp image, then overlay the original at 50% opacity
+    PImage saturatedImg = bImg.getGrayImg().copy();
+    PImage blurredImg = bImg.getTempImg().copy();
+    blurredImg.filter(BLUR, bImg.getBlurValue());
+    colorMode(HSB, 255, 255, 255);
+    for (int i=0; i<blurredImg.pixels.length; i++) {
+      color blurredPixelColor = color(blurredImg.pixels[i]);
+      
+      color newColor = color(hue(blurredImg.pixels[i]), saturation(blurredImg.pixels[i]), brightness(saturatedImg.pixels[i]));
+      saturatedImg.pixels[i] = newColor;
+    }
+    colorMode(RGB, 255, 255, 255);
+    zoom(saturatedImg, zoomLevel);
+    saveFrame(outputFolder + "/" + getOutFileName() + "-sat.png");
   }
 
   String savePaletteAsHexStrings() {
