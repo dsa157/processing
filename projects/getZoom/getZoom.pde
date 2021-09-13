@@ -17,13 +17,13 @@ int imageWidth;
 float xOffset=0.0;
 float yOffset=0.0;
 int showGrid = 0;
-boolean zoomDefined = false;
+boolean zoomDefined = true;
 
 void setup() {
   size(1000,750);
   //size(800, 527);  Innoculation zoom: 452, 141
-  zoomX = 223;
-  zoomY = 351;
+  zoomX = 304;
+  zoomY = 274;
 //  size(400, 559);
 //  zoomX = width/2;
 //  zoomY = height/2;
