@@ -1,7 +1,8 @@
 PImage img, imgGrid;  //<>//
 //String imgName = "ellipses.png";
 //String imgName = "Innoculation-hirez.png";
-String imgName = "Innoculation3.png";
+//String imgName = "Innoculation3.png";
+String imgName = "Davids-Lyre-1-NFT.png";
 //String imgName = "storm.png";
 String gridName = "grid.png";
 
@@ -16,11 +17,13 @@ int imageWidth;
 float xOffset=0.0;
 float yOffset=0.0;
 int showGrid = 0;
+boolean zoomDefined = false;
 
 void setup() {
-  size(800, 527);
-  zoomX = 452;
-  zoomY = 171;
+  size(1000,750);
+  //size(800, 527);  Innoculation zoom: 452, 141
+  zoomX = 223;
+  zoomY = 351;
 //  size(400, 559);
 //  zoomX = width/2;
 //  zoomY = height/2;
@@ -88,6 +91,13 @@ void draw() {
 
 void mousePressed() {
   tint(255, 255);
-  println(mouseX, mouseY);
+  if (!zoomDefined) {
+    println(mouseX, mouseY);
+    zoomX = mouseX;
+    zoomY = mouseY;
+    xOffset = abs(zoomX - width/2) * getXHalf();
+    yOffset = abs(zoomY - height/2) * getYHalf();
+    zoomDefined = true;
+  }
   click=1;
 }
