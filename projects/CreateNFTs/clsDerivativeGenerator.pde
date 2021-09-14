@@ -20,6 +20,8 @@ class DerivativeGenerator {
   int xOffset = 0;
   int yOffset = 0;
   String outputFolder = "output";
+  color[][] allGradients = new color[maxColorIterations][width];
+  int[][] allPalettes = new int [maxColorIterations][maxPaletteColors+1];
 
   color[] gradValues = new color[width];
   String[] imageMetaData = new String[4];
@@ -30,6 +32,10 @@ class DerivativeGenerator {
     gradientType = gType;
   }
 
+  void setBaseImage(BaseImage img) {
+    bImg = img;
+  }
+  
   void setZoomLevel(int zl) {
     zoomLevel = zl;
   }
@@ -81,6 +87,23 @@ class DerivativeGenerator {
       saveFrame(outputFolder + "/" + getOutFileName() + "-gradient.png");
       background(255);
     }
+    arrayCopy(gradValues, allGradients[colorIteration-1]);
+    //allGradients[colorIteration-1]=gradValues;
+    //println("dsa2", colorIteration, allGradients[colorIteration-1][100], allGradients[colorIteration-1][200], allGradients[colorIteration-1][300]);
+    //printArray(gradValues);
+  }
+
+  void setGradient() {
+    setPalette();
+    arrayCopy(allGradients[colorIteration-1], gradValues);
+    //gradValues = allGradients[colorIteration-1];
+  }
+
+  void setPalette() {
+    //println("currentColorIteration: " + colorIteration);
+    arrayCopy(allPalettes[colorIteration-1], myPalette);
+    //myPalette = allPalettes[colorIteration-1];
+    //println(savePaletteAsHexStrings());
   }
 
   color getColorByPosition(int i) {
@@ -119,17 +142,22 @@ class DerivativeGenerator {
   }
 
   void generateRandomPalette() {
-    int[] gradPalette = new int[maxPaletteColors+1];
-    gradPalette[0] = color(0);
-    for (int i=1; i<maxPaletteColors; i++) {
+    int[] gradPalette = new int[maxPaletteColors];
+    //gradPalette[0] = color(0);
+    for (int i=0; i<maxPaletteColors; i++) {
       float r = random(255); //random(128, 255);
       float g = random(255); //random(128, 255);
       float b = random(255); //random(128, 255);
       color c = color(r, g, b);
       gradPalette[i] = c;
     }
+    //arrayCopy(gradPalette, myPalette);
     myPalette = gradPalette;
     paletteSize = myPalette.length;
+    //println("Current Color Iteration: " + colorIteration);
+    //println(savePaletteAsHexStrings());
+    arrayCopy(myPalette, allPalettes[colorIteration-1]);
+    //allPalettes[colorIteration-1]=myPalette; // we started colorIterations as 1-based, but the array is 0-based, so subtract 1 
   }
 
   void mapColors() {
@@ -247,6 +275,9 @@ class DerivativeGenerator {
   }
 
   String savePaletteAsHexStrings() {
+    if (myPalette == null) {
+      return "original palette";
+    }
     String retString = "{ ";
     for (int i=0; i<myPalette.length; i++) {
       String s = hex(myPalette[i], 6);
@@ -281,5 +312,12 @@ class DerivativeGenerator {
         saveStrings(outputFolder + "/" + getOutFileName() + ".txt", imageMetaData);
       }
       csvOutput.println(imageMetaData[0] + "," + imageMetaData[0] + "," + imageMetaData[0] + "," + imageMetaData[0]);
+      csvOutput.flush();
   }
+  
+  void closeWriter() {
+   csvOutput.flush();
+   csvOutput.close();
+  }
+  
 } 

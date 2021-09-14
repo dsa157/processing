@@ -1,6 +1,6 @@
 int maxDerivatives = 2;
 int maxColorIterations = 3;
-int maxZooms = 2;
+int maxZooms = 1;
 int maxPaletteColors = 5;    // Innoculation: 3
 float defaultBlur = 10.0;
 int[] defaultTintOpacity = {128, 150}; // blurred image at 100/255 (~40%), color overlay at 128/255 (~50%)
@@ -12,8 +12,6 @@ boolean saveGrayImage = true;
 boolean saveBlurredImage = false;
 boolean saveOutputImage = true;
 boolean overlayGray = false;
-
-
 
 int maxImages = maxDerivatives * maxColorIterations * maxZooms;
 int imageNdx = 0;
@@ -62,13 +60,12 @@ int zoomY = 274;
 
 //--------------------------------------
 
-DerivativeGenerator dg;
 int imageWidth, imageHeight;
-BaseImage bImg;
 int currentDerivative=0;
 int currentZoom=0;
-int currentColorIteration=0;
-
+//int currentColorIteration=0;
+BaseImage bImg;
+DerivativeGenerator dg;
 
 void setup() {
   //  size(800,1118);    // Storm
@@ -80,28 +77,38 @@ void setup() {
   imageHeight = height;
   imageMode(CENTER);
   colorMode(RGB, 255, 255, 255);
-
   background(0);
-  //stroke(255);
-  //noStroke();
-}
-
-//BaseImage getNextImage() {
-//  BaseImage b new BaseImage(imageList[currentDerivative]);
-//}
-
-void draw() {
-  if (frameCount <= maxDerivatives) {
-    bImg = new BaseImage(imageList[imageNdx]);
-    dg = new DerivativeGenerator(bImg, EVEN);
-    for (int i=1; i<=maxColorIterations; i++) {
+  bImg = new BaseImage(imageList[0]);;
+  dg = new DerivativeGenerator(bImg, EVEN);
+  for (int i=1; i<=maxColorIterations; i++) {
       dg.setColorIteration(i);
       dg.generateGradient();
+  }
+  for (int i=0; i<dg.allPalettes.length; i++) {
+    dg.myPalette = dg.allPalettes[i];
+    //println(dg.savePaletteAsHexStrings());
+  }
+  for (int i=1; i<=maxColorIterations; i++) {
+      dg.setColorIteration(i);
+      dg.setGradient();
+    }
+  //noLoop();
+}
+
+void draw() {
+  //exit();
+  if (frameCount <= maxDerivatives) {
+    bImg = new BaseImage(imageList[imageNdx]);
+    dg.setBaseImage(bImg);
+    for (int i=1; i<=maxColorIterations; i++) {
+      dg.setColorIteration(i);
+      dg.setGradient();
       dg.mapColors();
     }
     imageNdx++;
   } else {
     println("done.");
+    dg.closeWriter();
     exit();
   }
 }
