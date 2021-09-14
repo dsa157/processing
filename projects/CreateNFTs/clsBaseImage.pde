@@ -63,7 +63,7 @@ class BaseImage {
   void setMaxPaletteColors(int n) {
     maxPaletteColors = n;
   }
-
+  
   String getOutFileName(int colorIteration, int zoomLevel) {
     return outFilePrefix + "-c" + colorIteration + "-z" + zoomLevel;
   }

@@ -23,6 +23,7 @@ class DerivativeGenerator {
 
   color[] gradValues = new color[width];
   String[] imageMetaData = new String[4];
+  PrintWriter csvOutput = createWriter(outputFolder + "/" + "metadata.csv"); 
 
   DerivativeGenerator(BaseImage img, int gType) {
     bImg = img;
@@ -137,7 +138,10 @@ class DerivativeGenerator {
         zoomLevel = z;
         println("Processing " + getOutFileName() + ".png (" + imageCount++ + "/" + maxImages + ")");
         tint(255, 255);
-        if (saveGrayImage) {
+        zoom(bImg.getColorImg(), zoomLevel);
+        saveUnmodifiedImage(bImg.getColorImg());
+        //saveFrame(outputFolder + "/" + getOutFileName() + ".png");
+        if (saveGrayImage && colorIteration==0) {
           zoom(bImg.getGrayImg(), zoomLevel);
           saveFrame(outputFolder + "/" + getOutFileName() + "-gray.png");
         }
@@ -154,6 +158,7 @@ class DerivativeGenerator {
         overlay2();
         saveFrame(outputFolder + "/" + getOutFileName() + ".png");
         saveImageMetaData();
+        tint(255, 255);
       }
     }
   }
@@ -232,7 +237,13 @@ class DerivativeGenerator {
     }
     colorMode(RGB, 255, 255, 255);
     zoom(saturatedImg, zoomLevel);
-    saveFrame(outputFolder + "/" + getOutFileName() + "-sat.png");
+    bImg.setTint(0);
+    if (overlayGray) {
+      zoom(bImg.getGrayImg(), zoomLevel);
+    }
+    if (overlayColor) {
+      zoom(bImg.getColorImg(), zoomLevel);
+    }
   }
 
   String savePaletteAsHexStrings() {
@@ -245,14 +256,30 @@ class DerivativeGenerator {
     retString += " }";
     return retString;
   }
-
+  
+  void saveUnmodifiedImage(PImage img) {
+    if (saveUnmodifiedImage) {
+      if (frameCount == 1) {
+        if (colorIteration == 1) {
+          saveFrame(outputFolder + "/" + getOutFileName() + "-orig.png");
+        }
+      } else {
+        if (colorIteration == 1) {
+          saveFrame(outputFolder + "/" + getOutFileName() + "-deriv.png");
+        }
+      }
+      background(255);
+    }
+  }
+  
   void saveImageMetaData() {
-    if (saveMetaData) {
       imageMetaData[0] = "FileName: " + getOutFileName() + ".png";
       imageMetaData[1] = "Palette: " + savePaletteAsHexStrings();
       imageMetaData[2] = "Zoom Level: " + zoomLevel;
       imageMetaData[3] = "Color Iteration: " + colorIteration;
-      saveStrings(outputFolder + "/" + getOutFileName() + ".txt", imageMetaData);
-    }
+      if (saveMetaData) {
+        saveStrings(outputFolder + "/" + getOutFileName() + ".txt", imageMetaData);
+      }
+      csvOutput.println(imageMetaData[0] + "," + imageMetaData[0] + "," + imageMetaData[0] + "," + imageMetaData[0]);
   }
 } 
