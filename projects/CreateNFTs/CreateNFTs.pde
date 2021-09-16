@@ -2,9 +2,12 @@ import java.util.Date;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
-int maxDerivatives = 1;
-int maxColorIterations = 3;
-int maxZooms = 1;
+//int scriptAction = NFTAction.CREATE;
+int scriptAction = NFTAction.MINT;
+
+int maxDerivatives = 2;
+int maxColorIterations = 2;
+int maxZooms = 2;
 int maxPaletteColors = 5;    // Innoculation: 3
 float defaultBlur = 10.0;
 int[] defaultTintOpacity = {128, 150}; // blurred image at 100/255 (~40%), color overlay at 128/255 (~50%)
@@ -75,10 +78,8 @@ int currentZoom=0;
 //int currentColorIteration=0;
 BaseImage bImg;
 DerivativeGenerator dg;
-//int scriptAction = NFTAction.CREATE;
-int scriptAction = NFTAction.MINT;
 
-String actionPrefix = "create-";
+String actionPrefix = "";
 
 void setup() {
   println("begin - " + timeStamp());
@@ -104,12 +105,13 @@ void init() {
   colorMode(RGB, 255, 255, 255);
   background(0);
 
-  bImg = new BaseImage(imageList[0]);
-  dg = new DerivativeGenerator(bImg, GradientType.EVEN);
   if (scriptAction == NFTAction.MINT) {
     actionPrefix = "mint-";
+  } else {
+    actionPrefix = "create-";
   }
-
+  bImg = new BaseImage(imageList[0]);
+  dg = new DerivativeGenerator(bImg, GradientType.EVEN);
 }
 
 void generatePaletteAndGradients() {
@@ -127,7 +129,7 @@ void draw() {
   if (scriptAction == NFTAction.CREATE) {
     createNFTs();
   } else {
-    mintNFT(3);
+    mintNFT(14);
   }
 }
 

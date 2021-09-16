@@ -27,14 +27,21 @@ class DerivativeGenerator {
   color[] gradValues = new color[width];
   String[] imageMetaData = new String[5];
   
-  PrintWriter csvOutput = createWriter(outputFolder + "/" + getCvsOutputName()); 
+  PrintWriter csvOutput;
 
   DerivativeGenerator(BaseImage img, int gType) {
     bImg = img;
     gradientType = gType;
-    printCvsOutputHeader();
+    if (actionPrefix != "") {
+      setPrintWriter();
+      printCvsOutputHeader();
+    }
   }
   
+  void setPrintWriter() {
+    csvOutput = createWriter(outputFolder + "/" + getCvsOutputName()); 
+  }
+
   void setCvsOutputName() {
     cvsOutputName = actionPrefix + "metadata.csv";
   }
