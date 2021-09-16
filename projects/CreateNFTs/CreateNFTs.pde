@@ -1,4 +1,8 @@
-int maxDerivatives = 2;
+import java.util.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+
+int maxDerivatives = 1;
 int maxColorIterations = 3;
 int maxZooms = 1;
 int maxPaletteColors = 5;    // Innoculation: 3
@@ -7,7 +11,7 @@ int[] defaultTintOpacity = {128, 150}; // blurred image at 100/255 (~40%), color
 
 boolean saveMetaData = false;
 boolean saveUnmodifiedImage = true;
-boolean saveGradientImage = false;
+boolean saveGradientImage = true;
 boolean saveGrayImage = true;
 boolean saveBlurredImage = false;
 boolean saveOutputImage = true;
@@ -60,43 +64,74 @@ int zoomY = 274;
 
 //--------------------------------------
 
+static abstract class NFTAction {
+  static final int CREATE = 0;
+  static final int MINT = 1;
+}
+
 int imageWidth, imageHeight;
 int currentDerivative=0;
 int currentZoom=0;
 //int currentColorIteration=0;
 BaseImage bImg;
 DerivativeGenerator dg;
+//int scriptAction = NFTAction.CREATE;
+int scriptAction = NFTAction.MINT;
+
+String actionPrefix = "create-";
 
 void setup() {
+  println("begin - " + timeStamp());
+  init();
+  if (scriptAction == NFTAction.CREATE) {
+    generatePaletteAndGradients();
+  }
+}
+
+void settings() {
   //  size(800,1118);    // Storm
   //  size(1600,1067);   // Innoculation      - zoom at 904,349
-  //size(800, 534);     // Innoculation small  - zoom at 452,176
+  //  size(800, 534);     // Innoculation small  - zoom at 452,176
   //  size(400,400);       // Mandala small
   size(1000, 750);    // david's Lyre - small    - zoom at 304,274
+}
+
+void init() {
+  settings();
   imageWidth = width;
   imageHeight = height;
   imageMode(CENTER);
   colorMode(RGB, 255, 255, 255);
   background(0);
-  bImg = new BaseImage(imageList[0]);;
-  dg = new DerivativeGenerator(bImg, EVEN);
-  for (int i=1; i<=maxColorIterations; i++) {
-      dg.setColorIteration(i);
-      dg.generateGradient();
+
+  bImg = new BaseImage(imageList[0]);
+  dg = new DerivativeGenerator(bImg, GradientType.EVEN);
+  if (scriptAction == NFTAction.MINT) {
+    actionPrefix = "mint-";
   }
-  for (int i=0; i<dg.allPalettes.length; i++) {
-    dg.myPalette = dg.allPalettes[i];
-    //println(dg.savePaletteAsHexStrings());
+
+}
+
+void generatePaletteAndGradients() {
+  for (int i=1; i<=maxColorIterations; i++) {
+    dg.setColorIteration(i);
+    dg.generatePaletteAndGradient();
   }
   for (int i=1; i<=maxColorIterations; i++) {
-      dg.setColorIteration(i);
-      dg.setGradient();
-    }
-  //noLoop();
+    dg.setColorIteration(i);
+    dg.setGradient();
+  }
 }
 
 void draw() {
-  //exit();
+  if (scriptAction == NFTAction.CREATE) {
+    createNFTs();
+  } else {
+    mintNFT(3);
+  }
+}
+
+void createNFTs() {
   if (frameCount <= maxDerivatives) {
     bImg = new BaseImage(imageList[imageNdx]);
     dg.setBaseImage(bImg);
@@ -107,8 +142,53 @@ void draw() {
     }
     imageNdx++;
   } else {
-    println("done.");
-    dg.closeWriter();
-    exit();
+    done();
   }
+}
+
+void mintNFT(int ndx) {
+  noLoop();
+  String[] dataRecord = loadData(ndx);
+  image(bImg.getColorImg(), width/2, height/2, imageWidth, imageHeight);
+  mintNFT(dataRecord);
+  done();
+}
+
+void mintNFT(String[] dataRecord) {
+  String imageName = dataRecord[1];
+  String baseImageName = dataRecord[2];
+  String zoomLevel = dataRecord[3];
+  String colorIteration = dataRecord[4];
+  String palette = dataRecord[5];
+  //println("Color Iteration: " + colorIteration);
+  //println("Palette: " + palette);
+  bImg = new BaseImage(baseImageName);
+  dg.setBaseImage(bImg);
+  dg.generatePalette(palette);
+  saveGradientImage = false;
+  saveUnmodifiedImage = false;
+  saveGrayImage = false;
+  dg.generateGradient();
+  dg.setColorIteration(int(colorIteration));
+  dg.mapColors(int(zoomLevel));
+}
+
+void done() {
+  println("done - " + timeStamp());
+  dg.closeWriter();
+  exit();
+}
+
+String[] loadData(int ndx) {
+  String[] data = loadStrings("create-metadata.csv");
+  String[] dataRecord = split(data[ndx], ",");
+  println(data[ndx]);
+  return dataRecord;
+}
+
+String timeStamp() {
+  DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+  Date d = new Date();
+  String ts = formatter.format(d);
+  return ts;
 }

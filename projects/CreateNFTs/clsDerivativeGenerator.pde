@@ -1,16 +1,16 @@
 // class for processing source images to create variations of gradient, zoom, etc //<>//
 
-int EVEN = 1;
-int RAND = 2;
-int WARM = 3;
-int COOL = 4;
+static abstract class GradientType {
+  static final int EVEN = 0;
+  static final int RAND = 1;
+}
 
 class DerivativeGenerator {
 
   color from; 
   color to; 
   BaseImage bImg;
-  int gradientType = EVEN;
+  int gradientType = GradientType.EVEN;
 
   int[] myPalette;
   int paletteSize = 0;
@@ -20,16 +20,27 @@ class DerivativeGenerator {
   int xOffset = 0;
   int yOffset = 0;
   String outputFolder = "output";
+  String cvsOutputName = actionPrefix + "metadata.csv";
   color[][] allGradients = new color[maxColorIterations][width];
-  int[][] allPalettes = new int [maxColorIterations][maxPaletteColors+1];
+  int[][] allPalettes = new int [maxColorIterations][maxPaletteColors];
 
   color[] gradValues = new color[width];
-  String[] imageMetaData = new String[4];
-  PrintWriter csvOutput = createWriter(outputFolder + "/" + "metadata.csv"); 
+  String[] imageMetaData = new String[5];
+  
+  PrintWriter csvOutput = createWriter(outputFolder + "/" + getCvsOutputName()); 
 
   DerivativeGenerator(BaseImage img, int gType) {
     bImg = img;
     gradientType = gType;
+    printCvsOutputHeader();
+  }
+  
+  void setCvsOutputName() {
+    cvsOutputName = actionPrefix + "metadata.csv";
+  }
+  
+  String getCvsOutputName() {
+    return cvsOutputName;
   }
 
   void setBaseImage(BaseImage img) {
@@ -63,8 +74,12 @@ class DerivativeGenerator {
     }
   }
 
-  void generateGradient() {
+  void generatePaletteAndGradient() {
     generateRandomPalette();
+    generateGradient();
+  }
+  
+  void generateGradient() {
     int ndx = 0;
     int prev = 0;
     for (int i=0; i<paletteSize-1; i++) {
@@ -72,7 +87,7 @@ class DerivativeGenerator {
       if (i == paletteSize-2) {
         ndx = width;
       } else {
-        if (gradientType == EVEN) {
+        if (gradientType == GradientType.EVEN) {
           ndx = i * int(width/paletteSize);
         } else {
           ndx = int(random(ndx, width));
@@ -84,7 +99,7 @@ class DerivativeGenerator {
     }
     if (saveGradientImage) {
       tint(255, 255);
-      saveFrame(outputFolder + "/" + getOutFileName() + "-gradient.png");
+      saveFrame(outputFolder + "/" + actionPrefix + getOutFileName() + "-gradient.png");
       background(255);
     }
     arrayCopy(gradValues, allGradients[colorIteration-1]);
@@ -141,6 +156,18 @@ class DerivativeGenerator {
     }
   }
 
+  void generatePalette(String hexPaletteString) {
+    String[] hexColors = split(hexPaletteString, ';');
+    int[] gradPalette = new int[hexColors.length];    
+    for (int i=0; i<hexColors.length; i++) {
+      String colorString = hexColors[i];
+      gradPalette[i] = color(unhex(colorString));
+    }
+    myPalette = gradPalette;
+    paletteSize = myPalette.length;
+    arrayCopy(myPalette, allPalettes[colorIteration-1]);
+  }
+
   void generateRandomPalette() {
     int[] gradPalette = new int[maxPaletteColors];
     //gradPalette[0] = color(0);
@@ -149,8 +176,10 @@ class DerivativeGenerator {
       float g = random(255); //random(128, 255);
       float b = random(255); //random(128, 255);
       color c = color(r, g, b);
+      print(i, hex(c), "");
       gradPalette[i] = c;
     }
+    println("");
     //arrayCopy(gradPalette, myPalette);
     myPalette = gradPalette;
     paletteSize = myPalette.length;
@@ -163,15 +192,25 @@ class DerivativeGenerator {
   void mapColors() {
     if (saveOutputImage) {
       for (int z=1; z<=maxZooms; z++) {
-        zoomLevel = z;
-        println("Processing " + getOutFileName() + ".png (" + imageCount++ + "/" + maxImages + ")");
+        mapColors(z);
+      }
+    }
+  }
+  
+  void mapColors(int zl) {
+    if (saveOutputImage) {
+        zoomLevel = zl;
+        println("Processing " + getOutFileName() + ".png (" + imageCount++ + "/" + maxImages + ") " + timeStamp());
         tint(255, 255);
         zoom(bImg.getColorImg(), zoomLevel);
-        saveUnmodifiedImage(bImg.getColorImg());
-        //saveFrame(outputFolder + "/" + getOutFileName() + ".png");
-        if (saveGrayImage && colorIteration==0) {
+        if (colorIteration==1) {
+          saveUnmodifiedImage(bImg.getColorImg());
+        }
+        if (saveGrayImage && colorIteration==1) {
           zoom(bImg.getGrayImg(), zoomLevel);
-          saveFrame(outputFolder + "/" + getOutFileName() + "-gray.png");
+          String suffix = "-gray";
+          saveFrame(outputFolder + "/" + actionPrefix + getOutFileName() + suffix + ".png");
+          saveImageMetaData(suffix);
         }
         bImg.setTempImg(bImg.getGrayImg());
         PImage tempImg = bImg.getTempImg();
@@ -184,10 +223,9 @@ class DerivativeGenerator {
         }
         tempImg.updatePixels();
         overlay2();
-        saveFrame(outputFolder + "/" + getOutFileName() + ".png");
+        saveFrame(outputFolder + "/" + actionPrefix + getOutFileName() + ".png");
         saveImageMetaData();
         tint(255, 255);
-      }
     }
   }
 
@@ -239,7 +277,7 @@ class DerivativeGenerator {
     zoom(blurredImg, zoomLevel);
     if (saveBlurredImage) {
       zoom(blurredImg, zoomLevel);
-      saveFrame(outputFolder + "/" + getOutFileName() + "-blur.png");
+      saveFrame(outputFolder + "/" + actionPrefix + getOutFileName() + "-blur.png");
     }
 
     bImg.setTint(1);
@@ -259,7 +297,7 @@ class DerivativeGenerator {
     colorMode(HSB, 255, 255, 255);
     for (int i=0; i<blurredImg.pixels.length; i++) {
       color blurredPixelColor = color(blurredImg.pixels[i]);
-      
+    
       color newColor = color(hue(blurredImg.pixels[i]), saturation(blurredImg.pixels[i]), brightness(saturatedImg.pixels[i]));
       saturatedImg.pixels[i] = newColor;
     }
@@ -274,45 +312,64 @@ class DerivativeGenerator {
     }
   }
 
-  String savePaletteAsHexStrings() {
-    if (myPalette == null) {
-      return "original palette";
+  String savePaletteAsHexStrings(String suffix) {
+    if (suffix != "") {
+      return "none";
     }
-    String retString = "{ ";
+    String retString = "";
     for (int i=0; i<myPalette.length; i++) {
-      String s = hex(myPalette[i], 6);
-      retString += "#" + s + ",";
+//      String s = hex(myPalette[i], 6);
+      String s = hex(myPalette[i]);
+      retString += s + ";";
     }
-    retString = retString.substring(0, retString.length()-1);  // chop off the last ","  
-    retString += " }";
+    retString = retString.substring(0, retString.length()-1);  // chop off the last ";"  
+    //retString += "}";
     return retString;
   }
   
   void saveUnmodifiedImage(PImage img) {
     if (saveUnmodifiedImage) {
+      String suffix = "";
       if (frameCount == 1) {
         if (colorIteration == 1) {
-          saveFrame(outputFolder + "/" + getOutFileName() + "-orig.png");
+          suffix = "-orig";
+          saveFrame(outputFolder + "/" + actionPrefix + getOutFileName() + suffix + ".png");
         }
       } else {
         if (colorIteration == 1) {
-          saveFrame(outputFolder + "/" + getOutFileName() + "-deriv.png");
+          suffix = "-deriv";
+          saveFrame(outputFolder + "/" + actionPrefix + getOutFileName() + suffix + ".png");
         }
       }
+      saveImageMetaData(suffix);
       background(255);
     }
   }
   
   void saveImageMetaData() {
-      imageMetaData[0] = "FileName: " + getOutFileName() + ".png";
-      imageMetaData[1] = "Palette: " + savePaletteAsHexStrings();
-      imageMetaData[2] = "Zoom Level: " + zoomLevel;
-      imageMetaData[3] = "Color Iteration: " + colorIteration;
+    saveImageMetaData("");
+  }
+  
+  void saveImageMetaData(String suffix) {
+      int ci = colorIteration;
+      if (suffix != "") {
+        ci = 0;
+      }
+      imageMetaData[0] = "FileName: " + getOutFileName() + suffix + ".png";
+      imageMetaData[1] = "BaseFileName: " + bImg.outFilePrefix + ".png";
+      imageMetaData[2] = "Palette Overlay: " + savePaletteAsHexStrings(suffix);
+      imageMetaData[3] = "Zoom Level: " + zoomLevel;
+      imageMetaData[4] = "Color Iteration: " + ci;
       if (saveMetaData) {
         saveStrings(outputFolder + "/" + getOutFileName() + ".txt", imageMetaData);
       }
-      csvOutput.println(imageMetaData[0] + "," + imageMetaData[0] + "," + imageMetaData[0] + "," + imageMetaData[0]);
+      csvOutput.println(imageCount-1 + "," + getOutFileName() + suffix + ".png" + "," + bImg.outFilePrefix + ".png" + "," +zoomLevel + "," + ci + "," + savePaletteAsHexStrings(suffix));
       csvOutput.flush();
+  }
+  
+  void printCvsOutputHeader() {
+    csvOutput.println("Num,Filename,BaseFileName,ZoomLevel,ColorIteration,Palette Overlay");
+    csvOutput.flush();
   }
   
   void closeWriter() {
