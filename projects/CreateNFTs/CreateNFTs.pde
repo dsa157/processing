@@ -22,7 +22,7 @@ boolean overlayGray = false;
 
 int maxImages = maxDerivatives * maxColorIterations * maxZooms;
 int imageNdx = 0;
-int imageCount = 1;
+int derivativeCount = 1;
 
 //String imageList[] = {
 //  "The-Gathering-Storm-NFT-00003ps.png",
@@ -103,7 +103,7 @@ void init() {
   imageHeight = height;
   imageMode(CENTER);
   colorMode(RGB, 255, 255, 255);
-  background(0);
+  background(255);
 
   if (scriptAction == NFTAction.MINT) {
     actionPrefix = "mint-";
@@ -157,22 +157,24 @@ void mintNFT(int ndx) {
 }
 
 void mintNFT(String[] dataRecord) {
-  String imageName = dataRecord[1];
-  String baseImageName = dataRecord[2];
-  String zoomLevel = dataRecord[3];
-  String colorIteration = dataRecord[4];
-  String palette = dataRecord[5];
+  saveGradientImage = true;
+  saveUnmodifiedImage = false;
+  saveGrayImage = false;
+  String imageName = dataRecord[2];
+  String baseImageName = dataRecord[3];
+  String zoomLevel = dataRecord[4];
+  String colorIteration = dataRecord[5];
+  String palette = dataRecord[6];
   //println("Color Iteration: " + colorIteration);
+  //println("Zoom Level: " + zoomLevel);
   //println("Palette: " + palette);
   bImg = new BaseImage(baseImageName);
   dg.setBaseImage(bImg);
-  dg.generatePalette(palette);
-  saveGradientImage = false;
-  saveUnmodifiedImage = false;
-  saveGrayImage = false;
-  dg.generateGradient();
+  dg.setZoomLevel(int(zoomLevel));
   dg.setColorIteration(int(colorIteration));
-  dg.mapColors(int(zoomLevel));
+  dg.generatePalette(palette);
+  dg.generateGradient();
+  dg.mapColors(int(zoomLevel));  
 }
 
 void done() {

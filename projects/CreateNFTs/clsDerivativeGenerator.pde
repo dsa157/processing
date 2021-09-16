@@ -25,7 +25,8 @@ class DerivativeGenerator {
   int[][] allPalettes = new int [maxColorIterations][maxPaletteColors];
 
   color[] gradValues = new color[width];
-  String[] imageMetaData = new String[5];
+  String[] imageMetaData = new String[6];
+  int outputImageCount = 1;
   
   PrintWriter csvOutput;
 
@@ -106,7 +107,8 @@ class DerivativeGenerator {
     }
     if (saveGradientImage) {
       tint(255, 255);
-      saveFrame(outputFolder + "/" + actionPrefix + getOutFileName() + "-gradient.png");
+      String suffix = "-gradient";
+      saveImage(outputFolder + "/" + actionPrefix + getOutFileName() + suffix + ".png");
       background(255);
     }
     arrayCopy(gradValues, allGradients[colorIteration-1]);
@@ -183,7 +185,7 @@ class DerivativeGenerator {
       float g = random(255); //random(128, 255);
       float b = random(255); //random(128, 255);
       color c = color(r, g, b);
-      print(i, hex(c), "");
+      //print(i, hex(c), "");
       gradPalette[i] = c;
     }
     println("");
@@ -207,7 +209,7 @@ class DerivativeGenerator {
   void mapColors(int zl) {
     if (saveOutputImage) {
         zoomLevel = zl;
-        println("Processing " + getOutFileName() + ".png (" + imageCount++ + "/" + maxImages + ") " + timeStamp());
+        println("Processing " + getOutFileName() + ".png (" + derivativeCount++ + "/" + maxImages + ") " + timeStamp());
         tint(255, 255);
         zoom(bImg.getColorImg(), zoomLevel);
         if (colorIteration==1) {
@@ -216,7 +218,7 @@ class DerivativeGenerator {
         if (saveGrayImage && colorIteration==1) {
           zoom(bImg.getGrayImg(), zoomLevel);
           String suffix = "-gray";
-          saveFrame(outputFolder + "/" + actionPrefix + getOutFileName() + suffix + ".png");
+          saveImage(suffix);
           saveImageMetaData(suffix);
         }
         bImg.setTempImg(bImg.getGrayImg());
@@ -230,7 +232,7 @@ class DerivativeGenerator {
         }
         tempImg.updatePixels();
         overlay2();
-        saveFrame(outputFolder + "/" + actionPrefix + getOutFileName() + ".png");
+        saveImage("");
         saveImageMetaData();
         tint(255, 255);
     }
@@ -284,7 +286,7 @@ class DerivativeGenerator {
     zoom(blurredImg, zoomLevel);
     if (saveBlurredImage) {
       zoom(blurredImg, zoomLevel);
-      saveFrame(outputFolder + "/" + actionPrefix + getOutFileName() + "-blur.png");
+      saveImage("-blur");
     }
 
     bImg.setTint(1);
@@ -340,12 +342,12 @@ class DerivativeGenerator {
       if (frameCount == 1) {
         if (colorIteration == 1) {
           suffix = "-orig";
-          saveFrame(outputFolder + "/" + actionPrefix + getOutFileName() + suffix + ".png");
+          saveImage(suffix);
         }
       } else {
         if (colorIteration == 1) {
           suffix = "-deriv";
-          saveFrame(outputFolder + "/" + actionPrefix + getOutFileName() + suffix + ".png");
+          saveImage(suffix);
         }
       }
       saveImageMetaData(suffix);
@@ -353,6 +355,10 @@ class DerivativeGenerator {
     }
   }
   
+  void saveImage(String suffix) {
+    saveFrame(outputFolder + "/" + actionPrefix + getOutFileName() + suffix + ".png");
+  }
+
   void saveImageMetaData() {
     saveImageMetaData("");
   }
@@ -370,12 +376,14 @@ class DerivativeGenerator {
       if (saveMetaData) {
         saveStrings(outputFolder + "/" + getOutFileName() + ".txt", imageMetaData);
       }
-      csvOutput.println(imageCount-1 + "," + getOutFileName() + suffix + ".png" + "," + bImg.outFilePrefix + ".png" + "," +zoomLevel + "," + ci + "," + savePaletteAsHexStrings(suffix));
+      int dCount = derivativeCount-1;
+      int oCount = outputImageCount++;
+      csvOutput.println(oCount + "," + dCount + "," + getOutFileName() + suffix + ".png" + "," + bImg.outFilePrefix + ".png" + "," +zoomLevel + "," + ci + "," + savePaletteAsHexStrings(suffix));
       csvOutput.flush();
   }
   
   void printCvsOutputHeader() {
-    csvOutput.println("Num,Filename,BaseFileName,ZoomLevel,ColorIteration,Palette Overlay");
+    csvOutput.println("Num,Derivative,Filename,BaseFileName,ZoomLevel,ColorIteration,Palette Overlay");
     csvOutput.flush();
   }
   
