@@ -1,4 +1,4 @@
-// class for processing source images to create variations of gradient, zoom, etc //<>//
+// class for processing source images to create variations of gradient, zoom, etc //<>// //<>//
 
 static abstract class GradientType {
   static final int EVEN = 0;
@@ -108,7 +108,7 @@ class DerivativeGenerator {
     if (saveGradientImage) {
       tint(255, 255);
       String suffix = "-gradient";
-      saveImage(outputFolder + "/" + actionPrefix + getOutFileName() + suffix + ".png");
+      saveImage(suffix);
       background(255);
     }
     arrayCopy(gradValues, allGradients[colorIteration-1]);
@@ -211,11 +211,13 @@ class DerivativeGenerator {
         zoomLevel = zl;
         println("Processing " + getOutFileName() + ".png (" + derivativeCount++ + "/" + maxImages + ") " + timeStamp());
         tint(255, 255);
+        println("calling zoom from mapColors() on colorImg");
         zoom(bImg.getColorImg(), zoomLevel);
         if (colorIteration==1) {
           saveUnmodifiedImage(bImg.getColorImg());
         }
         if (saveGrayImage && colorIteration==1) {
+          println("calling zoom from mapColors() on grayImg");
           zoom(bImg.getGrayImg(), zoomLevel);
           String suffix = "-gray";
           saveImage(suffix);
@@ -234,7 +236,10 @@ class DerivativeGenerator {
         overlay2();
         saveImage("");
         saveImageMetaData();
-        tint(255, 255);
+        if (scriptAction != NFTAction.PLAY) {
+          tint(255, 255);
+        }
+        println("mapColors done.");
     }
   }
 
@@ -258,7 +263,8 @@ class DerivativeGenerator {
 
   void zoom(PImage img, int zoomLevel) {
     if (zoomLevel == 1) {
-      image(img, width/2, height/2, imageWidth*zoomLevel, imageHeight*zoomLevel);
+      //image(img, width/2, height/2, imageWidth*zoomLevel, imageHeight*zoomLevel);
+      image(img, width/2, height/2, width*zoomLevel, height*zoomLevel);
       // after the rendering of the first unzoomed image, calculate the point where the next zooms will be centered
       if (zoomX == 0) {
         // if not defined, set to center
@@ -271,7 +277,8 @@ class DerivativeGenerator {
     else {
       pushMatrix();
       translate(xOffset*zoomLevel, yOffset*zoomLevel);
-      image(img, width/2, height/2, imageWidth*zoomLevel, imageHeight*zoomLevel); 
+      //image(img, width/2, height/2, imageWidth*zoomLevel, imageHeight*zoomLevel); 
+      image(img, width/2, height/2, width*zoomLevel, height*zoomLevel); 
       popMatrix();
     }
   }
@@ -311,12 +318,15 @@ class DerivativeGenerator {
       saturatedImg.pixels[i] = newColor;
     }
     colorMode(RGB, 255, 255, 255);
+    println("calling zoom from overlay2() on saturatedImg");
     zoom(saturatedImg, zoomLevel);
     bImg.setTint(0);
     if (overlayGray) {
+      println("calling zoom from overlay2() on grayImg");
       zoom(bImg.getGrayImg(), zoomLevel);
     }
     if (overlayColor) {
+      println("calling zoom from overlay2() on colorImg");
       zoom(bImg.getColorImg(), zoomLevel);
     }
   }
@@ -356,7 +366,9 @@ class DerivativeGenerator {
   }
   
   void saveImage(String suffix) {
-    saveFrame(outputFolder + "/" + actionPrefix + getOutFileName() + suffix + ".png");
+    if (saveImage) {
+      saveFrame(outputFolder + "/" + actionPrefix + getOutFileName() + suffix + ".png");
+    }
   }
 
   void saveImageMetaData() {
@@ -364,6 +376,9 @@ class DerivativeGenerator {
   }
   
   void saveImageMetaData(String suffix) {
+      if (suffix != "" && scriptAction == NFTAction.PLAY) {
+        return;  // don't need to write out any of the base image metadata in playground mode
+      }
       int ci = colorIteration;
       if (suffix != "") {
         ci = 0;

@@ -1,7 +1,5 @@
 // class used as a container for an image and its properties
 
-
-
 class Point {
   int x;
   int y;

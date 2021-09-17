@@ -3,15 +3,17 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
 //int scriptAction = NFTAction.CREATE;
-int scriptAction = NFTAction.MINT;
+//int scriptAction = NFTAction.MINT;
+int scriptAction = NFTAction.PLAY;
 
-int maxDerivatives = 2;
-int maxColorIterations = 2;
-int maxZooms = 2;
+int maxDerivatives = 16;
+int maxColorIterations = 10;
+int maxZooms = 3;
 int maxPaletteColors = 5;    // Innoculation: 3
 float defaultBlur = 10.0;
 int[] defaultTintOpacity = {128, 150}; // blurred image at 100/255 (~40%), color overlay at 128/255 (~50%)
 
+boolean saveImage = true;
 boolean saveMetaData = false;
 boolean saveUnmodifiedImage = true;
 boolean saveGradientImage = true;
@@ -23,6 +25,7 @@ boolean overlayGray = false;
 int maxImages = maxDerivatives * maxColorIterations * maxZooms;
 int imageNdx = 0;
 int derivativeCount = 1;
+int click=1;
 
 //String imageList[] = {
 //  "The-Gathering-Storm-NFT-00003ps.png",
@@ -70,6 +73,7 @@ int zoomY = 274;
 static abstract class NFTAction {
   static final int CREATE = 0;
   static final int MINT = 1;
+  static final int PLAY = 2;
 }
 
 int imageWidth, imageHeight;
@@ -107,9 +111,13 @@ void init() {
 
   if (scriptAction == NFTAction.MINT) {
     actionPrefix = "mint-";
-  } else {
+  } 
+  if (scriptAction == NFTAction.CREATE) {
     actionPrefix = "create-";
-  }
+  } 
+  if (scriptAction == NFTAction.PLAY) {
+    actionPrefix = "play-";
+  } 
   bImg = new BaseImage(imageList[0]);
   dg = new DerivativeGenerator(bImg, GradientType.EVEN);
 }
@@ -128,8 +136,12 @@ void generatePaletteAndGradients() {
 void draw() {
   if (scriptAction == NFTAction.CREATE) {
     createNFTs();
-  } else {
+  }
+  if (scriptAction == NFTAction.MINT) {
     mintNFT(14);
+  }
+  if (scriptAction == NFTAction.PLAY) {
+    playground();
   }
 }
 
@@ -151,15 +163,50 @@ void createNFTs() {
 void mintNFT(int ndx) {
   noLoop();
   String[] dataRecord = loadData(ndx);
-  image(bImg.getColorImg(), width/2, height/2, imageWidth, imageHeight);
+  image(bImg.getColorImg(), width/2, height/2, width, height);
   mintNFT(dataRecord);
   done();
 }
 
+void playground() {
+  if (click == 1) {
+    disableImageOutput();
+    maxDerivatives = 1;
+    maxColorIterations = 1;
+    maxZooms = 1;
+    int zoomLevel = int(random(1, 3));
+    click=0;
+    tint(255, 255);
+    int r = int(random(1, 16));
+    bImg = new BaseImage("Davids-Lyre-" + r + "-small.png");
+    dg.setBaseImage(bImg);
+    dg.generatePaletteAndGradient();
+    dg.setColorIteration(1);
+    dg.setZoomLevel(zoomLevel);
+    dg.setGradient();
+    dg.mapColors();
+  }
+}
+
+void mousePressed() {
+  click=1;
+}
+
+void keyPressed() {
+  if (key == 's' || key == 'S') {
+    dg.saveImageMetaData();
+    click=1;
+  }
+  if (key == 'q' || key == 'Q') {
+    done();
+  }
+}
+
+
 void mintNFT(String[] dataRecord) {
   saveGradientImage = true;
-  saveUnmodifiedImage = false;
-  saveGrayImage = false;
+  saveUnmodifiedImage = true;
+  saveGrayImage = true;
   String imageName = dataRecord[2];
   String baseImageName = dataRecord[3];
   String zoomLevel = dataRecord[4];
@@ -174,7 +221,7 @@ void mintNFT(String[] dataRecord) {
   dg.setColorIteration(int(colorIteration));
   dg.generatePalette(palette);
   dg.generateGradient();
-  dg.mapColors(int(zoomLevel));  
+  dg.mapColors(int(zoomLevel));
 }
 
 void done() {
@@ -188,6 +235,10 @@ String[] loadData(int ndx) {
   String[] dataRecord = split(data[ndx], ",");
   println(data[ndx]);
   return dataRecord;
+}
+
+void disableImageOutput() {
+  saveImage = false;
 }
 
 String timeStamp() {
