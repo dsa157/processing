@@ -28,7 +28,7 @@ int derivativeCount = 1;
 int click=1;
 
 int playImageNum;
-boolean playAnimationEnabled=false;
+boolean playAutoEnabled=false;
 boolean playRandomEnabled=false;
 
 //String imageList[] = {
@@ -125,7 +125,7 @@ void init() {
     actionPrefix = "play-";
   } 
   bImg = new BaseImage(imageList[0]);
-  dg = new DerivativeGenerator(bImg, GradientType.EVEN);
+  dg = new DerivativeGenerator(bImg, GradientSliceType.EVEN);
 }
 
 void generatePaletteAndGradients() {
@@ -175,7 +175,7 @@ void mintNFT(int ndx) {
 }
 
 void playground() {
-  if (playAnimationEnabled) {
+  if (playAutoEnabled) {
     click=1;
   }
   if (click == 1) {
@@ -232,8 +232,8 @@ void keyPressed() {
     }
     click=1;
   }
-  if (key == 'a' || key == 'A') {   // [A]nimate
-    playAnimationEnabled = !playAnimationEnabled;
+  if (key == 'a' || key == 'A') {   // [A]uto
+    playAutoEnabled = !playAutoEnabled;
     click=1;
   }
   if (key == 'r' || key == 'R') {   // [R]andom

@@ -1,8 +1,13 @@
 // class for processing source images to create variations of gradient, zoom, etc //<>// //<>//
 
-static abstract class GradientType {
+static abstract class GradientSliceType {
   static final int EVEN = 0;
   static final int RAND = 1;
+}
+
+static abstract class GradientType {
+  static final int SMOOTH = 0;
+  static final int DISCRETE = 1;
 }
 
 class DerivativeGenerator {
@@ -10,7 +15,7 @@ class DerivativeGenerator {
   color from; 
   color to; 
   BaseImage bImg;
-  int gradientType = GradientType.EVEN;
+  int gradientType = GradientSliceType.EVEN;
 
   int[] myPalette;
   int paletteSize = 0;
@@ -27,7 +32,7 @@ class DerivativeGenerator {
   color[] gradValues = new color[width];
   String[] imageMetaData = new String[6];
   int outputImageCount = 1;
-  
+
   PrintWriter csvOutput;
 
   DerivativeGenerator(BaseImage img, int gType) {
@@ -38,15 +43,15 @@ class DerivativeGenerator {
       printCvsOutputHeader();
     }
   }
-  
+
   void setPrintWriter() {
-    csvOutput = createWriter(outputFolder + "/" + getCvsOutputName()); 
+    csvOutput = createWriter(outputFolder + "/" + getCvsOutputName());
   }
 
   void setCvsOutputName() {
     cvsOutputName = actionPrefix + "metadata.csv";
   }
-  
+
   String getCvsOutputName() {
     return cvsOutputName;
   }
@@ -54,12 +59,12 @@ class DerivativeGenerator {
   void setBaseImage(BaseImage img) {
     bImg = img;
   }
-  
+
   void setAllPalettes(int newMaxPaletteColors) {
     maxPaletteColors = newMaxPaletteColors;
     allPalettes = new int [maxColorIterations][newMaxPaletteColors];
   }
-  
+
   void setZoomLevel(int zl) {
     zoomLevel = zl;
   }
@@ -72,147 +77,164 @@ class DerivativeGenerator {
     return bImg.getOutFileName(colorIteration, zoomLevel);
   }
 
-  void lerpColors(int ndx, int prev, color from, color to) {
+  void lerpColors(int prev, int ndx, color from, color to) {
     int segmentWidth = ndx - prev;
+    color newColor = from;
     for (int j=prev; j<ndx; j++) {
       float y = 1.0 - (ndx-j)/(segmentWidth * 1.0);
-      color newColor = lerpColor(from, to, y); 
+      newColor = lerpColor(from, to, y); 
       if (j<width) {
         gradValues[j]=newColor;
       }
       if (saveGradientImage) {
-        line(j,0,j,height);
+        line(j, 0, j, height);
         stroke(newColor);
       }
     }
+    from = newColor;
   }
 
   void generatePaletteAndGradient() {
     generateRandomPalette();
     generateGradient();
   }
-  
+
   void generateGradient() {
     int ndx = 0;
     int prev = 0;
+    int sliceWidth = int(round(width/(paletteSize * 1.0)));  // even width slices
     for (int i=0; i<paletteSize-1; i++) {
-      prev = ndx;
-      if (i == paletteSize-2) {
+      from = myPalette[i];
+      if (i == paletteSize-1) {
+        to = from;
+      } else {
+        to = myPalette[i+1];
+      }
+      if (gradientSliceType == GradientSliceType.RAND) {
+        sliceWidth = int(random(ndx, width));  // random width slices
+      }
+      if (ndx > 0) {
+        prev = ndx;
+      }
+      ndx = ndx + sliceWidth;
+      if (ndx > width) {
         ndx = width;
       } else {
-        if (gradientType == GradientType.EVEN) {
-          ndx = i * int(width/paletteSize);
-        } else {
-          ndx = int(random(ndx, width));
+        // if this is our last slice and the end of our segment is less than width, pad it out
+        if (i == paletteSize-1) {
+          ndx = width;
+        }
+      }      
+      if (gradientType == GradientType.DISCRETE) {
+        color newColor = myPalette[i];
+        for (int j=prev; j<ndx; j++) {
+          line(j, 0, j, height);
+          stroke(newColor);
+          gradValues[j]=newColor;
+        }
+      } else {
+        lerpColors(prev, ndx, from, to);
+      }
+      if (saveGradientImage) {
+        tint(255, 255);
+        String suffix = "-gradient";
+        saveImage(suffix);
+        background(255);
+      }
+      arrayCopy(gradValues, allGradients[colorIteration-1]);
+    }
+
+    void setGradient() {
+      setPalette();
+      arrayCopy(allGradients[colorIteration-1], gradValues);
+      //gradValues = allGradients[colorIteration-1];
+    }
+
+    void setPalette() {
+      //println("currentColorIteration: " + colorIteration);
+      arrayCopy(allPalettes[colorIteration-1], myPalette);
+      //myPalette = allPalettes[colorIteration-1];
+      //println(savePaletteAsHexStrings());
+    }
+
+    color getColorByPosition(int i) {
+      return gradValues[i];
+    }
+
+    color getColorByPercentPosition(int i) {
+      int percentPosition = getPercentPosition(i);
+      //println("getColorByPercentPosition", i, percentPosition);
+      color c = gradValues[percentPosition];
+      //println("getColorByPercentPosition=", percentPosition, c);
+      return c;
+    }
+
+    color getPercentPosition(int i) {
+      float percent = width * (i * 1.0)/100;
+      int percentPosition = int(percent);
+      // make sure we don't extend past the array size
+      if (percentPosition == width) {
+        percentPosition = width - 1;
+      }
+      return percentPosition;
+    }
+
+    void drawDiscreteColors(int[] discreteColors) {
+      for (int i=0; i<discreteColors.length; i++) {
+        int position = discreteColors[i];
+        int percentPosition = getPercentPosition(position);
+        int rectWidth=height/20;
+        fill(getColorByPercentPosition(position));
+        //fill(getColorByPosition(position));
+        //stroke(0);
+        noStroke();
+        rect(percentPosition, rectWidth, rectWidth, rectWidth);
+      }
+    }
+
+    void generatePalette(String hexPaletteString) {
+      String[] hexColors = split(hexPaletteString, ';');
+      int[] gradPalette = new int[hexColors.length];    
+      for (int i=0; i<hexColors.length; i++) {
+        String colorString = hexColors[i];
+        gradPalette[i] = color(unhex(colorString));
+      }
+      myPalette = gradPalette;
+      paletteSize = myPalette.length;
+      arrayCopy(myPalette, allPalettes[colorIteration-1]);
+    }
+
+    void generateRandomPalette() {
+      int[] gradPalette = new int[maxPaletteColors];
+      //gradPalette[0] = color(0);
+      for (int i=0; i<maxPaletteColors; i++) {
+        float r = random(255); //random(128, 255);
+        float g = random(255); //random(128, 255);
+        float b = random(255); //random(128, 255);
+        color c = color(r, g, b);
+        //print(i, hex(c), "");
+        gradPalette[i] = c;
+      }
+      //println("");
+      //arrayCopy(gradPalette, myPalette);
+      myPalette = gradPalette;
+      paletteSize = myPalette.length;
+      //println("Current Color Iteration: " + colorIteration);
+      //println(savePaletteAsHexStrings());
+      arrayCopy(myPalette, allPalettes[colorIteration-1]);
+      //allPalettes[colorIteration-1]=myPalette; // we started colorIterations as 1-based, but the array is 0-based, so subtract 1
+    }
+
+    void mapColors() {
+      if (saveOutputImage) {
+        for (int z=1; z<=maxZooms; z++) {
+          mapColors(z);
         }
       }
-      from = color(myPalette[i]);
-      to=color(myPalette[i+1]);
-      lerpColors(ndx, prev, from, to);
     }
-    if (saveGradientImage) {
-      tint(255, 255);
-      String suffix = "-gradient";
-      saveImage(suffix);
-      background(255);
-    }
-    arrayCopy(gradValues, allGradients[colorIteration-1]);
-    //allGradients[colorIteration-1]=gradValues;
-    //println("dsa2", colorIteration, allGradients[colorIteration-1][100], allGradients[colorIteration-1][200], allGradients[colorIteration-1][300]);
-    //printArray(gradValues);
-  }
 
-  void setGradient() {
-    setPalette();
-    arrayCopy(allGradients[colorIteration-1], gradValues);
-    //gradValues = allGradients[colorIteration-1];
-  }
-
-  void setPalette() {
-    //println("currentColorIteration: " + colorIteration);
-    arrayCopy(allPalettes[colorIteration-1], myPalette);
-    //myPalette = allPalettes[colorIteration-1];
-    //println(savePaletteAsHexStrings());
-  }
-
-  color getColorByPosition(int i) {
-    return gradValues[i];
-  }
-
-  color getColorByPercentPosition(int i) {
-    int percentPosition = getPercentPosition(i);
-    //println("getColorByPercentPosition", i, percentPosition);
-    color c = gradValues[percentPosition];
-    //println("getColorByPercentPosition=", percentPosition, c);
-    return c;
-  }
-
-  color getPercentPosition(int i) {
-    float percent = width * (i * 1.0)/100;
-    int percentPosition = int(percent);
-    // make sure we don't extend past the array size
-    if (percentPosition == width) {
-      percentPosition = width - 1;
-    }
-    return percentPosition;
-  }
-
-  void drawDiscreteColors(int[] discreteColors) {
-    for (int i=0; i<discreteColors.length; i++) {
-      int position = discreteColors[i];
-      int percentPosition = getPercentPosition(position);
-      int rectWidth=height/20;
-      fill(getColorByPercentPosition(position));
-      //fill(getColorByPosition(position));
-      //stroke(0);
-      noStroke();
-      rect(percentPosition, rectWidth, rectWidth, rectWidth);
-    }
-  }
-
-  void generatePalette(String hexPaletteString) {
-    String[] hexColors = split(hexPaletteString, ';');
-    int[] gradPalette = new int[hexColors.length];    
-    for (int i=0; i<hexColors.length; i++) {
-      String colorString = hexColors[i];
-      gradPalette[i] = color(unhex(colorString));
-    }
-    myPalette = gradPalette;
-    paletteSize = myPalette.length;
-    arrayCopy(myPalette, allPalettes[colorIteration-1]);
-  }
-
-  void generateRandomPalette() {
-    int[] gradPalette = new int[maxPaletteColors];
-    //gradPalette[0] = color(0);
-    for (int i=0; i<maxPaletteColors; i++) {
-      float r = random(255); //random(128, 255);
-      float g = random(255); //random(128, 255);
-      float b = random(255); //random(128, 255);
-      color c = color(r, g, b);
-      //print(i, hex(c), "");
-      gradPalette[i] = c;
-    }
-    println("");
-    //arrayCopy(gradPalette, myPalette);
-    myPalette = gradPalette;
-    paletteSize = myPalette.length;
-    //println("Current Color Iteration: " + colorIteration);
-    //println(savePaletteAsHexStrings());
-    arrayCopy(myPalette, allPalettes[colorIteration-1]);
-    //allPalettes[colorIteration-1]=myPalette; // we started colorIterations as 1-based, but the array is 0-based, so subtract 1 
-  }
-
-  void mapColors() {
-    if (saveOutputImage) {
-      for (int z=1; z<=maxZooms; z++) {
-        mapColors(z);
-      }
-    }
-  }
-  
-  void mapColors(int zl) {
-    if (saveOutputImage) {
+    void mapColors(int zl) {
+      if (saveOutputImage) {
         zoomLevel = zl;
         println("Processing " + getOutFileName() + ".png (" + derivativeCount++ + "/" + maxImages + ") " + timeStamp());
         tint(255, 255);
@@ -245,142 +267,141 @@ class DerivativeGenerator {
           tint(255, 255);
         }
         //println("mapColors done.");
-    }
-  }
-
-  // deterime whether zoomX is to the right or the left of center
-  int getXHalf() {
-    if (zoomX > width/2) {
-      return -1;
-    } else {
-      return 1;
-    }
-  }
-
-  // deterime whether zoomY is above or below center
-  int getYHalf() {
-    if (zoomY > height/2) {
-      return -1;
-    } else {
-      return 1;
-    }
-  }
-
-  void zoom(PImage img, int zoomLevel) {
-    if (zoomLevel == 1) {
-      //image(img, width/2, height/2, imageWidth*zoomLevel, imageHeight*zoomLevel);
-      image(img, width/2, height/2, width*zoomLevel, height*zoomLevel);
-      // after the rendering of the first unzoomed image, calculate the point where the next zooms will be centered
-      if (zoomX == 0) {
-        // if not defined, set to center
-        zoomX = width/2;
-        zoomY = height/2;
       }
-      xOffset = abs(zoomX - width/2) * getXHalf();
-      yOffset = abs(zoomY - height/2) * getYHalf();
-    } 
-    else {
-      pushMatrix();
-      translate(xOffset*zoomLevel, yOffset*zoomLevel);
-      //image(img, width/2, height/2, imageWidth*zoomLevel, imageHeight*zoomLevel); 
-      image(img, width/2, height/2, width*zoomLevel, height*zoomLevel); 
-      popMatrix();
-    }
-  }
-
-  void overlay() {
-    // draw the temp image, then overlay the original at 50% opacity
-    tint(255, 255);
-    zoom(bImg.getColorImg(), zoomLevel);
-    bImg.setTint(0);
-    PImage blurredImg = bImg.getTempImg().copy();
-    blurredImg.filter(BLUR, bImg.getBlurValue());
-    zoom(blurredImg, zoomLevel);
-    if (saveBlurredImage) {
-      zoom(blurredImg, zoomLevel);
-      saveImage("-blur");
     }
 
-    bImg.setTint(1);
-    if (overlayGray) {
-      zoom(bImg.getGrayImg(), zoomLevel);
-    }
-    if (overlayColor) {
-      zoom(bImg.getColorImg(), zoomLevel);
-    }
-  }
-
-  void overlay2() {
-    // draw the temp image, then overlay the original at 50% opacity
-    PImage saturatedImg = bImg.getGrayImg().copy();
-    PImage blurredImg = bImg.getTempImg().copy();
-    blurredImg.filter(BLUR, bImg.getBlurValue());
-    colorMode(HSB, 255, 255, 255);
-    for (int i=0; i<blurredImg.pixels.length; i++) {
-      color blurredPixelColor = color(blurredImg.pixels[i]);
-    
-      color newColor = color(hue(blurredImg.pixels[i]), saturation(blurredImg.pixels[i]), brightness(saturatedImg.pixels[i]));
-      saturatedImg.pixels[i] = newColor;
-    }
-    colorMode(RGB, 255, 255, 255);
-    //println("calling zoom from overlay2() on saturatedImg");
-    zoom(saturatedImg, zoomLevel);
-    bImg.setTint(0);
-    if (overlayGray) {
-      //println("calling zoom from overlay2() on grayImg");
-      zoom(bImg.getGrayImg(), zoomLevel);
-    }
-    if (overlayColor) {
-      //println("calling zoom from overlay2() on colorImg");
-      zoom(bImg.getColorImg(), zoomLevel);
-    }
-  }
-
-  String savePaletteAsHexStrings(String suffix) {
-    if (suffix != "") {
-      return "none";
-    }
-    String retString = "";
-    for (int i=0; i<myPalette.length; i++) {
-//      String s = hex(myPalette[i], 6);
-      String s = hex(myPalette[i]);
-      retString += s + ";";
-    }
-    retString = retString.substring(0, retString.length()-1);  // chop off the last ";"  
-    //retString += "}";
-    return retString;
-  }
-  
-  void saveUnmodifiedImage(PImage img) {
-    if (saveUnmodifiedImage) {
-      String suffix = "";
-      if (frameCount == 1) {
-        if (colorIteration == 1) {
-          suffix = "-orig";
-          saveImage(suffix);
-        }
+    // deterime whether zoomX is to the right or the left of center
+    int getXHalf() {
+      if (zoomX > width/2) {
+        return -1;
       } else {
-        if (colorIteration == 1) {
-          suffix = "-deriv";
-          saveImage(suffix);
-        }
+        return 1;
       }
-      saveImageMetaData(suffix);
-      background(255);
     }
-  }
-  
-  void saveImage(String suffix) {
-    if (saveImage) {
-      saveFrame(outputFolder + "/" + actionPrefix + getOutFileName() + suffix + ".png");
-    }
-  }
 
-  void saveImageMetaData() {
-    saveImageMetaData("");
-  }
-  
-  void saveImageMetaData(String suffix) {
+    // deterime whether zoomY is above or below center
+    int getYHalf() {
+      if (zoomY > height/2) {
+        return -1;
+      } else {
+        return 1;
+      }
+    }
+
+    void zoom(PImage img, int zoomLevel) {
+      if (zoomLevel == 1) {
+        //image(img, width/2, height/2, imageWidth*zoomLevel, imageHeight*zoomLevel);
+        image(img, width/2, height/2, width*zoomLevel, height*zoomLevel);
+        // after the rendering of the first unzoomed image, calculate the point where the next zooms will be centered
+        if (zoomX == 0) {
+          // if not defined, set to center
+          zoomX = width/2;
+          zoomY = height/2;
+        }
+        xOffset = abs(zoomX - width/2) * getXHalf();
+        yOffset = abs(zoomY - height/2) * getYHalf();
+      } else {
+        pushMatrix();
+        translate(xOffset*zoomLevel, yOffset*zoomLevel);
+        //image(img, width/2, height/2, imageWidth*zoomLevel, imageHeight*zoomLevel); 
+        image(img, width/2, height/2, width*zoomLevel, height*zoomLevel); 
+        popMatrix();
+      }
+    }
+
+    void overlay() {
+      // draw the temp image, then overlay the original at 50% opacity
+      tint(255, 255);
+      zoom(bImg.getColorImg(), zoomLevel);
+      bImg.setTint(0);
+      PImage blurredImg = bImg.getTempImg().copy();
+      blurredImg.filter(BLUR, bImg.getBlurValue());
+      zoom(blurredImg, zoomLevel);
+      if (saveBlurredImage) {
+        zoom(blurredImg, zoomLevel);
+        saveImage("-blur");
+      }
+
+      bImg.setTint(1);
+      if (overlayGray) {
+        zoom(bImg.getGrayImg(), zoomLevel);
+      }
+      if (overlayColor) {
+        zoom(bImg.getColorImg(), zoomLevel);
+      }
+    }
+
+    void overlay2() {
+      // draw the temp image, then overlay the original at 50% opacity
+      PImage saturatedImg = bImg.getGrayImg().copy();
+      PImage blurredImg = bImg.getTempImg().copy();
+      blurredImg.filter(BLUR, bImg.getBlurValue());
+      colorMode(HSB, 255, 255, 255);
+      for (int i=0; i<blurredImg.pixels.length; i++) {
+        color blurredPixelColor = color(blurredImg.pixels[i]);
+
+        color newColor = color(hue(blurredImg.pixels[i]), saturation(blurredImg.pixels[i]), brightness(saturatedImg.pixels[i]));
+        saturatedImg.pixels[i] = newColor;
+      }
+      colorMode(RGB, 255, 255, 255);
+      //println("calling zoom from overlay2() on saturatedImg");
+      zoom(saturatedImg, zoomLevel);
+      bImg.setTint(0);
+      if (overlayGray) {
+        //println("calling zoom from overlay2() on grayImg");
+        zoom(bImg.getGrayImg(), zoomLevel);
+      }
+      if (overlayColor) {
+        //println("calling zoom from overlay2() on colorImg");
+        zoom(bImg.getColorImg(), zoomLevel);
+      }
+    }
+
+    String savePaletteAsHexStrings(String suffix) {
+      if (suffix != "") {
+        return "none";
+      }
+      String retString = "";
+      for (int i=0; i<myPalette.length; i++) {
+        //      String s = hex(myPalette[i], 6);
+        String s = hex(myPalette[i]);
+        retString += s + ";";
+      }
+      retString = retString.substring(0, retString.length()-1);  // chop off the last ";"  
+      //retString += "}";
+      return retString;
+    }
+
+    void saveUnmodifiedImage(PImage img) {
+      if (saveUnmodifiedImage) {
+        String suffix = "";
+        if (frameCount == 1) {
+          if (colorIteration == 1) {
+            suffix = "-orig";
+            saveImage(suffix);
+          }
+        } else {
+          if (colorIteration == 1) {
+            suffix = "-deriv";
+            saveImage(suffix);
+          }
+        }
+        saveImageMetaData(suffix);
+        background(255);
+      }
+    }
+
+    void saveImage(String suffix) {
+      if (saveImage) {
+        saveFrame(outputFolder + "/" + actionPrefix + getOutFileName() + suffix + ".png");
+      }
+    }
+
+    void saveImageMetaData() {
+      saveImageMetaData("");
+    }
+
+    void saveImageMetaData(String suffix) {
       if (suffix != "" && scriptAction == NFTAction.PLAY) {
         return;  // don't need to write out any of the base image metadata in playground mode
       }
@@ -400,16 +421,15 @@ class DerivativeGenerator {
       int oCount = outputImageCount++;
       csvOutput.println(oCount + "," + dCount + "," + getOutFileName() + suffix + ".png" + "," + bImg.outFilePrefix + ".png" + "," +zoomLevel + "," + ci + "," + savePaletteAsHexStrings(suffix));
       csvOutput.flush();
-  }
-  
-  void printCvsOutputHeader() {
-    csvOutput.println("Num,Derivative,Filename,BaseFileName,ZoomLevel,ColorIteration,Palette Overlay");
-    csvOutput.flush();
-  }
-  
-  void closeWriter() {
-   csvOutput.flush();
-   csvOutput.close();
-  }
-  
-} 
+    }
+
+    void printCvsOutputHeader() {
+      csvOutput.println("Num,Derivative,Filename,BaseFileName,ZoomLevel,ColorIteration,Palette Overlay");
+      csvOutput.flush();
+    }
+
+    void closeWriter() {
+      csvOutput.flush();
+      csvOutput.close();
+    }
+  } 
