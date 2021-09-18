@@ -27,6 +27,10 @@ int imageNdx = 0;
 int derivativeCount = 1;
 int click=1;
 
+int playImageNum;
+boolean playAnimationEnabled=false;
+boolean playRandomEnabled=false;
+
 //String imageList[] = {
 //  "The-Gathering-Storm-NFT-00003ps.png",
 //  "The-Gathering-Storm-NFT-00002ps.png",
@@ -91,6 +95,8 @@ void setup() {
   if (scriptAction == NFTAction.CREATE) {
     generatePaletteAndGradients();
   }
+  playImageNum = 1;
+  frameRate(30);
 }
 
 void settings() {
@@ -169,20 +175,29 @@ void mintNFT(int ndx) {
 }
 
 void playground() {
+  if (playAnimationEnabled) {
+    click=1;
+  }
   if (click == 1) {
     disableImageOutput();
-    maxDerivatives = 1;
+    maxDerivatives = 16;
     maxColorIterations = 1;
     maxZooms = 1;
-    int zoomLevel = int(random(1, 3));
+    int zl = int(random(1, 3));
+    zl=1;
     click=0;
     tint(255, 255);
-    int r = int(random(1, 16));
-    bImg = new BaseImage("Davids-Lyre-" + r + "-small.png");
+    if (playRandomEnabled) {
+      playImageNum = int(random(1,maxDerivatives));
+    }
+    maxPaletteColors = int(random(3, 100));
+    defaultBlur = random(3.0, 15.0);
+    bImg = new BaseImage("Davids-Lyre-" + playImageNum + "-small.png");
     dg.setBaseImage(bImg);
+    dg.setAllPalettes(maxPaletteColors);
     dg.generatePaletteAndGradient();
     dg.setColorIteration(1);
-    dg.setZoomLevel(zoomLevel);
+    dg.setZoomLevel(zl);
     dg.setGradient();
     dg.mapColors();
   }
@@ -197,8 +212,33 @@ void keyPressed() {
     dg.saveImageMetaData();
     click=1;
   }
-  if (key == 'q' || key == 'Q') {
+  if (key == 'q' || key == 'Q') {  // [Q]uit
     done();
+  }
+  if (key == 'c' || key == 'C') {  // [C]ycle
+    click=1;
+  }
+  if (key == 'n' || key == 'N') {   // [N]ext
+    playImageNum++;
+    if (playImageNum > maxDerivatives) {
+      playImageNum=1;
+    }
+    click=1;
+  }
+  if (key == 'p' || key == 'P') {   // [P]revious
+    playImageNum--;
+    if (playImageNum == 0) {
+      playImageNum=maxDerivatives;
+    }
+    click=1;
+  }
+  if (key == 'a' || key == 'A') {   // [A]nimate
+    playAnimationEnabled = !playAnimationEnabled;
+    click=1;
+  }
+  if (key == 'r' || key == 'R') {   // [R]andom
+    playRandomEnabled = !playRandomEnabled;
+    click=1;
   }
 }
 

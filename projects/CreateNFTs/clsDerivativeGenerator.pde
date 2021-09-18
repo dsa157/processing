@@ -55,6 +55,11 @@ class DerivativeGenerator {
     bImg = img;
   }
   
+  void setAllPalettes(int newMaxPaletteColors) {
+    maxPaletteColors = newMaxPaletteColors;
+    allPalettes = new int [maxColorIterations][newMaxPaletteColors];
+  }
+  
   void setZoomLevel(int zl) {
     zoomLevel = zl;
   }
@@ -211,13 +216,13 @@ class DerivativeGenerator {
         zoomLevel = zl;
         println("Processing " + getOutFileName() + ".png (" + derivativeCount++ + "/" + maxImages + ") " + timeStamp());
         tint(255, 255);
-        println("calling zoom from mapColors() on colorImg");
+        //println("calling zoom from mapColors() on colorImg");
         zoom(bImg.getColorImg(), zoomLevel);
         if (colorIteration==1) {
           saveUnmodifiedImage(bImg.getColorImg());
         }
         if (saveGrayImage && colorIteration==1) {
-          println("calling zoom from mapColors() on grayImg");
+          //println("calling zoom from mapColors() on grayImg");
           zoom(bImg.getGrayImg(), zoomLevel);
           String suffix = "-gray";
           saveImage(suffix);
@@ -239,7 +244,7 @@ class DerivativeGenerator {
         if (scriptAction != NFTAction.PLAY) {
           tint(255, 255);
         }
-        println("mapColors done.");
+        //println("mapColors done.");
     }
   }
 
@@ -318,15 +323,15 @@ class DerivativeGenerator {
       saturatedImg.pixels[i] = newColor;
     }
     colorMode(RGB, 255, 255, 255);
-    println("calling zoom from overlay2() on saturatedImg");
+    //println("calling zoom from overlay2() on saturatedImg");
     zoom(saturatedImg, zoomLevel);
     bImg.setTint(0);
     if (overlayGray) {
-      println("calling zoom from overlay2() on grayImg");
+      //println("calling zoom from overlay2() on grayImg");
       zoom(bImg.getGrayImg(), zoomLevel);
     }
     if (overlayColor) {
-      println("calling zoom from overlay2() on colorImg");
+      //println("calling zoom from overlay2() on colorImg");
       zoom(bImg.getColorImg(), zoomLevel);
     }
   }
