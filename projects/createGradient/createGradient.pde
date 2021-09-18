@@ -13,10 +13,11 @@ int minPaletteColors = 2;
 int paletteColors = 0;
 int[] myPalette;
 int paletteSize = 0;
-int click=0;
+int click=1;
 int gradientSliceType = GradientSliceType.EVEN;
 int gradientType = GradientType.DISCRETE;
 color[] gradValues;
+boolean useBlackAndWhitePalette = false;
 
 //-------------------------
 
@@ -27,9 +28,14 @@ void setup() {
 
 void draw() {
   if (click==1) {
-    paletteColors = int(random(minPaletteColors, maxPaletteColors+1));
     click=0;
-    generateRandomPalette();
+    paletteColors = int(random(minPaletteColors, maxPaletteColors+1));
+    if (useBlackAndWhitePalette) {
+      generateBlackAndWhitePalette();
+    } 
+    else {
+      generateRandomPalette();
+    }
     generateGradient();
   }
 }
@@ -52,11 +58,17 @@ void keyPressed() {
   if (key == 'n' || key == 'N') {   // [N]ext
     click=1;
   }
+  if (key == 'n' || key == 'N') {   // [N]ext
+    click=1;
+  }
+  if (key == 'b' || key == 'B') {   //  use [B]lack and White Palette
+    useBlackAndWhitePalette = !useBlackAndWhitePalette;
+    click=1;
+  }
 }
 
 void generateRandomPalette() {
   int[] gradPalette = new int[paletteColors];
-  //gradPalette[0] = color(0);
   for (int i=0; i<paletteColors; i++) {
     float r = random(255); //random(128, 255);
     float g = random(255); //random(128, 255);
@@ -66,6 +78,16 @@ void generateRandomPalette() {
     gradPalette[i] = c;
   }
   println("");
+  myPalette = gradPalette;
+  paletteSize = myPalette.length;
+  println(savePaletteAsHexStrings());
+} 
+
+void generateBlackAndWhitePalette() {
+  paletteColors=2;
+  int[] gradPalette = new int[paletteColors];
+  gradPalette[0] = color(0);
+  gradPalette[1] = color(255);
   myPalette = gradPalette;
   paletteSize = myPalette.length;
   println(savePaletteAsHexStrings());
@@ -121,8 +143,7 @@ void generateGradient() {
         stroke(newColor);
         gradValues[j]=newColor;
       }
-    } 
-    else {
+    } else {
       lerpColors(prev, ndx, from, to);
     }
   }

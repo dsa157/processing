@@ -28,8 +28,11 @@ int derivativeCount = 1;
 int click=1;
 
 int playImageNum;
+int playZoomLevel;
+int[] playTintOpacity = defaultTintOpacity;
 boolean playAutoEnabled=false;
 boolean playRandomEnabled=false;
+boolean playOpacityDefault = true;
 
 //String imageList[] = {
 //  "The-Gathering-Storm-NFT-00003ps.png",
@@ -96,7 +99,7 @@ void setup() {
     generatePaletteAndGradients();
   }
   playImageNum = 1;
-  frameRate(30);
+  frameRate(10);
 }
 
 void settings() {
@@ -144,7 +147,8 @@ void draw() {
     createNFTs();
   }
   if (scriptAction == NFTAction.MINT) {
-    mintNFT(14);
+    mintNFT(7);
+    mintNFT(8);
   }
   if (scriptAction == NFTAction.PLAY) {
     playground();
@@ -168,10 +172,12 @@ void createNFTs() {
 
 void mintNFT(int ndx) {
   noLoop();
-  String[] dataRecord = loadData(ndx);
+  maxImages = 1;
+  derivativeCount = 1;
+
+  String[] dataRecord = loadData(ndx); // allow user to enter a 1-based human readable index from the CSV file
   image(bImg.getColorImg(), width/2, height/2, width, height);
   mintNFT(dataRecord);
-  done();
 }
 
 void playground() {
@@ -183,21 +189,24 @@ void playground() {
     maxDerivatives = 16;
     maxColorIterations = 1;
     maxZooms = 1;
-    int zl = int(random(1, 3));
-    zl=1;
+    maxImages = 1;
+    derivativeCount = 1;
+
+    playZoomLevel=0;
     click=0;
     tint(255, 255);
     if (playRandomEnabled) {
-      playImageNum = int(random(1,maxDerivatives));
+      playImageNum = int(random(1, maxDerivatives+1));
+      //playZoomLevel = int(random(1,maxZooms+1));
     }
-    maxPaletteColors = int(random(3, 100));
+    maxPaletteColors = int(random(3, 50));
     defaultBlur = random(3.0, 15.0);
     bImg = new BaseImage("Davids-Lyre-" + playImageNum + "-small.png");
     dg.setBaseImage(bImg);
     dg.setAllPalettes(maxPaletteColors);
     dg.generatePaletteAndGradient();
     dg.setColorIteration(1);
-    dg.setZoomLevel(zl);
+    dg.setZoomLevel(1);
     dg.setGradient();
     dg.mapColors();
   }
@@ -208,14 +217,16 @@ void mousePressed() {
 }
 
 void keyPressed() {
-  if (key == 's' || key == 'S') {
-    dg.saveImageMetaData();
+  if (key == 'a' || key == 'A') {   // [A]uto
+    playAutoEnabled = !playAutoEnabled;
     click=1;
   }
-  if (key == 'q' || key == 'Q') {  // [Q]uit
-    done();
-  }
   if (key == 'c' || key == 'C') {  // [C]ycle
+    click=1;
+  }
+  if (key == 'e' || key == 'E') {   // toggle [E]ven/Random Gradient slices
+    dg.gradientSliceType = (dg.gradientSliceType == GradientSliceType.EVEN ? 
+      GradientSliceType.RAND : GradientSliceType.EVEN);
     click=1;
   }
   if (key == 'n' || key == 'N') {   // [N]ext
@@ -225,6 +236,19 @@ void keyPressed() {
     }
     click=1;
   }
+  if (key == 'o' || key == 'O') {   // toggle default or random [O]pacity
+    playOpacityDefault = !playOpacityDefault;
+    if (playOpacityDefault) {
+      playTintOpacity = defaultTintOpacity;
+    } else {
+      playTintOpacity[0] = int(random(0, 65));
+      playTintOpacity[1] = int(random(100, 256));
+    }
+    dg.bImg.setTintOpacity(0, playTintOpacity[0]);
+    dg.bImg.setTintOpacity(1, playTintOpacity[1]);
+    println("opacities: ", playTintOpacity[0], playTintOpacity[0]);
+    click=1;
+  }
   if (key == 'p' || key == 'P') {   // [P]revious
     playImageNum--;
     if (playImageNum == 0) {
@@ -232,12 +256,27 @@ void keyPressed() {
     }
     click=1;
   }
-  if (key == 'a' || key == 'A') {   // [A]uto
-    playAutoEnabled = !playAutoEnabled;
-    click=1;
+  if (key == 'q' || key == 'Q') {  // [Q]uit
+    done();
   }
   if (key == 'r' || key == 'R') {   // [R]andom
     playRandomEnabled = !playRandomEnabled;
+    click=1;
+  }
+  if (key == 's' || key == 'S') {
+    dg.saveImageMetaData();
+    click=1;
+  }
+  if (key == 't' || key == 'T') {   // toggle Smooth/Discrete Gradient [Type]
+    dg.gradientType = (dg.gradientType == GradientType.SMOOTH ? 
+      GradientType.DISCRETE : GradientType.SMOOTH);
+    click=1;
+  }
+  if (key == 'z' || key == 'Z') {   // change [Z]oom level
+  //  playZoomLevel++;
+  //  if (playZoomLevel > maxZooms) {
+  //    playZoomLevel=1;
+  //  }
     click=1;
   }
 }
@@ -247,14 +286,15 @@ void mintNFT(String[] dataRecord) {
   saveGradientImage = true;
   saveUnmodifiedImage = true;
   saveGrayImage = true;
-  String imageName = dataRecord[2];
+  //String imageName = dataRecord[2];
   String baseImageName = dataRecord[3];
   String zoomLevel = dataRecord[4];
   String colorIteration = dataRecord[5];
   String palette = dataRecord[6];
-  //println("Color Iteration: " + colorIteration);
-  //println("Zoom Level: " + zoomLevel);
-  //println("Palette: " + palette);
+  println("baseImageName: " + baseImageName);
+  println("Color Iteration: " + colorIteration);
+  println("Zoom Level: " + zoomLevel);
+  println("Palette: " + palette);
   bImg = new BaseImage(baseImageName);
   dg.setBaseImage(bImg);
   dg.setZoomLevel(int(zoomLevel));
@@ -271,7 +311,11 @@ void done() {
 }
 
 String[] loadData(int ndx) {
-  String[] data = loadStrings("create-metadata.csv");
+  String[] data = loadStrings("mint-metadata.csv");
+  if (ndx > data.length) {
+    println("Error: There are not that many records in the CSV file");
+    done();
+  }
   String[] dataRecord = split(data[ndx], ",");
   println(data[ndx]);
   return dataRecord;
