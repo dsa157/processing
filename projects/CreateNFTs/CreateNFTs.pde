@@ -3,7 +3,6 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Map;
 import java.io.*;
-import java.util.*;
 
 //int scriptAction = NFTAction.CREATE;
 //int scriptAction = NFTAction.MINT;
@@ -32,7 +31,7 @@ int maxImages = maxDerivatives * maxColorIterations * maxZooms;
 int imageNdx = 0;
 int derivativeCount = 1;
 int click=1;
-int logLevel = LogLevel.INFO;
+static int logLevel = LogLevel.INFO;
 HashMap<String, String> params = new HashMap<String, String>();
 
 int playImageNum;
@@ -65,7 +64,7 @@ static abstract class NFTAction {
 static abstract class LogLevel {
   static final int FATAL = 0;
   static final int ERROR = 1;
-  static final int WARNING = 2;
+  static final int WARN = 2;
   static final int INFO = 3;
   static final int FINE = 4;
   static final int FINER = 5;
@@ -84,7 +83,7 @@ DerivativeGenerator dg;
 String actionPrefix = "";
 
 void setup() {
-  log("setup", LogLevel.INFO);
+  Logger.info("setup");
   init();
   if (scriptAction == NFTAction.CLI) {
     processArguments();
@@ -105,7 +104,7 @@ void settings() {
 }
 
 void init() {
-  log("init", LogLevel.INFO);
+  Logger.info("init");
   settings();
   imageWidth = width;
   imageHeight = height;
@@ -207,7 +206,7 @@ void playground() {
     saveMetaData=false;
     saveCVSMetaData=false;
 
-    playZoomLevel=2;
+    playZoomLevel=zoomLevel;
     click=0;
     tint(255, 255);
     if (playRandomEnabled) {
@@ -251,7 +250,6 @@ void keyPressed() {
       logLevel = LogLevel.INFO;
     };
     scriptAction = tempAction;
-    click=1;
   }
   if (key == 'a' || key == 'A') {   // [A]uto
     playAutoEnabled = !playAutoEnabled;
@@ -338,12 +336,12 @@ void mintNFT(String dataRecordString) {
   String palette = dataRecord[6];
   String blur = dataRecord[7];
   String tint = dataRecord[8];
-  log("baseImageName: " + baseImageName, LogLevel.FINE);
-  log("Color Iteration: " + colorIteration, LogLevel.FINE);
-  log("Zoom Level: " + zoomLevel, LogLevel.FINE);
-  log("Blur: " + blur, LogLevel.FINE);
-  log("Tint: " + tint, LogLevel.FINE);
-  log("Palette: " + palette, LogLevel.FINE);
+  Logger.fine("baseImageName: " + baseImageName);
+  Logger.fine("Color Iteration: " + colorIteration);
+  Logger.fine("Zoom Level: " + zoomLevel);
+  Logger.fine("Blur: " + blur);
+  Logger.fine("Tint: " + tint);
+  Logger.fine("Palette: " + palette);
   bImg = new BaseImage(baseImageName);
   bImg.setTintOpacity(0, int(tint));
   bImg.setBlurValue(float(blur));
@@ -357,7 +355,7 @@ void mintNFT(String dataRecordString) {
 }
 
 void done() {
-  log("done", LogLevel.INFO);
+  Logger.info("done");
   if (dg != null) {
     dg.closeWriter();
     exit();
@@ -378,13 +376,6 @@ void disableImageOutput() {
   saveImage = false;
 }
 
-String timeStamp() {
-  DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-  Date d = new Date();
-  String ts = formatter.format(d);
-  return ts;
-}
-
 void setActionPrefix() {
   if (scriptAction == NFTAction.MINT) {
     actionPrefix = "mint-";
@@ -401,7 +392,7 @@ void setActionPrefix() {
 // command line support
 
 void getArguments() {
-  //log("getArguments");
+  //Logger.finer("getArguments");
   if (args != null) {
     for (int i=0; i<args.length; i++) {
       String pair=args[i];
@@ -411,14 +402,14 @@ void getArguments() {
         fatalError("Params must be in the format -Dkey=[value]");
       } else {
         params.put(keyVal[0], keyVal[1]);
-        log("param: " + keyVal[0] + "=" + keyVal[1], LogLevel.FINE);
+        Logger.fine("param: " + keyVal[0] + "=" + keyVal[1]);
       }
     }
   }
 }
 
 void processArguments() {
-  log("processArguments", LogLevel.INFO);
+  Logger.info("processArguments");
   if (scriptAction != NFTAction.CLI) {
     return;
   }
@@ -444,7 +435,6 @@ void processArguments() {
   switch(scriptAction) {
   case NFTAction.PLAY:
     imageList = validateAndLoadFileParam("imageList");
-    log("images :" + imageList.length, LogLevel.FINE);
     break;
   case NFTAction.MINT:
     mintDataRecords = validateAndLoadFileParam("dataFile");
@@ -471,7 +461,7 @@ String[] validateAndLoadFileParam(String paramName) {
 
 void fatalError(String msg) {
   println("-------------");
-  println("FATAL ERROR: " + msg + " - " + timeStamp());
+  println("FATAL ERROR: " + msg + " - " + Logger.timeStamp());
   println("-------------");
   exit();
 }
@@ -481,10 +471,4 @@ void fatalException(Exception e) {
   e.printStackTrace();
   println("-------------");
   exit();
-}
-
-void log(String msg, int thisLogLevel) {
-  if (logLevel <= thisLogLevel) {
-    println(msg + " - " + timeStamp());
-  }
 }

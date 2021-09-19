@@ -52,7 +52,7 @@ class DerivativeGenerator {
   }
 
   void setPrintWriter() {
-    log("setPrintWriter " + outputFolder + "/" + getCsvOutputName(), LogLevel.FINE);
+    Logger.fine("setPrintWriter " + outputFolder + "/" + getCsvOutputName());
     csvOutput = createWriter(outputFolder + "/" + getCsvOutputName());
   }
 
@@ -262,7 +262,7 @@ class DerivativeGenerator {
   void mapColors(int zl) {
     if (saveOutputImage) {
       zoomLevel = zl;
-      log("Processing " + getOutFileName() + ".png (" + derivativeCount++ + "/" + maxImages + ") ", LogLevel.INFO);
+      Logger.info("Processing " + getOutFileName() + ".png (" + derivativeCount++ + "/" + maxImages + ") ");
       tint(255, 255);
       //println("calling zoom from mapColors() on colorImg");
       zoom(bImg.getColorImg(), zoomLevel);
