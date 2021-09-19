@@ -332,14 +332,6 @@ void keyPressed() {
     dg.generateBlackAndWhitePalette();
     click=1;
   }
-
-  if (key == 'z' || key == 'Z') {   // change [Z]oom level
-    //  playZoomLevel++;
-    //  if (playZoomLevel > maxZooms) {
-    //    playZoomLevel=1;
-    //  }
-    click=1;
-  }
 }
 
 void mintNFT(String dataRecordString) {
