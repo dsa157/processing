@@ -42,7 +42,6 @@ class DerivativeGenerator {
     gradientType = gType;
     setUniquePrefix();
     if (actionPrefix != "") {
-      Logger.info("set CSVOutputname");
       setCsvOutputName();
       initPrintWriter();
     }

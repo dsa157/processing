@@ -28,7 +28,7 @@ static class Logger {
   } 
 
   static void log(String msg, int thisLogLevel) {
-    if (logLevel <= thisLogLevel) {
+    if (thisLogLevel <= logLevel) {
       println(msg + " - " + timeStamp());
     }
   }

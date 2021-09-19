@@ -463,6 +463,35 @@ void processArguments() {
     default:
       fatalError("Invalid valid for param -Dmode=[play|mint]");
     }
+
+    if (params.get("logLevel") != null) {
+      switch(params.get("logLevel")) {
+      case "fatal":
+        logLevel = LogLevel.FATAL;
+        break;
+      case "error":
+        logLevel = LogLevel.ERROR;
+        break;
+      case "warn":
+        logLevel = LogLevel.WARN;
+        break;
+      case "info":
+        logLevel = LogLevel.INFO;
+        break;
+      case "fine":
+        logLevel = LogLevel.FINE;
+        break;
+      case "finer":
+        logLevel = LogLevel.FINER;
+        break;
+      case "finest":
+        logLevel = LogLevel.FINEST;
+        break;
+      default:
+        fatalError("Invalid valid for param -DlogLevel=[fatal|error|warn|info|fine|finer|finest]");
+        break;
+      }
+    }
   }
 
   switch(scriptAction) {
