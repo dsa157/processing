@@ -1,4 +1,4 @@
-// class for processing source images to create variations of gradient, zoom, etc //<>// //<>//
+// class for processing source images to create variations of gradient, zoom, etc //<>// //<>// //<>//
 
 static abstract class GradientSliceType {
   static final int EVEN = 0;
@@ -111,25 +111,30 @@ class DerivativeGenerator {
   }
 
   void generatePaletteAndGradient() {
-    generateRandomPalette();
+    if (playBWEnabled) {
+      bImg.setTintOpacity(0,0);
+      generateBlackAndWhitePalette();
+    } else {
+      generateRandomPalette();
+    }
     generateGradient();
   }
 
   void generateGradient() {
     int ndx = 0;
     int prev = 0;
-  int sliceWidth = 0;
-  if (gradientType == GradientType.DISCRETE) {
-    // for discrete gradients, we want the same number of slices as palette size
-    sliceWidth = int(round(width/(paletteSize * 1.0)));  // even width slices
-  } else {
-    //for smooth gradients, one less, since we need to end on the last color
-    sliceWidth = int(round(width/(paletteSize-1 * 1.0)));  // even width slices
-  }
+    int sliceWidth = 0;
+    if (gradientType == GradientType.DISCRETE) {
+      // for discrete gradients, we want the same number of slices as palette size
+      sliceWidth = int(round(width/(paletteSize * 1.0)));  // even width slices
+    } else {
+      //for smooth gradients, one less, since we need to end on the last color
+      sliceWidth = int(round(width/(paletteSize-1 * 1.0)));  // even width slices
+    }
     for (int i=0; i<paletteSize-1; i++) {
       from = myPalette[i];
       if (i == paletteSize-1) {
-      to = myPalette[paletteSize-1];
+        to = myPalette[paletteSize-1];
       } else {
         to = myPalette[i+1];
       }
@@ -224,6 +229,16 @@ class DerivativeGenerator {
       rect(percentPosition, rectWidth, rectWidth, rectWidth);
     }
   }
+
+  void generateBlackAndWhitePalette() {
+    int paletteColors=2;
+    int[] gradPalette = new int[paletteColors];
+    gradPalette[0] = color(0);
+    gradPalette[1] = color(255);
+    myPalette = gradPalette;
+    paletteSize = myPalette.length;
+  } 
+
 
   void generatePalette(String hexPaletteString) {
     String[] hexColors = split(hexPaletteString, ';');

@@ -39,6 +39,7 @@ int playZoomLevel;
 int[] playTintOpacity = defaultTintOpacity;
 boolean playAutoEnabled=false;
 boolean playRandomEnabled=false;
+boolean playBWEnabled=false;
 boolean playChangeGradient=true;
 boolean playOpacityDefault = true;
 
@@ -315,6 +316,13 @@ void keyPressed() {
       GradientType.DISCRETE : GradientType.SMOOTH);
     click=1;
   }
+  
+  if (key == 'w' || key == 'W') {   // toggle B&W palette
+  playBWEnabled = !playBWEnabled;
+    dg.generateBlackAndWhitePalette();
+    click=1;
+  }
+  
   if (key == 'z' || key == 'Z') {   // change [Z]oom level
     //  playZoomLevel++;
     //  if (playZoomLevel > maxZooms) {
