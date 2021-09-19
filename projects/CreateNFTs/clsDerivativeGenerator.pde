@@ -25,7 +25,8 @@ class DerivativeGenerator {
   int xOffset = 0;
   int yOffset = 0;
   String outputFolder = "output";
-  String cvsOutputName = actionPrefix + "metadata.csv";
+  String csvOutputName = "temp-metadata.csv";
+  String uniquePrefix = "";
   color[][] allGradients = new color[maxColorIterations][width];
   int[][] allPalettes = new int [maxColorIterations][maxPaletteColors];
 
@@ -42,6 +43,7 @@ class DerivativeGenerator {
     if (actionPrefix != "") {
       initPrintWriter();
     }
+    setCsvOutputName();
   }
 
   void initPrintWriter() {
@@ -50,16 +52,24 @@ class DerivativeGenerator {
   }
   
   void setPrintWriter() {
-    log("setPrintWriter " + outputFolder + "/" + getCvsOutputName());
-    csvOutput = createWriter(outputFolder + "/" + getCvsOutputName());
+    log("setPrintWriter " + outputFolder + "/" + getCsvOutputName());
+    csvOutput = createWriter(outputFolder + "/" + getCsvOutputName());
   }
 
-  void setCvsOutputName() {
-    cvsOutputName = actionPrefix + "metadata.csv";
+  void setCsvOutputName() {
+    csvOutputName = actionPrefix + getUniquePrefix() + "metadata.csv";
   }
 
-  String getCvsOutputName() {
-    return cvsOutputName;
+  String getCsvOutputName() {
+    return csvOutputName;
+  }
+    
+  String getUniquePrefix() {
+    return uniquePrefix + "-";
+  }
+
+  void setUniquePrefix() {
+    uniquePrefix = str(millis());
   }
 
   void setBaseImage(BaseImage img) {
@@ -379,7 +389,7 @@ class DerivativeGenerator {
 
   void saveImage(String suffix) {
     if (saveImage) {
-      saveFrame(outputFolder + "/" + actionPrefix + getOutFileName() + suffix + ".png");
+      saveFrame(outputFolder + "/" + actionPrefix + getUniquePrefix() + getOutFileName() + suffix + ".png");
     }
   }
 

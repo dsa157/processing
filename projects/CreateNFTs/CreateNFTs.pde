@@ -181,23 +181,32 @@ void createNFTs() {
 }
 
 void mintNFTs() {
-  noLoop();
-  if (mintDataRecords.length <= 1) {
-    // we only have the header or an empty file, so exit
-    fatalError("No Input Data to read in " + params.get("dataFile"));
+  try {
+    noLoop();
+    if (mintDataRecords.length <= 1) {
+      // we only have the header or an empty file, so exit
+      fatalError("No Input Data to read in " + params.get("dataFile"));
+    }
+    String ndxString = params.get("num");
+    if (ndxString != null && int(ndxString) <= mintDataRecords.length) {
+      mintNFT(int(ndxString));
+    } else { 
+      for (int i=1; i<mintDataRecords.length; i++) { // start with 1 since first line in data file is the header
+        mintNFT(i);
+      }
+    }
+    done();
   }
-  mintNFT(3);
-  //for (int i=1; i<mintDataRecords.length; i++) { // start with 1 since first line in data file is the header
-  //  log("minRecord " + mintDataRecords[i]);
-  //}
-  done();
+  catch(Exception e) {
+    fatalException(e);
+  }
 }
 
 void mintNFT(int ndx) {
   noLoop();
   maxImages = 1;
   derivativeCount = 1;
-//  image(bImg.getColorImg(), width/2, height/2, width, height);
+  //  image(bImg.getColorImg(), width/2, height/2, width, height);
   mintNFT(mintDataRecords[ndx]);
 }
 
@@ -341,6 +350,7 @@ void mintNFT(String dataRecordString) {
   dg.setBaseImage(bImg);
   dg.setZoomLevel(int(zoomLevel));
   dg.setColorIteration(int(colorIteration));
+  dg.setUniquePrefix();
   dg.generatePalette(palette);
   dg.generateGradient();
   dg.mapColors(int(zoomLevel));
