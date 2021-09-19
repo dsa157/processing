@@ -1,20 +1,24 @@
 import java.util.Date;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Map;
 
 //int scriptAction = NFTAction.CREATE;
 //int scriptAction = NFTAction.MINT;
-int scriptAction = NFTAction.PLAY;
+//int scriptAction = NFTAction.PLAY;
+int scriptAction = NFTAction.CLI;
 
 int maxDerivatives = 16;
 int maxColorIterations = 10;
 int maxZooms = 3;
 int maxPaletteColors = 5;    // Innoculation: 3
 float defaultBlur = 10.0;
+int zoomLevel=1;
 int[] defaultTintOpacity = {128, 150}; // blurred image at 100/255 (~40%), color overlay at 128/255 (~50%)
 
 boolean saveImage = true;
 boolean saveMetaData = false;
+boolean saveCVSMetaData = false;
 boolean saveUnmodifiedImage = true;
 boolean saveGradientImage = true;
 boolean saveGrayImage = true;
@@ -26,13 +30,17 @@ int maxImages = maxDerivatives * maxColorIterations * maxZooms;
 int imageNdx = 0;
 int derivativeCount = 1;
 int click=1;
+HashMap<String, String> params = new HashMap<String, String>();
 
 int playImageNum;
 int playZoomLevel;
 int[] playTintOpacity = defaultTintOpacity;
 boolean playAutoEnabled=false;
 boolean playRandomEnabled=false;
+boolean playChangeGradient=true;
 boolean playOpacityDefault = true;
+
+int mintRecNum;
 
 //String imageList[] = {
 //  "The-Gathering-Storm-NFT-00003ps.png",
@@ -81,6 +89,7 @@ static abstract class NFTAction {
   static final int CREATE = 0;
   static final int MINT = 1;
   static final int PLAY = 2;
+  static final int CLI = 3;
 }
 
 int imageWidth, imageHeight;
@@ -99,7 +108,7 @@ void setup() {
     generatePaletteAndGradients();
   }
   playImageNum = 1;
-  frameRate(10);
+  frameRate(5);
 }
 
 void settings() {
@@ -144,7 +153,7 @@ void generatePaletteAndGradients() {
 
 void draw() {
   if (scriptAction == NFTAction.CREATE) {
-    createNFTs();
+    //createNFTs();
   }
   if (scriptAction == NFTAction.MINT) {
     mintNFT(7);
@@ -152,6 +161,10 @@ void draw() {
   }
   if (scriptAction == NFTAction.PLAY) {
     playground();
+  }
+  if (scriptAction == NFTAction.CLI) {
+    processArguments();
+    done();
   }
 }
 
@@ -189,22 +202,27 @@ void playground() {
     maxDerivatives = 16;
     maxColorIterations = 1;
     maxZooms = 1;
+    zoomLevel=2;
     maxImages = 1;
     derivativeCount = 1;
+    saveMetaData=false;
+    saveCVSMetaData=false;
 
     playZoomLevel=0;
     click=0;
     tint(255, 255);
     if (playRandomEnabled) {
       playImageNum = int(random(1, maxDerivatives+1));
-      //playZoomLevel = int(random(1,maxZooms+1));
+      playZoomLevel = 2; //int(random(1,maxZooms+1));
     }
     maxPaletteColors = int(random(3, 50));
     defaultBlur = random(3.0, 15.0);
     bImg = new BaseImage("Davids-Lyre-" + playImageNum + "-small.png");
     dg.setBaseImage(bImg);
     dg.setAllPalettes(maxPaletteColors);
-    dg.generatePaletteAndGradient();
+    if (playChangeGradient) {
+      dg.generatePaletteAndGradient();
+    }
     dg.setColorIteration(1);
     dg.setZoomLevel(1);
     dg.setGradient();
@@ -224,10 +242,13 @@ void keyPressed() {
   if (key == 'c' || key == 'C') {  // [C]ycle
     click=1;
   }
-  if (key == 'e' || key == 'E') {   // toggle [E]ven/Random Gradient slices
+  if (key == 'e' || key == 'E') {   // /toggle [E]ven/Random Gradient slices
     dg.gradientSliceType = (dg.gradientSliceType == GradientSliceType.EVEN ? 
       GradientSliceType.RAND : GradientSliceType.EVEN);
     click=1;
+  }
+  if (key == 'g' || key == 'G') {   // toggle changing/freezing the [G]radient
+    playChangeGradient = !playChangeGradient;
   }
   if (key == 'n' || key == 'N') {   // [N]ext
     playImageNum++;
@@ -246,7 +267,7 @@ void keyPressed() {
     }
     dg.bImg.setTintOpacity(0, playTintOpacity[0]);
     dg.bImg.setTintOpacity(1, playTintOpacity[1]);
-    println("opacities: ", playTintOpacity[0], playTintOpacity[0]);
+    println("Tint Levels: ", playTintOpacity[0], playTintOpacity[1]);
     click=1;
   }
   if (key == 'p' || key == 'P') {   // [P]revious
@@ -258,14 +279,16 @@ void keyPressed() {
   }
   if (key == 'q' || key == 'Q') {  // [Q]uit
     done();
+    click=1;
   }
   if (key == 'r' || key == 'R') {   // [R]andom
     playRandomEnabled = !playRandomEnabled;
     click=1;
   }
   if (key == 's' || key == 'S') {
+    saveCVSMetaData=true;
     dg.saveImageMetaData();
-    click=1;
+    saveCVSMetaData=false;
   }
   if (key == 't' || key == 'T') {   // toggle Smooth/Discrete Gradient [Type]
     dg.gradientType = (dg.gradientType == GradientType.SMOOTH ? 
@@ -273,10 +296,10 @@ void keyPressed() {
     click=1;
   }
   if (key == 'z' || key == 'Z') {   // change [Z]oom level
-  //  playZoomLevel++;
-  //  if (playZoomLevel > maxZooms) {
-  //    playZoomLevel=1;
-  //  }
+    //  playZoomLevel++;
+    //  if (playZoomLevel > maxZooms) {
+    //    playZoomLevel=1;
+    //  }
     click=1;
   }
 }
@@ -306,8 +329,10 @@ void mintNFT(String[] dataRecord) {
 
 void done() {
   println("done - " + timeStamp());
-  dg.closeWriter();
-  exit();
+  if (dg != null) {
+    dg.closeWriter();
+    exit();
+  }
 }
 
 String[] loadData(int ndx) {
@@ -330,4 +355,67 @@ String timeStamp() {
   Date d = new Date();
   String ts = formatter.format(d);
   return ts;
+}
+
+//-----------------------------------
+// command line support
+
+void getArguments() {
+  println("getArguments " + timeStamp());
+  if (args == null) {
+    fatalError("Missing required param mode=[play|mint]");
+  } else {
+    for (int i=0; i<args.length; i++) {
+      String pair=args[i];
+      pair = pair.substring(2);
+      String[] keyVal = split(pair, '=');
+      params.put(keyVal[0], keyVal[1]);
+    }
+  }
+}
+
+void processArguments() {
+  println("processArguments " + timeStamp());
+  if (scriptAction != NFTAction.CLI) {
+    return;
+  }
+  getArguments();
+  if (params.get("mode") == null) {
+    fatalError("Missing required param mode=[play|mint]");
+  } else {
+    switch(params.get("mode")) {
+    case "play":
+      scriptAction = NFTAction.PLAY;
+      break;
+    case "mint":
+      scriptAction = NFTAction.MINT;
+      break;
+    default:
+      fatalError("Invalid valid for param mode=[play|mint]");
+    }
+  }
+
+  switch(scriptAction) {
+  case NFTAction.PLAY:
+    if (params.get("imageList") != null) {
+      fatalError("Missing required param imageList=[filePath]");
+      done();
+    } else {
+      String[] imageList = loadStrings(params.get("imageList"));
+      for (int i=0; i<imageList.length; i++) {
+        println (imageList[i]);
+      }
+    }
+    //println("program mode: PLAY " + scriptAction);
+    done();
+    break;
+  case NFTAction.MINT:
+    println("program mode: MINT " + scriptAction);
+    break;
+  }
+}
+
+void fatalError(String msg) {
+  println(msg);
+  exit();
 }

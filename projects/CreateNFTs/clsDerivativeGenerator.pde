@@ -30,7 +30,7 @@ class DerivativeGenerator {
   int[][] allPalettes = new int [maxColorIterations][maxPaletteColors];
 
   color[] gradValues = new color[width];
-  String[] imageMetaData = new String[6];
+  String[] imageMetaData = new String[9];
   int outputImageCount = 1;
 
   PrintWriter csvOutput;
@@ -100,12 +100,6 @@ class DerivativeGenerator {
   }
 
   void generateGradient() {
-     //if (gradientType == GradientType.DISCRETE) {
-     //   println("generating a discrete gradient");
-     //}
-     //else {
-     //   println("generating a smooth gradient");
-     //}
     int ndx = 0;
     int prev = 0;
     int sliceWidth = int(round(width/(paletteSize * 1.0)));  // even width slices
@@ -148,19 +142,19 @@ class DerivativeGenerator {
       saveImage(suffix);
       background(255);
     }
-    arrayCopy(gradValues, allGradients[colorIteration-1]);
+    //arrayCopy(gradValues, allGradients[colorIteration-1]);
   }
 
 
   void setGradient() {
     setPalette();
-    arrayCopy(allGradients[colorIteration-1], gradValues);
+    //arrayCopy(allGradients[colorIteration-1], gradValues);
     //gradValues = allGradients[colorIteration-1];
   }
 
   void setPalette() {
     //println("currentColorIteration: " + colorIteration);
-    arrayCopy(allPalettes[colorIteration-1], myPalette);
+    //arrayCopy(allPalettes[colorIteration-1], myPalette);
     //myPalette = allPalettes[colorIteration-1];
     //println(savePaletteAsHexStrings());
   }
@@ -229,7 +223,7 @@ class DerivativeGenerator {
     paletteSize = myPalette.length;
     //println("Current Color Iteration: " + colorIteration);
     //println(savePaletteAsHexStrings());
-    arrayCopy(myPalette, allPalettes[colorIteration-1]);
+    //arrayCopy(myPalette, allPalettes[colorIteration-1]);
     //allPalettes[colorIteration-1]=myPalette; // we started colorIterations as 1-based, but the array is 0-based, so subtract 1
   }
 
@@ -397,25 +391,37 @@ class DerivativeGenerator {
     }
     imageMetaData[0] = "FileName: " + getOutFileName() + suffix + ".png";
     imageMetaData[1] = "BaseFileName: " + bImg.outFilePrefix + ".png";
-    imageMetaData[2] = "Palette Overlay: " + savePaletteAsHexStrings(suffix);
-    imageMetaData[3] = "Zoom Level: " + zoomLevel;
-    imageMetaData[4] = "Color Iteration: " + ci;
+    imageMetaData[2] = "Zoom Level: " + zoomLevel;
+    imageMetaData[3] = "Color Iteration: " + ci;
+    imageMetaData[4] = "Palette: " + savePaletteAsHexStrings(suffix);
+    imageMetaData[5] = "Blur: " + bImg.getBlurValue();
+    imageMetaData[6] = "Tint Opacity: " + bImg.getTintOpacity(0);
+    imageMetaData[7] = "Gradient Type: " + gradientType;
+    imageMetaData[8] = "Gradient Slice Type: " + gradientSliceType;
+
+
     if (saveMetaData) {
       saveStrings(outputFolder + "/" + getOutFileName() + ".txt", imageMetaData);
     }
     int dCount = derivativeCount-1;
     int oCount = outputImageCount++;
-    csvOutput.println(oCount + "," + dCount + "," + getOutFileName() + suffix + ".png" + "," + bImg.outFilePrefix + ".png" + "," +zoomLevel + "," + ci + "," + savePaletteAsHexStrings(suffix));
-    csvOutput.flush();
+    if (saveCVSMetaData) {
+      csvOutput.println(oCount + "," + dCount + "," + getOutFileName() + suffix + ".png" + "," + bImg.outFilePrefix + ".png" + "," +zoomLevel + "," 
+        + ci + "," + savePaletteAsHexStrings(suffix) + "," + bImg.getBlurValue() + "," + bImg.getTintOpacity(0) + "," + gradientType + "," + gradientSliceType
+        );
+      csvOutput.flush();
+    }
   }
 
   void printCvsOutputHeader() {
-    csvOutput.println("Num,Derivative,Filename,BaseFileName,ZoomLevel,ColorIteration,Palette Overlay");
+    csvOutput.println("Num,Derivative,Filename,BaseFileName,ZoomLevel,ColorIteration,Palette,Blur,Tint,Gradient Type,Gradient Slice Type");
     csvOutput.flush();
   }
 
   void closeWriter() {
-    csvOutput.flush();
-    csvOutput.close();
+    if (csvOutput != null) {
+      csvOutput.flush();
+      csvOutput.close();
+    }
   }
 } 
