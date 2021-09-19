@@ -2,6 +2,8 @@ import java.util.Date;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Map;
+import java.io.*;
+import java.util.*;
 
 //int scriptAction = NFTAction.CREATE;
 //int scriptAction = NFTAction.MINT;
@@ -30,6 +32,7 @@ int maxImages = maxDerivatives * maxColorIterations * maxZooms;
 int imageNdx = 0;
 int derivativeCount = 1;
 int click=1;
+int logLevel = LogLevel.INFO;
 HashMap<String, String> params = new HashMap<String, String>();
 
 int playImageNum;
@@ -42,49 +45,12 @@ boolean playOpacityDefault = true;
 
 int mintRecNum;
 
-//String imageList[] = {
-//  "The-Gathering-Storm-NFT-00003ps.png",
-//  "The-Gathering-Storm-NFT-00002ps.png",
-//  "The-Gathering-Storm-NFT-00001ps.png"
-//};
-
-//String imageList[] = {
-//  //  "Innoculation-NFT-00002.png",
-//  "Innoculation-NFT-00001.png", 
-//  "Innoculation-NFT-00003.png"
-//};
-
-String imageList[] = {
-  "Davids-Lyre-1-NFT.png", 
-  "Davids-Lyre-2-NFT.png", 
-  "Davids-Lyre-3-NFT.png", 
-  "Davids-Lyre-4-NFT.png", 
-  "Davids-Lyre-5-NFT.png", 
-  "Davids-Lyre-6-NFT.png", 
-  "Davids-Lyre-7-NFT.png", 
-  "Davids-Lyre-8-NFT.png", 
-  "Davids-Lyre-9-NFT.png", 
-  "Davids-Lyre-10-NFT.png", 
-  "Davids-Lyre-11-NFT.png", 
-  "Davids-Lyre-12-NFT.png", 
-  "Davids-Lyre-13-NFT.png", 
-  "Davids-Lyre-14-NFT.png", 
-  "Davids-Lyre-15-NFT.png", 
-  "Davids-Lyre-16-NFT.png"
-};
+String imageList[] = {"Davids-Lyre-1-small.png"};
 
 String mintDataRecords[];
 
-
 int zoomX = 304;
 int zoomY = 274;
-
-//String imageList[] = {
-//  "Mandala-1a-3.png",
-//  "Mandala-1a-2.png",
-//  "Mandala-1a-1.png"
-//};
-
 
 //--------------------------------------
 
@@ -92,8 +58,21 @@ static abstract class NFTAction {
   static final int CREATE = 0;
   static final int MINT = 1;
   static final int PLAY = 2;
-  static final int CLI = 3;
+  static final int ANIMATE = 3;
+  static final int CLI = 4;
 }
+
+static abstract class LogLevel {
+  static final int FATAL = 0;
+  static final int ERROR = 1;
+  static final int WARNING = 2;
+  static final int INFO = 3;
+  static final int FINE = 4;
+  static final int FINER = 5;
+  static final int FINEST = 6;
+}
+
+
 
 int imageWidth, imageHeight;
 int currentDerivative=0;
@@ -105,7 +84,7 @@ DerivativeGenerator dg;
 String actionPrefix = "";
 
 void setup() {
-  log("setup");
+  log("setup", LogLevel.INFO);
   init();
   if (scriptAction == NFTAction.CLI) {
     processArguments();
@@ -114,7 +93,7 @@ void setup() {
     generatePaletteAndGradients();
   }
   playImageNum = 1;
-  frameRate(5);
+  frameRate(160);
 }
 
 void settings() {
@@ -126,7 +105,7 @@ void settings() {
 }
 
 void init() {
-  log("init");
+  log("init", LogLevel.INFO);
   settings();
   imageWidth = width;
   imageHeight = height;
@@ -136,17 +115,6 @@ void init() {
   setActionPrefix();
   bImg = new BaseImage(imageList[0]);
   dg = new DerivativeGenerator(bImg, GradientSliceType.EVEN);
-}
-
-void generatePaletteAndGradients() {
-  for (int i=1; i<=maxColorIterations; i++) {
-    dg.setColorIteration(i);
-    dg.generatePaletteAndGradient();
-  }
-  for (int i=1; i<=maxColorIterations; i++) {
-    dg.setColorIteration(i);
-    dg.setGradient();
-  }
 }
 
 void draw() {
@@ -159,9 +127,23 @@ void draw() {
   if (scriptAction == NFTAction.PLAY) {
     playground();
   }
+  if (scriptAction == NFTAction.ANIMATE) {
+    animate();
+  }
   if (scriptAction == NFTAction.CLI) {
     // we shouldn't be in this mode when we get to the draw method
     done();
+  }
+}
+
+void generatePaletteAndGradients() {
+  for (int i=1; i<=maxColorIterations; i++) {
+    dg.setColorIteration(i);
+    dg.generatePaletteAndGradient();
+  }
+  for (int i=1; i<=maxColorIterations; i++) {
+    dg.setColorIteration(i);
+    dg.setGradient();
   }
 }
 
@@ -247,11 +229,30 @@ void playground() {
   }
 }
 
+void animate() {
+  dg.shiftGradient();
+  dg.setGradient();
+  dg.mapColors();
+}
+
 void mousePressed() {
   click=1;
 }
 
 void keyPressed() {
+  if (key == '1') {   // toggle animation mode
+    int tempAction = 0;
+    if (scriptAction == NFTAction.PLAY) { 
+      tempAction = NFTAction.ANIMATE;
+      logLevel = LogLevel.FINEST;
+    };
+    if (scriptAction == NFTAction.ANIMATE) { 
+      tempAction = NFTAction.PLAY;
+      logLevel = LogLevel.INFO;
+    };
+    scriptAction = tempAction;
+    click=1;
+  }
   if (key == 'a' || key == 'A') {   // [A]uto
     playAutoEnabled = !playAutoEnabled;
     click=1;
@@ -303,7 +304,6 @@ void keyPressed() {
     click=1;
   }
   if (key == 's' || key == 'S') {
-    log("saving");
     saveCVSMetaData=true;
     if (dg == null) {
       fatalError("DerivativeGenerator is null");
@@ -338,12 +338,12 @@ void mintNFT(String dataRecordString) {
   String palette = dataRecord[6];
   String blur = dataRecord[7];
   String tint = dataRecord[8];
-  log("baseImageName: " + baseImageName);
-  log("Color Iteration: " + colorIteration);
-  log("Zoom Level: " + zoomLevel);
-  log("Blur: " + blur);
-  log("Tint: " + tint);
-  log("Palette: " + palette);
+  log("baseImageName: " + baseImageName, LogLevel.FINE);
+  log("Color Iteration: " + colorIteration, LogLevel.FINE);
+  log("Zoom Level: " + zoomLevel, LogLevel.FINE);
+  log("Blur: " + blur, LogLevel.FINE);
+  log("Tint: " + tint, LogLevel.FINE);
+  log("Palette: " + palette, LogLevel.FINE);
   bImg = new BaseImage(baseImageName);
   bImg.setTintOpacity(0, int(tint));
   bImg.setBlurValue(float(blur));
@@ -357,7 +357,7 @@ void mintNFT(String dataRecordString) {
 }
 
 void done() {
-  log("done");
+  log("done", LogLevel.INFO);
   if (dg != null) {
     dg.closeWriter();
     exit();
@@ -411,14 +411,14 @@ void getArguments() {
         fatalError("Params must be in the format -Dkey=[value]");
       } else {
         params.put(keyVal[0], keyVal[1]);
-        log("param: " + keyVal[0] + "=" + keyVal[1]);
+        log("param: " + keyVal[0] + "=" + keyVal[1], LogLevel.FINE);
       }
     }
   }
 }
 
 void processArguments() {
-  log("processArguments");
+  log("processArguments", LogLevel.INFO);
   if (scriptAction != NFTAction.CLI) {
     return;
   }
@@ -444,7 +444,7 @@ void processArguments() {
   switch(scriptAction) {
   case NFTAction.PLAY:
     imageList = validateAndLoadFileParam("imageList");
-    log("images :" + imageList.length);
+    log("images :" + imageList.length, LogLevel.FINE);
     break;
   case NFTAction.MINT:
     mintDataRecords = validateAndLoadFileParam("dataFile");
@@ -483,6 +483,8 @@ void fatalException(Exception e) {
   exit();
 }
 
-void log(String msg) {
-  println(msg + " - " + timeStamp());
+void log(String msg, int thisLogLevel) {
+  if (logLevel <= thisLogLevel) {
+    println(msg + " - " + timeStamp());
+  }
 }

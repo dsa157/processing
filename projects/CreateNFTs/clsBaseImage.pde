@@ -10,6 +10,9 @@ class BaseImage {
   protected float blurValue = defaultBlur;
 
   BaseImage(String fileName) {
+    if (fileName == null) {
+      return;
+    }
     outFilePrefix = fileName.substring(0, fileName.length()-4);
     colorImg = loadImage(fileName);
     setGrayImg(colorImg);

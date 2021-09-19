@@ -47,12 +47,12 @@ class DerivativeGenerator {
   }
 
   void initPrintWriter() {
-      setPrintWriter();
-      printCvsOutputHeader();
+    setPrintWriter();
+    printCvsOutputHeader();
   }
-  
+
   void setPrintWriter() {
-    log("setPrintWriter " + outputFolder + "/" + getCsvOutputName());
+    log("setPrintWriter " + outputFolder + "/" + getCsvOutputName(), LogLevel.FINE);
     csvOutput = createWriter(outputFolder + "/" + getCsvOutputName());
   }
 
@@ -63,7 +63,7 @@ class DerivativeGenerator {
   String getCsvOutputName() {
     return csvOutputName;
   }
-    
+
   String getUniquePrefix() {
     return uniquePrefix + "-";
   }
@@ -161,6 +161,14 @@ class DerivativeGenerator {
     //arrayCopy(gradValues, allGradients[colorIteration-1]);
   }
 
+  void shiftGradient() {
+    color[] reordered = new color[gradValues.length];
+    int shift = 50;
+    for (int i=0; i<gradValues.length; i++) {
+      reordered[i] = gradValues[(shift+i)%gradValues.length];
+    }  
+    gradValues = reordered;
+  }
 
   void setGradient() {
     setPalette();
@@ -254,7 +262,7 @@ class DerivativeGenerator {
   void mapColors(int zl) {
     if (saveOutputImage) {
       zoomLevel = zl;
-      log("Processing " + getOutFileName() + ".png (" + derivativeCount++ + "/" + maxImages + ") ");
+      log("Processing " + getOutFileName() + ".png (" + derivativeCount++ + "/" + maxImages + ") ", LogLevel.INFO);
       tint(255, 255);
       //println("calling zoom from mapColors() on colorImg");
       zoom(bImg.getColorImg(), zoomLevel);
@@ -389,7 +397,8 @@ class DerivativeGenerator {
 
   void saveImage(String suffix) {
     if (saveImage) {
-      saveFrame(outputFolder + "/" + actionPrefix + getUniquePrefix() + getOutFileName() + suffix + ".png");
+      String groupPrefix = (suffix == "-orig" || suffix == "-gray") ? "" : getUniquePrefix();
+      saveFrame(outputFolder + "/" + actionPrefix + groupPrefix + getOutFileName() + suffix + ".png");
     }
   }
 
@@ -425,7 +434,7 @@ class DerivativeGenerator {
         if (csvOutput == null) {
           initPrintWriter();
         }      
-        
+
         csvOutput.println(oCount + "," + dCount + "," + getOutFileName() + suffix + ".png" + "," + bImg.outFilePrefix + ".png" + "," +zoomLevel + "," 
           + ci + "," + savePaletteAsHexStrings(suffix) + "," + bImg.getBlurValue() + "," + bImg.getTintOpacity(0) + "," + gradientType + "," + gradientSliceType
           );
