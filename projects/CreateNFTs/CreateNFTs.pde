@@ -73,6 +73,9 @@ String imageList[] = {
   "Davids-Lyre-16-NFT.png"
 };
 
+String mintDataRecords[];
+
+
 int zoomX = 304;
 int zoomY = 274;
 
@@ -102,8 +105,11 @@ DerivativeGenerator dg;
 String actionPrefix = "";
 
 void setup() {
-  println("begin - " + timeStamp());
+  log("setup");
   init();
+  if (scriptAction == NFTAction.CLI) {
+    processArguments();
+  }
   if (scriptAction == NFTAction.CREATE) {
     generatePaletteAndGradients();
   }
@@ -120,22 +126,14 @@ void settings() {
 }
 
 void init() {
+  log("init");
   settings();
   imageWidth = width;
   imageHeight = height;
   imageMode(CENTER);
   colorMode(RGB, 255, 255, 255);
   background(255);
-
-  if (scriptAction == NFTAction.MINT) {
-    actionPrefix = "mint-";
-  } 
-  if (scriptAction == NFTAction.CREATE) {
-    actionPrefix = "create-";
-  } 
-  if (scriptAction == NFTAction.PLAY) {
-    actionPrefix = "play-";
-  } 
+  setActionPrefix();
   bImg = new BaseImage(imageList[0]);
   dg = new DerivativeGenerator(bImg, GradientSliceType.EVEN);
 }
@@ -156,14 +154,13 @@ void draw() {
     //createNFTs();
   }
   if (scriptAction == NFTAction.MINT) {
-    mintNFT(7);
-    mintNFT(8);
+    mintNFTs();
   }
   if (scriptAction == NFTAction.PLAY) {
     playground();
   }
   if (scriptAction == NFTAction.CLI) {
-    processArguments();
+    // we shouldn't be in this mode when we get to the draw method
     done();
   }
 }
@@ -183,14 +180,25 @@ void createNFTs() {
   }
 }
 
+void mintNFTs() {
+  noLoop();
+  if (mintDataRecords.length <= 1) {
+    // we only have the header or an empty file, so exit
+    fatalError("No Input Data to read in " + params.get("dataFile"));
+  }
+  mintNFT(3);
+  //for (int i=1; i<mintDataRecords.length; i++) { // start with 1 since first line in data file is the header
+  //  log("minRecord " + mintDataRecords[i]);
+  //}
+  done();
+}
+
 void mintNFT(int ndx) {
   noLoop();
   maxImages = 1;
   derivativeCount = 1;
-
-  String[] dataRecord = loadData(ndx); // allow user to enter a 1-based human readable index from the CSV file
-  image(bImg.getColorImg(), width/2, height/2, width, height);
-  mintNFT(dataRecord);
+//  image(bImg.getColorImg(), width/2, height/2, width, height);
+  mintNFT(mintDataRecords[ndx]);
 }
 
 void playground() {
@@ -199,7 +207,7 @@ void playground() {
   }
   if (click == 1) {
     disableImageOutput();
-    maxDerivatives = 16;
+    maxDerivatives = imageList.length;
     maxColorIterations = 1;
     maxZooms = 1;
     zoomLevel=2;
@@ -208,7 +216,7 @@ void playground() {
     saveMetaData=false;
     saveCVSMetaData=false;
 
-    playZoomLevel=0;
+    playZoomLevel=2;
     click=0;
     tint(255, 255);
     if (playRandomEnabled) {
@@ -217,14 +225,14 @@ void playground() {
     }
     maxPaletteColors = int(random(3, 50));
     defaultBlur = random(3.0, 15.0);
-    bImg = new BaseImage("Davids-Lyre-" + playImageNum + "-small.png");
+    bImg = new BaseImage(imageList[playImageNum-1]);
     dg.setBaseImage(bImg);
     dg.setAllPalettes(maxPaletteColors);
     if (playChangeGradient) {
       dg.generatePaletteAndGradient();
     }
     dg.setColorIteration(1);
-    dg.setZoomLevel(1);
+    dg.setZoomLevel(playZoomLevel);
     dg.setGradient();
     dg.mapColors();
   }
@@ -286,7 +294,11 @@ void keyPressed() {
     click=1;
   }
   if (key == 's' || key == 'S') {
+    log("saving");
     saveCVSMetaData=true;
+    if (dg == null) {
+      fatalError("DerivativeGenerator is null");
+    }
     dg.saveImageMetaData();
     saveCVSMetaData=false;
   }
@@ -305,7 +317,8 @@ void keyPressed() {
 }
 
 
-void mintNFT(String[] dataRecord) {
+void mintNFT(String dataRecordString) {
+  String[] dataRecord = dataRecordString.split(",");
   saveGradientImage = true;
   saveUnmodifiedImage = true;
   saveGrayImage = true;
@@ -314,11 +327,17 @@ void mintNFT(String[] dataRecord) {
   String zoomLevel = dataRecord[4];
   String colorIteration = dataRecord[5];
   String palette = dataRecord[6];
-  println("baseImageName: " + baseImageName);
-  println("Color Iteration: " + colorIteration);
-  println("Zoom Level: " + zoomLevel);
-  println("Palette: " + palette);
+  String blur = dataRecord[7];
+  String tint = dataRecord[8];
+  log("baseImageName: " + baseImageName);
+  log("Color Iteration: " + colorIteration);
+  log("Zoom Level: " + zoomLevel);
+  log("Blur: " + blur);
+  log("Tint: " + tint);
+  log("Palette: " + palette);
   bImg = new BaseImage(baseImageName);
+  bImg.setTintOpacity(0, int(tint));
+  bImg.setBlurValue(float(blur));
   dg.setBaseImage(bImg);
   dg.setZoomLevel(int(zoomLevel));
   dg.setColorIteration(int(colorIteration));
@@ -328,7 +347,7 @@ void mintNFT(String[] dataRecord) {
 }
 
 void done() {
-  println("done - " + timeStamp());
+  log("done");
   if (dg != null) {
     dg.closeWriter();
     exit();
@@ -338,8 +357,7 @@ void done() {
 String[] loadData(int ndx) {
   String[] data = loadStrings("mint-metadata.csv");
   if (ndx > data.length) {
-    println("Error: There are not that many records in the CSV file");
-    done();
+    fatalError("Error: There are not that many records in the CSV file");
   }
   String[] dataRecord = split(data[ndx], ",");
   println(data[ndx]);
@@ -357,65 +375,104 @@ String timeStamp() {
   return ts;
 }
 
+void setActionPrefix() {
+  if (scriptAction == NFTAction.MINT) {
+    actionPrefix = "mint-";
+  } 
+  if (scriptAction == NFTAction.CREATE) {
+    actionPrefix = "create-";
+  } 
+  if (scriptAction == NFTAction.PLAY) {
+    actionPrefix = "play-";
+  }
+}
+
 //-----------------------------------
 // command line support
 
 void getArguments() {
-  println("getArguments " + timeStamp());
-  if (args == null) {
-    fatalError("Missing required param mode=[play|mint]");
-  } else {
+  //log("getArguments");
+  if (args != null) {
     for (int i=0; i<args.length; i++) {
       String pair=args[i];
       pair = pair.substring(2);
       String[] keyVal = split(pair, '=');
-      params.put(keyVal[0], keyVal[1]);
+      if (keyVal.length == 1) {
+        fatalError("Params must be in the format -Dkey=[value]");
+      } else {
+        params.put(keyVal[0], keyVal[1]);
+        log("param: " + keyVal[0] + "=" + keyVal[1]);
+      }
     }
   }
 }
 
 void processArguments() {
-  println("processArguments " + timeStamp());
+  log("processArguments");
   if (scriptAction != NFTAction.CLI) {
     return;
   }
   getArguments();
+
   if (params.get("mode") == null) {
-    fatalError("Missing required param mode=[play|mint]");
+    fatalError("Missing required param -Dmode=[play|mint]");
   } else {
     switch(params.get("mode")) {
     case "play":
       scriptAction = NFTAction.PLAY;
+      setActionPrefix();
       break;
     case "mint":
       scriptAction = NFTAction.MINT;
+      setActionPrefix();
       break;
     default:
-      fatalError("Invalid valid for param mode=[play|mint]");
+      fatalError("Invalid valid for param -Dmode=[play|mint]");
     }
   }
 
   switch(scriptAction) {
   case NFTAction.PLAY:
-    if (params.get("imageList") != null) {
-      fatalError("Missing required param imageList=[filePath]");
-      done();
-    } else {
-      String[] imageList = loadStrings(params.get("imageList"));
-      for (int i=0; i<imageList.length; i++) {
-        println (imageList[i]);
-      }
-    }
-    //println("program mode: PLAY " + scriptAction);
-    done();
+    imageList = validateAndLoadFileParam("imageList");
+    log("images :" + imageList.length);
     break;
   case NFTAction.MINT:
-    println("program mode: MINT " + scriptAction);
+    mintDataRecords = validateAndLoadFileParam("dataFile");
     break;
   }
 }
 
+String[] validateAndLoadFileParam(String paramName) {
+  if (params.get(paramName) == null) {
+    fatalError("Missing required param -D" + paramName + "=[filePath]");
+  } else {
+    String fileName = params.get(paramName);
+    if (fileName == null) {
+      fatalError("Missing value for param -D" + paramName + "=[filePath]");
+    }
+    String[] stringList = loadStrings(fileName);
+    if (stringList == null) {
+      fatalError("Invalid file or path for param -D" + paramName + "=[filePath]");
+    }
+    return stringList;
+  }
+  return new String[0];
+}
+
 void fatalError(String msg) {
-  println(msg);
+  println("-------------");
+  println("FATAL ERROR: " + msg + " - " + timeStamp());
+  println("-------------");
   exit();
+}
+
+void fatalException(Exception e) {
+  println("-------------");
+  e.printStackTrace();
+  println("-------------");
+  exit();
+}
+
+void log(String msg) {
+  println(msg + " - " + timeStamp());
 }

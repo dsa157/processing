@@ -27,6 +27,10 @@ class BaseImage {
     return tintOpacity[ndx];
   }
 
+  void setBlurValue(float bv) {
+    blurValue=bv;
+  }
+
   float getBlurValue() {
     return blurValue;
   }

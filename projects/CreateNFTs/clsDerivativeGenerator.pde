@@ -36,15 +36,21 @@ class DerivativeGenerator {
   PrintWriter csvOutput;
 
   DerivativeGenerator(BaseImage img, int gType) {
+    //log("DerivativeGenerator constructor");
     bImg = img;
     gradientType = gType;
     if (actionPrefix != "") {
-      setPrintWriter();
-      printCvsOutputHeader();
+      initPrintWriter();
     }
   }
 
+  void initPrintWriter() {
+      setPrintWriter();
+      printCvsOutputHeader();
+  }
+  
   void setPrintWriter() {
+    log("setPrintWriter " + outputFolder + "/" + getCvsOutputName());
     csvOutput = createWriter(outputFolder + "/" + getCvsOutputName());
   }
 
@@ -238,7 +244,7 @@ class DerivativeGenerator {
   void mapColors(int zl) {
     if (saveOutputImage) {
       zoomLevel = zl;
-      println("Processing " + getOutFileName() + ".png (" + derivativeCount++ + "/" + maxImages + ") " + timeStamp());
+      log("Processing " + getOutFileName() + ".png (" + derivativeCount++ + "/" + maxImages + ") ");
       tint(255, 255);
       //println("calling zoom from mapColors() on colorImg");
       zoom(bImg.getColorImg(), zoomLevel);
@@ -382,34 +388,43 @@ class DerivativeGenerator {
   }
 
   void saveImageMetaData(String suffix) {
-    if (suffix != "" && scriptAction == NFTAction.PLAY) {
-      return;  // don't need to write out any of the base image metadata in playground mode
-    }
-    int ci = colorIteration;
-    if (suffix != "") {
-      ci = 0;
-    }
-    imageMetaData[0] = "FileName: " + getOutFileName() + suffix + ".png";
-    imageMetaData[1] = "BaseFileName: " + bImg.outFilePrefix + ".png";
-    imageMetaData[2] = "Zoom Level: " + zoomLevel;
-    imageMetaData[3] = "Color Iteration: " + ci;
-    imageMetaData[4] = "Palette: " + savePaletteAsHexStrings(suffix);
-    imageMetaData[5] = "Blur: " + bImg.getBlurValue();
-    imageMetaData[6] = "Tint Opacity: " + bImg.getTintOpacity(0);
-    imageMetaData[7] = "Gradient Type: " + gradientType;
-    imageMetaData[8] = "Gradient Slice Type: " + gradientSliceType;
+    try {
+      if (suffix != "" && scriptAction == NFTAction.PLAY) {
+        return;  // don't need to write out any of the base image metadata in playground mode
+      }
+      int ci = colorIteration;
+      if (suffix != "") {
+        ci = 0;
+      }
+      if (saveMetaData) {
+        imageMetaData[0] = "FileName: " + getOutFileName() + suffix + ".png";
+        imageMetaData[1] = "BaseFileName: " + bImg.outFilePrefix + ".png";
+        imageMetaData[2] = "Zoom Level: " + zoomLevel;
+        imageMetaData[3] = "Color Iteration: " + ci;
+        imageMetaData[4] = "Palette: " + savePaletteAsHexStrings(suffix);
+        imageMetaData[5] = "Blur: " + bImg.getBlurValue();
+        imageMetaData[6] = "Tint Opacity: " + bImg.getTintOpacity(0);
+        imageMetaData[7] = "Gradient Type: " + gradientType;
+        imageMetaData[8] = "Gradient Slice Type: " + gradientSliceType;
 
-
-    if (saveMetaData) {
-      saveStrings(outputFolder + "/" + getOutFileName() + ".txt", imageMetaData);
+        saveStrings(outputFolder + "/" + getOutFileName() + ".txt", imageMetaData);
+      }
+      int dCount = derivativeCount-1;
+      int oCount = outputImageCount++;
+      if (saveCVSMetaData) {
+        if (csvOutput == null) {
+          initPrintWriter();
+        }      
+        
+        csvOutput.println(oCount + "," + dCount + "," + getOutFileName() + suffix + ".png" + "," + bImg.outFilePrefix + ".png" + "," +zoomLevel + "," 
+          + ci + "," + savePaletteAsHexStrings(suffix) + "," + bImg.getBlurValue() + "," + bImg.getTintOpacity(0) + "," + gradientType + "," + gradientSliceType
+          );
+        csvOutput.flush();
+      }
     }
-    int dCount = derivativeCount-1;
-    int oCount = outputImageCount++;
-    if (saveCVSMetaData) {
-      csvOutput.println(oCount + "," + dCount + "," + getOutFileName() + suffix + ".png" + "," + bImg.outFilePrefix + ".png" + "," +zoomLevel + "," 
-        + ci + "," + savePaletteAsHexStrings(suffix) + "," + bImg.getBlurValue() + "," + bImg.getTintOpacity(0) + "," + gradientType + "," + gradientSliceType
-        );
-      csvOutput.flush();
+    catch(Exception e) {
+      e.printStackTrace();
+      exit();
     }
   }
 
