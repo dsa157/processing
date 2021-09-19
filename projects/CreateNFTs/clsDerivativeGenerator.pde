@@ -118,11 +118,18 @@ class DerivativeGenerator {
   void generateGradient() {
     int ndx = 0;
     int prev = 0;
-    int sliceWidth = int(round(width/(paletteSize * 1.0)));  // even width slices
+  int sliceWidth = 0;
+  if (gradientType == GradientType.DISCRETE) {
+    // for discrete gradients, we want the same number of slices as palette size
+    sliceWidth = int(round(width/(paletteSize * 1.0)));  // even width slices
+  } else {
+    //for smooth gradients, one less, since we need to end on the last color
+    sliceWidth = int(round(width/(paletteSize-1 * 1.0)));  // even width slices
+  }
     for (int i=0; i<paletteSize-1; i++) {
       from = myPalette[i];
       if (i == paletteSize-1) {
-        to = from;
+      to = myPalette[paletteSize-1];
       } else {
         to = myPalette[i+1];
       }

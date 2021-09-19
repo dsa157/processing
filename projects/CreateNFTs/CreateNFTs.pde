@@ -92,7 +92,7 @@ void setup() {
     generatePaletteAndGradients();
   }
   playImageNum = 1;
-  frameRate(160);
+  frameRate(10);
 }
 
 void settings() {
@@ -100,7 +100,8 @@ void settings() {
   //  size(1600,1067);   // Innoculation      - zoom at 904,349
   //  size(800, 534);     // Innoculation small  - zoom at 452,176
   //  size(400,400);       // Mandala small
-  size(1000, 750);    // david's Lyre - small    - zoom at 304,274
+  //size(1000, 750);    // david's Lyre - small    - zoom at 304,274
+  size(500, 375);    // david's Lyre - small    - zoom at 304,274
 }
 
 void init() {
