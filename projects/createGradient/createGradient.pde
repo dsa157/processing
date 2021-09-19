@@ -22,18 +22,24 @@ boolean useBlackAndWhitePalette = false;
 //-------------------------
 
 void setup() {
-  size(205, 100);
+  size(1000, 750);
   gradValues = new color[width];
+  imgSetup();
+  frameRate(30);
 }
 
 void draw() {
+  //gradTest();
+  imgDraw();
+}
+
+void gradTest() {
   if (click==1) {
     click=0;
     paletteColors = int(random(minPaletteColors, maxPaletteColors+1));
     if (useBlackAndWhitePalette) {
       generateBlackAndWhitePalette();
-    } 
-    else {
+    } else {
       generateRandomPalette();
     }
     generateGradient();
@@ -45,26 +51,23 @@ void mousePressed() {
 }
 
 void keyPressed() {
+  if (key == 'b' || key == 'B') {   //  use [B]lack and White Palette
+    useBlackAndWhitePalette = !useBlackAndWhitePalette;
+  }
   if (key == 'e' || key == 'E') {   // toggle [E]ven/Random Gradient slices
     gradientSliceType = (gradientSliceType == GradientSliceType.EVEN ? 
       GradientSliceType.RAND : GradientSliceType.EVEN);
-    click=1;
+  }
+  if (key == 'n' || key == 'N') {   // [N]ext
+  }
+  if (key == 'q' || key == 'Q') {   // [Q]uit
+    exit();
   }
   if (key == 's' || key == 'S') {   // toggle [S]mooth/Discrete
     gradientType = (gradientType == GradientType.SMOOTH ? 
       GradientType.DISCRETE : GradientType.SMOOTH);
-    click=1;
   }
-  if (key == 'n' || key == 'N') {   // [N]ext
-    click=1;
-  }
-  if (key == 'n' || key == 'N') {   // [N]ext
-    click=1;
-  }
-  if (key == 'b' || key == 'B') {   //  use [B]lack and White Palette
-    useBlackAndWhitePalette = !useBlackAndWhitePalette;
-    click=1;
-  }
+  click=1;
 }
 
 void generateRandomPalette() {
@@ -111,12 +114,19 @@ void generateGradient() {
   color to;
   println("palette size = " + paletteSize);
   //println (200/3.0);
-  int sliceWidth = int(round(width/(paletteSize * 1.0)));  // even width slices
+  int sliceWidth = 0;
+  if (gradientType == GradientType.DISCRETE) {
+    // for discrete gradients, we want the same number of slices as palette size
+    sliceWidth = int(round(width/(paletteSize * 1.0)));  // even width slices
+  } else {
+    //for smooth gradients, one less, since we need to end on the last color
+    sliceWidth = int(round(width/(paletteSize-1 * 1.0)));  // even width slices
+  }
   //println("sliceWidth: " + sliceWidth);
   for (int i=0; i<paletteSize; i++) {
     from = myPalette[i];
     if (i == paletteSize-1) {
-      to = from;
+      to = myPalette[paletteSize-1];
     } else {
       to = myPalette[i+1];
     }
@@ -135,7 +145,7 @@ void generateGradient() {
         ndx = width;
       }
     }
-    println(prev, ndx);
+    //println(prev, ndx);
     if (gradientType == GradientType.DISCRETE) {
       color newColor = myPalette[i];
       for (int j=prev; j<ndx; j++) {
@@ -162,4 +172,48 @@ void lerpColors(int prev, int ndx, color from, color to) {
     stroke(newColor);
   }
   from = newColor;
+}
+
+//----- mask testing
+
+PImage img;
+PImage imgMask;
+int r;
+int g;
+int b;
+int t;
+
+void fadeBG() {
+  r = (r>0) ? r-- : 0;
+  g = (g>0) ? g-- : 0;
+  b = (b>0) ? b-- : 0;
+
+  if (r==0 && g==0 && b==0) {
+    r = int(random(256));
+    g = int(random(256));
+    b = int(random(256));
+  }
+  println(r,b,g);
+  background(r, g, b);
+  tint(255,t);
+  t--;
+  if (t==0) { t=255; } 
+  background(0);
+}
+
+void imgSetup() {
+  img = loadImage("Davids-Lyre-4-small.png");
+  imgMask = loadImage("Davids-Lyre-1-small.png");
+  img.mask(imgMask);
+  imageMode(CENTER);
+  r=0;
+  g=0;
+  b=0;
+  t=128;
+}
+
+void imgDraw() {
+  fadeBG();
+  image(img, width/2, height/2);
+  //image(img, mouseX, mouseY);
 }
