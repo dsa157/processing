@@ -1,13 +1,14 @@
-PImage img, imgGrid;  //<>//
-//String imgName = "ellipses.png";
+PImage img, imgGrid;  //<>// //<>// //<>//
+String imgName = "ellipses.png";
 //String imgName = "Innoculation-hirez.png";
 //String imgName = "Innoculation3.png";
-String imgName = "Davids-Lyre-1-NFT.png";
+//String imgName = "Davids-Lyre-1-NFT.png";
 //String imgName = "storm.png";
 String gridName = "grid.png";
 
 
-int imageCount = 1;
+int zoomLevel = 1;
+int maxZooms = 3;
 int click = 1;
 int small = 1;
 int zoomX = width/2;
@@ -16,8 +17,8 @@ int imageHeight;
 int imageWidth;
 float xOffset=0.0;
 float yOffset=0.0;
-int showGrid = 0;
-boolean zoomDefined = true;
+int showGrid = 1;
+//boolean zoomDefined = false;
 
 void setup() {
   size(1000,750);
@@ -40,6 +41,7 @@ void setup() {
   imgGrid = loadImage(gridName);
 }
 
+// determine whether zoomX is to the right or the left of center
 int getXHalf() {
   if (zoomX > width/2) {
     return -1;
@@ -48,6 +50,7 @@ int getXHalf() {
   }
 }
 
+// determine whether zoomY is above or below center
 int getYHalf() {
   if (zoomY > height/2) {
     return -1;
@@ -60,44 +63,52 @@ void draw() {
   if (click == 1) {
     click = 0;
     background(255);
-    if (imageCount == 1) {
-      println("shift: " + xOffset, yOffset);
+    zoom();
+  }
+}
+
+void zoom() {
+  if (zoomLevel == 1) {
+      //println("shift: " + xOffset, yOffset);
       if (showGrid==1) {
         image(imgGrid, width/2, height/2, width, height); 
         tint(255, 50);
       }
-      image(img, width/2, height/2, width * imageCount, height * imageCount); 
+      image(img, width/2, height/2, width * zoomLevel, height * zoomLevel); 
       if (showGrid==1) {
         tint(255, 64);
         image(imgGrid, width/2, height/2, width, height); 
       }
       tint(255, 255);
-      imageCount++;
     } else {
       tint(255, 255);
       pushMatrix();
-      translate(xOffset * imageCount, yOffset * imageCount);
-      image(img, width/2, height/2, width * imageCount, height * imageCount); 
+      translate(xOffset * zoomLevel, yOffset * zoomLevel);
+      println("shift: " + xOffset*zoomLevel, yOffset*zoomLevel);
+      image(img, width/2, height/2, width * zoomLevel, height * zoomLevel); 
       popMatrix();
       if (showGrid==1) {
         tint(255, 64);
-        image(imgGrid, width/2, height/2, width, height); 
+        image(imgGrid, width/2, height/2, width, height);
       }
       tint(255, 255);
-      imageCount++;
     }
-  }
 }
 
 void mousePressed() {
   tint(255, 255);
-  if (!zoomDefined) {
+  if (zoomLevel==1) {
     println(mouseX, mouseY);
     zoomX = mouseX;
     zoomY = mouseY;
     xOffset = abs(zoomX - width/2) * getXHalf();
     yOffset = abs(zoomY - height/2) * getYHalf();
-    zoomDefined = true;
+    //zoomDefined = true;
+  }
+  zoomLevel++;
+  if (zoomLevel > maxZooms) {
+    zoomLevel=1;
   }
   click=1;
+  println("click=1 zoomLevel=" + zoomLevel);
 }

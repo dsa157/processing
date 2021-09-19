@@ -34,8 +34,8 @@ int click=1;
 static int logLevel = LogLevel.INFO;
 HashMap<String, String> params = new HashMap<String, String>();
 
-int playImageNum;
-int playZoomLevel;
+int playImageNum=1;
+int playZoomLevel=1;
 int[] playTintOpacity = defaultTintOpacity;
 boolean playAutoEnabled=false;
 boolean playRandomEnabled=false;
@@ -49,8 +49,8 @@ String imageList[] = {"Davids-Lyre-1-small.png"};
 
 String mintDataRecords[];
 
-int zoomX = 304;
-int zoomY = 274;
+int zoomX = 0;
+int zoomY = 0;
 
 //--------------------------------------
 
@@ -201,19 +201,16 @@ void playground() {
     disableImageOutput();
     maxDerivatives = imageList.length;
     maxColorIterations = 1;
-    maxZooms = 1;
-    zoomLevel=2;
+    maxZooms = 3;
     maxImages = 1;
     derivativeCount = 1;
     saveMetaData=false;
     saveCVSMetaData=false;
-
-    playZoomLevel=zoomLevel;
     click=0;
     tint(255, 255);
     if (playRandomEnabled) {
       playImageNum = int(random(1, maxDerivatives+1));
-      playZoomLevel = 2; //int(random(1,maxZooms+1));
+      //playZoomLevel = int(random(1,maxZooms+1));
     }
     maxPaletteColors = int(random(3, 50));
     defaultBlur = random(3.0, 15.0);
@@ -224,23 +221,36 @@ void playground() {
       dg.generatePaletteAndGradient();
     }
     dg.setColorIteration(1);
+    Logger.info("playg setZoomLevel " + playZoomLevel);
     dg.setZoomLevel(playZoomLevel);
     dg.setGradient();
-    dg.mapColors();
+    dg.mapColors(playZoomLevel);
   }
 }
 
 void animate() {
   dg.shiftGradient();
   dg.setGradient();
-  dg.mapColors();
+  dg.mapColors(playZoomLevel);
 }
 
 void mousePressed() {
+  if (playZoomLevel==1) {
+    zoomX = mouseX;
+    zoomY = mouseY;
+    dg.calculateZoomOffsets();
+  }
+  playZoomLevel++;
+  if (playZoomLevel > maxZooms) {
+    playZoomLevel=1;
+  }
   click=1;
+  playChangeGradient=false;
+  println("click=1 zoomLevel=" + playZoomLevel);
 }
 
 void keyPressed() {
+  playChangeGradient=true;
   if (key == '1') {   // toggle animation mode
     int tempAction = 0;
     if (scriptAction == NFTAction.PLAY) { 
@@ -316,13 +326,13 @@ void keyPressed() {
       GradientType.DISCRETE : GradientType.SMOOTH);
     click=1;
   }
-  
+
   if (key == 'w' || key == 'W') {   // toggle B&W palette
-  playBWEnabled = !playBWEnabled;
+    playBWEnabled = !playBWEnabled;
     dg.generateBlackAndWhitePalette();
     click=1;
   }
-  
+
   if (key == 'z' || key == 'Z') {   // change [Z]oom level
     //  playZoomLevel++;
     //  if (playZoomLevel > maxZooms) {
@@ -332,35 +342,54 @@ void keyPressed() {
   }
 }
 
-
 void mintNFT(String dataRecordString) {
-  String[] dataRecord = dataRecordString.split(",");
-  saveGradientImage = true;
-  saveUnmodifiedImage = true;
-  saveGrayImage = true;
-  //String imageName = dataRecord[2];
-  String baseImageName = dataRecord[3];
-  String zoomLevel = dataRecord[4];
-  String colorIteration = dataRecord[5];
-  String palette = dataRecord[6];
-  String blur = dataRecord[7];
-  String tint = dataRecord[8];
-  Logger.fine("baseImageName: " + baseImageName);
-  Logger.fine("Color Iteration: " + colorIteration);
-  Logger.fine("Zoom Level: " + zoomLevel);
-  Logger.fine("Blur: " + blur);
-  Logger.fine("Tint: " + tint);
-  Logger.fine("Palette: " + palette);
-  bImg = new BaseImage(baseImageName);
-  bImg.setTintOpacity(0, int(tint));
-  bImg.setBlurValue(float(blur));
-  dg.setBaseImage(bImg);
-  dg.setZoomLevel(int(zoomLevel));
-  dg.setColorIteration(int(colorIteration));
-  dg.setUniquePrefix();
-  dg.generatePalette(palette);
-  dg.generateGradient();
-  dg.mapColors(int(zoomLevel));
+  try {
+    String[] dataRecord = dataRecordString.split(",");
+    saveGradientImage = true;
+    saveUnmodifiedImage = true;
+    saveGrayImage = true;
+    //String imageName = dataRecord[2];
+    String baseImageName = dataRecord[3];
+    String zoomLevel = dataRecord[4];
+    String colorIteration = dataRecord[5];
+    String palette = dataRecord[6];
+    String blur = dataRecord[7];
+    String tint = dataRecord[8];
+    String gradientTypeStr = dataRecord[9];
+    String gradientSliceTypeStr = dataRecord[10];
+    String zoomXstr = dataRecord[11];
+    String zoomYstr = dataRecord[12];
+    Logger.fine("baseImageName: " + baseImageName);
+    Logger.fine("Color Iteration: " + colorIteration);
+    Logger.fine("Zoom Level: " + zoomLevel);
+    Logger.fine("Blur: " + blur);
+    Logger.fine("Tint: " + tint);
+    Logger.fine("ZoomX: " + zoomXstr);
+    Logger.fine("ZoomY: " + zoomYstr);
+    Logger.fine("Gradient Type: " + gradientTypeStr);
+    Logger.fine("Gradient Slice Type: " + gradientSliceTypeStr);
+    Logger.fine("Palette: " + palette);
+    Logger.fine("Log Level: " + logLevel);
+    Logger.fine("---");
+    zoomX = int(zoomXstr);
+    zoomY = int(zoomYstr);
+    bImg = new BaseImage(baseImageName);
+    bImg.setTintOpacity(0, int(tint));
+    bImg.setBlurValue(float(blur));
+    dg.setBaseImage(bImg);
+    dg.setZoomLevel(int(zoomLevel));
+    dg.calculateZoomOffsets();
+    dg.setColorIteration(int(colorIteration));
+    dg.setGradientType(int(gradientTypeStr));
+    dg.setGradientSliceType(int(gradientSliceTypeStr));
+    dg.setUniquePrefix();
+    dg.generatePalette(palette);
+    dg.generateGradient();
+    dg.mapColors(int(zoomLevel));
+  }
+  catch(Exception e) {
+    fatalException(e);
+  }
 }
 
 void done() {
@@ -394,6 +423,9 @@ void setActionPrefix() {
   } 
   if (scriptAction == NFTAction.PLAY) {
     actionPrefix = "play-";
+  }
+  if (scriptAction == NFTAction.CLI) {
+    actionPrefix = "cli-";
   }
 }
 

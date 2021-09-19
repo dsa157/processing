@@ -31,7 +31,7 @@ class DerivativeGenerator {
   int[][] allPalettes = new int [maxColorIterations][maxPaletteColors];
 
   color[] gradValues = new color[width];
-  String[] imageMetaData = new String[9];
+  String[] imageMetaData = new String[13];
   int outputImageCount = 1;
 
   PrintWriter csvOutput;
@@ -40,10 +40,12 @@ class DerivativeGenerator {
     //log("DerivativeGenerator constructor");
     bImg = img;
     gradientType = gType;
+    setUniquePrefix();
     if (actionPrefix != "") {
+      Logger.info("set CSVOutputname");
+      setCsvOutputName();
       initPrintWriter();
     }
-    setCsvOutputName();
   }
 
   void initPrintWriter() {
@@ -87,6 +89,14 @@ class DerivativeGenerator {
 
   void setColorIteration(int ci) {
     colorIteration = ci;
+  }
+  
+  void setGradientType(int i) {
+    gradientType = i;
+  }
+
+  void setGradientSliceType(int i) {
+    gradientSliceType = i;
   }
 
   String getOutFileName() {
@@ -317,6 +327,11 @@ class DerivativeGenerator {
       //println("mapColors done.");
     }
   }
+  
+  void calculateZoomOffsets() {
+    xOffset = abs(zoomX - width/2) * getXHalf();
+    yOffset = abs(zoomY - height/2) * getYHalf();
+  }
 
   // deterime whether zoomX is to the right or the left of center
   int getXHalf() {
@@ -370,15 +385,12 @@ class DerivativeGenerator {
       saturatedImg.pixels[i] = newColor;
     }
     colorMode(RGB, 255, 255, 255);
-    //println("calling zoom from overlay2() on saturatedImg");
     zoom(saturatedImg, zoomLevel);
     bImg.setTint(0);
     if (overlayGray) {
-      //println("calling zoom from overlay2() on grayImg");
       zoom(bImg.getGrayImg(), zoomLevel);
     }
     if (overlayColor) {
-      //println("calling zoom from overlay2() on colorImg");
       zoom(bImg.getColorImg(), zoomLevel);
     }
   }
@@ -447,6 +459,8 @@ class DerivativeGenerator {
         imageMetaData[6] = "Tint Opacity: " + bImg.getTintOpacity(0);
         imageMetaData[7] = "Gradient Type: " + gradientType;
         imageMetaData[8] = "Gradient Slice Type: " + gradientSliceType;
+        imageMetaData[9] = "ZoomX: " + zoomX;
+        imageMetaData[10] = "ZoomY: " + zoomY;
 
         saveStrings(outputFolder + "/" + getOutFileName() + ".txt", imageMetaData);
       }
@@ -459,6 +473,7 @@ class DerivativeGenerator {
 
         csvOutput.println(oCount + "," + dCount + "," + getOutFileName() + suffix + ".png" + "," + bImg.outFilePrefix + ".png" + "," +zoomLevel + "," 
           + ci + "," + savePaletteAsHexStrings(suffix) + "," + bImg.getBlurValue() + "," + bImg.getTintOpacity(0) + "," + gradientType + "," + gradientSliceType
+          + "," + zoomX + "," + zoomY
           );
         csvOutput.flush();
       }
@@ -470,7 +485,7 @@ class DerivativeGenerator {
   }
 
   void printCvsOutputHeader() {
-    csvOutput.println("Num,Derivative,Filename,BaseFileName,ZoomLevel,ColorIteration,Palette,Blur,Tint,Gradient Type,Gradient Slice Type");
+    csvOutput.println("Num,Derivative,Filename,BaseFileName,ZoomLevel,ColorIteration,Palette,Blur,Tint,Gradient Type,Gradient Slice Type,ZoomX,ZoomY");
     csvOutput.flush();
   }
 
