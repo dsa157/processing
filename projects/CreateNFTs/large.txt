@@ -1,6 +1,6 @@
 Davids-Lyre-1-small.png
 Davids-Lyre-2-small.png
-Davids-Lyre-3-small.png
+Davids-Lyre-11-small.png
 Davids-Lyre-4-small.png
 Davids-Lyre-5-small.png
 Davids-Lyre-6-small.png
@@ -8,7 +8,7 @@ Davids-Lyre-7-small.png
 Davids-Lyre-8-small.png
 Davids-Lyre-9-small.png
 Davids-Lyre-10-small.png
-Davids-Lyre-12-small.png
+Davids-Lyre-3-small.png
 Davids-Lyre-12-small.png
 Davids-Lyre-13-small.png
 Davids-Lyre-14-small.png
@@ -22,4 +22,3 @@ Innoculation-5a.png
 Innoculation-6a.png
 Innoculation-7a.png
 Innoculation-8a.png
-

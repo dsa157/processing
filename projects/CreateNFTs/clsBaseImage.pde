@@ -1,6 +1,6 @@
 // class used as a container for an image and its properties
 
-
+import java.net.URI;
 
 class BaseImage {
 
@@ -13,11 +13,12 @@ class BaseImage {
     if (fileName == null) {
       return;
     }
-    outFilePrefix = fileName.substring(0, fileName.length()-4);
+    String fn = getFileNameFromURI(fileName);
+    outFilePrefix = fn.substring(0, fn.length()-4);
     colorImg = loadImage(fileName);
     setGrayImg(colorImg);
   }
-  
+
   void setTint(int ndx) {
     tint(255, tintOpacity[ndx]);
   }
@@ -25,7 +26,7 @@ class BaseImage {
   void setTintOpacity(int ndx, int value) {
     tintOpacity[ndx]=value;
   }
-  
+
   int getTintOpacity(int ndx) {
     return tintOpacity[ndx];
   }
@@ -49,7 +50,7 @@ class BaseImage {
   PImage getTempImg() {
     return tempImg;
   }
-  
+
   void setGrayImg(PImage img) {
     grayImg = img.copy();
     grayImg.filter(GRAY);
@@ -70,8 +71,22 @@ class BaseImage {
   void setMaxPaletteColors(int n) {
     maxPaletteColors = n;
   }
-  
+
   String getOutFileName(int colorIteration, int zoomLevel) {
     return outFilePrefix + "-c" + colorIteration + "-z" + zoomLevel;
+  }
+
+  String getFileNameFromURI(String uri1) {
+    try {
+      URI uri = new URI(uri1);
+      String path = uri.getPath(); 
+      String[] pathParts = path.split("/");
+      String fn = pathParts[pathParts.length-1];
+      return fn;
+    }
+    catch(Exception e) {
+      fatalException(e);
+    }
+    return "";
   }
 } 
