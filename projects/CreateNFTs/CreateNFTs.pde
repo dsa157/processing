@@ -53,6 +53,15 @@ int zoomX = 0;
 int zoomY = 0;
 
 //--------------------------------------
+// help text variables
+
+PGraphics helpTextLayer;
+PImage helpImage;
+;
+PFont font;
+boolean showHelpTextLayer = false;
+
+//--------------------------------------
 
 static abstract class NFTAction {
   static final int CREATE = 0;
@@ -101,8 +110,9 @@ void settings() {
   //  size(1600,1067);   // Innoculation      - zoom at 904,349
   //  size(800, 534);     // Innoculation small  - zoom at 452,176
   //  size(400,400);       // Mandala small
-  //size(1000, 750);    // david's Lyre - small    - zoom at 304,274
-  size(500, 375);    // david's Lyre - small    - zoom at 304,274
+  //size(1000, 750);    // david's Lyre - small    
+  //size(500, 375);    // david's Lyre - small    
+  size(800, 600);    // david's Lyre - small
 }
 
 void init() {
@@ -116,6 +126,7 @@ void init() {
   setActionPrefix();
   bImg = new BaseImage(imageList[0]);
   dg = new DerivativeGenerator(bImg, GradientSliceType.EVEN);
+  setupHelpTextLayers();
 }
 
 void draw() {
@@ -135,6 +146,29 @@ void draw() {
     // we shouldn't be in this mode when we get to the draw method
     done();
   }
+}
+
+void setupHelpTextLayers() {
+  helpTextLayer = createGraphics(width, height);
+  //helpTextBackgroundLayer = createGraphics(width, height);
+  //String[] fontList = PFont.list();
+  font = createFont("Courier", 18, true);
+
+  helpTextLayer.beginDraw();
+  helpTextLayer.background(0, 0, 0, 150);
+  helpTextLayer.fill(color(255, 255, 255, 255));
+  helpTextLayer.noStroke();
+  helpTextLayer.textFont(font);
+  helpTextLayer.textAlign(LEFT);
+  helpTextLayer.text(getHelpText(), 40, 80);
+  helpTextLayer.translate(width, height);
+  helpTextLayer.endDraw();
+
+  //helpTextBackgroundLayer.beginDraw();
+  //helpTextBackgroundLayer.background(0,0,0,150);
+  //helpTextBackgroundLayer.translate(width/2, height/2);
+  //helpTextBackgroundLayer.endDraw();
+  helpImage = loadImage("http://dsa157.com/NFT/Davids-Lyre-1-small.png");
 }
 
 void generatePaletteAndGradients() {
@@ -193,38 +227,56 @@ void mintNFT(int ndx) {
   mintNFT(mintDataRecords[ndx]);
 }
 
+void playground2() {
+  //background(125);
+  //image(helpImage, width/2, height/2, width, height);
+  if (showHelpTextLayer) {
+    image(helpTextLayer, width/2, height/2, width, height);
+  } else {
+    background(125);
+  }
+}
+
 void playground() {
+  //  boolean helpTextFlag = false;
   if (playAutoEnabled) {
     click=1;
   }
-  if (click == 1) {
-    disableImageOutput();
-    maxDerivatives = imageList.length;
-    maxColorIterations = 1;
-    maxZooms = 3;
-    maxImages = 1;
-    derivativeCount = 1;
-    saveMetaData=false;
-    saveCVSMetaData=false;
-    click=0;
+  if (showHelpTextLayer) {
+    background(16);
+    image(helpImage, width/2, height/2, width, height);
     tint(255, 255);
-    if (playRandomEnabled) {
-      playImageNum = int(random(1, maxDerivatives+1));
-      //playZoomLevel = int(random(1,maxZooms+1));
+    image(helpTextLayer, width/2, height/2, width, height);
+  } else {
+    if (click == 1) {
+      background(125);
+      disableImageOutput();
+      maxDerivatives = imageList.length;
+      maxColorIterations = 1;
+      maxZooms = 3;
+      maxImages = 1;
+      derivativeCount = 1;
+      saveMetaData=false;
+      saveCVSMetaData=false;
+      click=0;
+      tint(255, 255);
+      if (playRandomEnabled) {
+        playImageNum = int(random(1, maxDerivatives+1));
+        //playZoomLevel = int(random(1,maxZooms+1));
+      }
+      maxPaletteColors = int(random(3, 50));
+      defaultBlur = random(3.0, 15.0);
+      bImg = new BaseImage(imageList[playImageNum-1]);
+      dg.setBaseImage(bImg);
+      dg.setAllPalettes(maxPaletteColors);
+      if (playChangeGradient) {
+        dg.generatePaletteAndGradient();
+      }
+      dg.setColorIteration(1);
+      dg.setZoomLevel(playZoomLevel);
+      dg.setGradient();
+      dg.mapColors(playZoomLevel);
     }
-    maxPaletteColors = int(random(3, 50));
-    defaultBlur = random(3.0, 15.0);
-    bImg = new BaseImage(imageList[playImageNum-1]);
-    dg.setBaseImage(bImg);
-    dg.setAllPalettes(maxPaletteColors);
-    if (playChangeGradient) {
-      dg.generatePaletteAndGradient();
-    }
-    dg.setColorIteration(1);
-    Logger.info("playg setZoomLevel " + playZoomLevel);
-    dg.setZoomLevel(playZoomLevel);
-    dg.setGradient();
-    dg.mapColors(playZoomLevel);
   }
 }
 
@@ -246,11 +298,16 @@ void mousePressed() {
   }
   click=1;
   playChangeGradient=false;
-  println("click=1 zoomLevel=" + playZoomLevel);
 }
 
 void keyPressed() {
   playChangeGradient=true;
+  if (key == '?') {
+    //println("? pressed... " + showHelpTextLayer);
+    showHelpTextLayer = !showHelpTextLayer;
+    click=1;
+  }
+
   if (key == '1') {   // toggle animation mode
     int tempAction = 0;
     if (scriptAction == NFTAction.PLAY) { 
@@ -337,9 +394,9 @@ void keyPressed() {
 void mintNFT(String dataRecordString) {
   try {
     String[] dataRecord = dataRecordString.split(",");
-    saveGradientImage = true;
+    saveGradientImage = false;
     saveUnmodifiedImage = true;
-    saveGrayImage = true;
+    saveGrayImage = false;
     //String imageName = dataRecord[2];
     String baseImageName = dataRecord[3];
     String zoomLevel = dataRecord[4];
@@ -533,4 +590,23 @@ void fatalException(Exception e) {
   e.printStackTrace();
   println("-------------");
   exit();
+}
+
+String getHelpText() {
+  String t = "Keyboard Control\n";
+  t += "'?' - toggle this help screen\n";
+  t += "'q' - quit the application\n";
+  t += "'n' - next base image\n";
+  t += "'p' - previous base image\n";
+  t += "'c' - cycle effects on the current image\n";
+  t += "'r' - toggle randomize mode\n";
+  t += "'o' - randomize the opacity of the color overlay layer\n";
+  t += "'a' - toggle auto-display mode\n";
+  t += "'s' - save parameters of the current display image\n      to the metadata file in the output folder\n";
+  t += "'1' - animate by cycling the gradient colors\n";
+  t += "\n\nMouse Control\n";
+  t += "- click a point in the image to zoom,\n  subsequent zooms will preserves that point.\n";
+  t += "- after returning to zoom level 1,\n  a new point can be selected.\n";
+
+  return t;
 }

@@ -293,7 +293,7 @@ class DerivativeGenerator {
   void mapColors(int zl) {
     if (saveOutputImage) {
       zoomLevel = zl;
-      Logger.info("Processing " + getOutFileName() + ".png (" + derivativeCount++ + "/" + maxImages + ") ");
+      Logger.fine("Processing " + getOutFileName() + ".png (" + derivativeCount++ + "/" + maxImages + ") ");
       tint(255, 255);
       //println("calling zoom from mapColors() on colorImg");
       zoom(bImg.getColorImg(), zoomLevel);
@@ -392,6 +392,9 @@ class DerivativeGenerator {
     if (overlayColor) {
       zoom(bImg.getColorImg(), zoomLevel);
     }
+  }
+  
+  void showMappedImages() {
   }
 
   String savePaletteAsHexStrings(String suffix) {
