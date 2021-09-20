@@ -45,7 +45,7 @@ boolean playOpacityDefault = true;
 
 int mintRecNum;
 
-String imageList[] = {"Davids-Lyre-1-small.png"};
+String imageList[] = {};
 
 String mintDataRecords[];
 
@@ -124,7 +124,7 @@ void init() {
   colorMode(RGB, 255, 255, 255);
   background(255);
   setActionPrefix();
-  bImg = new BaseImage(imageList[0]);
+  bImg = new BaseImage(null);
   dg = new DerivativeGenerator(bImg, GradientSliceType.EVEN);
   setupHelpTextLayers();
 }
