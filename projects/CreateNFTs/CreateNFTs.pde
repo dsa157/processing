@@ -4,11 +4,14 @@ import java.text.SimpleDateFormat;
 import java.util.Map;
 import java.io.*;
 
+// ------ general variables ------
+
 //int scriptAction = NFTAction.CREATE;
 //int scriptAction = NFTAction.MINT;
 //int scriptAction = NFTAction.PLAY;
 int scriptAction = NFTAction.CLI;
 
+String actionPrefix = "";
 int maxDerivatives = 16;
 int maxColorIterations = 10;
 int maxZooms = 3;
@@ -16,6 +19,24 @@ int maxPaletteColors = 5;    // Innoculation: 3
 float defaultBlur = 10.0;
 int zoomLevel=1;
 int[] defaultTintOpacity = {128, 150}; // blurred image at 100/255 (~40%), color overlay at 128/255 (~50%)
+int maxImages = maxDerivatives * maxColorIterations * maxZooms;
+int imageNdx = 0;
+int derivativeCount = 1;
+static int logLevel = LogLevel.INFO;
+HashMap<String, String> params = new HashMap<String, String>();
+String imageNameList[] = {};
+PImage imageList[] = {};
+int zoomX = 0;
+int zoomY = 0;
+float oldFrameRate = 30;
+int imageWidth, imageHeight;
+int currentDerivative=0;
+int currentZoom=0;
+//int currentColorIteration=0;
+BaseImage bImg;
+DerivativeGenerator dg;
+
+// ------ output variables (might be modified by some execution modes ------
 
 boolean saveImage = true;
 boolean saveMetaData = false;
@@ -27,13 +48,10 @@ boolean saveBlurredImage = false;
 boolean saveOutputImage = true;
 boolean overlayGray = false;
 
-int maxImages = maxDerivatives * maxColorIterations * maxZooms;
-int imageNdx = 0;
-int derivativeCount = 1;
-int click=1;
-static int logLevel = LogLevel.INFO;
-HashMap<String, String> params = new HashMap<String, String>();
 
+// ------ playground mode variables ------
+
+int click=1;
 int playImageNum=1;
 int playZoomLevel=1;
 int[] playTintOpacity = defaultTintOpacity;
@@ -42,18 +60,15 @@ boolean playRandomEnabled=false;
 boolean playBWEnabled=false;
 boolean playChangeGradient=true;
 boolean playOpacityDefault = true;
+boolean playMonoGradients=false;
+
+// ------ mint mode variables ------
 
 int mintRecNum;
-
-String imageList[] = {};
-
 String mintDataRecords[];
 
-int zoomX = 0;
-int zoomY = 0;
 
-//--------------------------------------
-// help text variables
+// ------ help text variables ------
 
 PGraphics helpTextLayer;
 PImage helpImage;
@@ -61,7 +76,7 @@ PImage helpImage;
 PFont font;
 boolean showHelpTextLayer = false;
 
-//--------------------------------------
+// ------ enums ------
 
 static abstract class NFTAction {
   static final int CREATE = 0;
@@ -81,31 +96,23 @@ static abstract class LogLevel {
   static final int FINEST = 6;
 }
 
+// ------------
 
-
-int imageWidth, imageHeight;
-int currentDerivative=0;
-int currentZoom=0;
-//int currentColorIteration=0;
-BaseImage bImg;
-DerivativeGenerator dg;
-
-String actionPrefix = "";
+void preloadImages() {
+  Logger.fine("preloadImages");
+  imageList = new PImage [imageNameList.length];
+  for (int i=0; i<imageNameList.length; i++) {
+    Logger.fine("loading image " + imageNameList[i]);
+    PImage img = loadImage(imageNameList[i]);
+    imageList[i]=img;
+  }
+}
 
 void setup() {
   Logger.info("setup");
-  init();
   if (scriptAction == NFTAction.CLI) {
-    processArguments();
+    getArguments();
   }
-  if (scriptAction == NFTAction.CREATE) {
-    generatePaletteAndGradients();
-  }
-  playImageNum = 1;
-  frameRate(10);
-}
-
-void settings() {
   //  size(800,1118);    // Storm
   //  size(1600,1067);   // Innoculation      - zoom at 904,349
   //  size(800, 534);     // Innoculation small  - zoom at 452,176
@@ -113,11 +120,18 @@ void settings() {
   //size(1000, 750);    // david's Lyre - small    
   //size(500, 375);    // david's Lyre - small    
   size(800, 600);    // david's Lyre - small
+  init();
+  if (scriptAction == NFTAction.CREATE) {
+    generatePaletteAndGradients();
+  }
+  playImageNum = 1;
+  frameRate(10);
 }
 
 void init() {
-  Logger.info("init");
-  settings();
+  Logger.info("settings");
+  processArguments();
+  preloadImages();
   imageWidth = width;
   imageHeight = height;
   imageMode(CENTER);
@@ -184,7 +198,7 @@ void generatePaletteAndGradients() {
 
 void createNFTs() {
   if (frameCount <= maxDerivatives) {
-    bImg = new BaseImage(imageList[imageNdx]);
+    bImg = new BaseImage(imageNameList[imageNdx]);
     dg.setBaseImage(bImg);
     for (int i=1; i<=maxColorIterations; i++) {
       dg.setColorIteration(i);
@@ -251,7 +265,7 @@ void playground() {
     if (click == 1) {
       background(125);
       disableImageOutput();
-      maxDerivatives = imageList.length;
+      maxDerivatives = imageNameList.length;
       maxColorIterations = 1;
       maxZooms = 3;
       maxImages = 1;
@@ -266,7 +280,7 @@ void playground() {
       }
       maxPaletteColors = int(random(3, 50));
       defaultBlur = random(3.0, 15.0);
-      bImg = new BaseImage(imageList[playImageNum-1]);
+      bImg = new BaseImage(imageNameList[playImageNum-1]);
       dg.setBaseImage(bImg);
       dg.setAllPalettes(maxPaletteColors);
       if (playChangeGradient) {
@@ -311,10 +325,13 @@ void keyPressed() {
   if (key == '1') {   // toggle animation mode
     int tempAction = 0;
     if (scriptAction == NFTAction.PLAY) { 
+      oldFrameRate = frameRate;
+      frameRate(60);
       tempAction = NFTAction.ANIMATE;
-      logLevel = LogLevel.FINEST;
+      logLevel = LogLevel.FATAL;    // supress output to the console to speed it up
     };
     if (scriptAction == NFTAction.ANIMATE) { 
+      frameRate(oldFrameRate);
       tempAction = NFTAction.PLAY;
       logLevel = LogLevel.INFO;
     };
@@ -334,6 +351,10 @@ void keyPressed() {
   }
   if (key == 'g' || key == 'G') {   // toggle changing/freezing the [G]radient
     playChangeGradient = !playChangeGradient;
+  }
+  if (key == 'm' || key == 'm') {   //  toggle [M]onochromatic vs multi-colored gradients
+    playMonoGradients=!playMonoGradients;
+    click=1;
   }
   if (key == 'n' || key == 'N') {   // [N]ext
     playImageNum++;
@@ -442,7 +463,7 @@ void mintNFT(String dataRecordString) {
 }
 
 void done() {
-  Logger.info("done");
+  Logger.finer("done");
   if (dg != null) {
     dg.closeWriter();
     exit();
@@ -500,11 +521,9 @@ void getArguments() {
 
 void processArguments() {
   Logger.info("processArguments");
-  if (scriptAction != NFTAction.CLI) {
+  if (params.size()==0) {
     return;
   }
-  getArguments();
-
   if (params.get("mode") == null) {
     fatalError("Missing required param -Dmode=[play|mint]");
   } else {
@@ -553,15 +572,15 @@ void processArguments() {
 
   switch(scriptAction) {
   case NFTAction.PLAY:
-    imageList = validateAndLoadFileParam("imageList");
+    imageNameList = validateAndReadFileParam("imageList");
     break;
   case NFTAction.MINT:
-    mintDataRecords = validateAndLoadFileParam("dataFile");
+    mintDataRecords = validateAndReadFileParam("dataFile");
     break;
   }
 }
 
-String[] validateAndLoadFileParam(String paramName) {
+String[] validateAndReadFileParam(String paramName) {
   if (params.get(paramName) == null) {
     fatalError("Missing required param -D" + paramName + "=[filePath]");
   } else {

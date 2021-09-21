@@ -1,4 +1,4 @@
-// class for processing source images to create variations of gradient, zoom, etc //<>// //<>// //<>//
+// class for processing source images to create variations of gradient, zoom, etc //<>// //<>// //<>// //<>//
 
 static abstract class GradientSliceType {
   static final int EVEN = 0;
@@ -37,7 +37,7 @@ class DerivativeGenerator {
   PrintWriter csvOutput;
 
   DerivativeGenerator(BaseImage img, int gType) {
-    //log("DerivativeGenerator constructor");
+    Logger.fine("DerivativeGenerator constructor");
     bImg = img;
     gradientType = gType;
     setUniquePrefix();
@@ -58,6 +58,7 @@ class DerivativeGenerator {
   }
 
   void setCsvOutputName() {
+    Logger.fine("setCsvOutputName for mode " + actionPrefix);
     csvOutputName = actionPrefix + getUniquePrefix() + "metadata.csv";
   }
 
@@ -310,11 +311,20 @@ class DerivativeGenerator {
       bImg.setTempImg(bImg.getGrayImg());
       PImage tempImg = bImg.getTempImg();
       tempImg.loadPixels();
+      HashMap<Integer,Integer> colorMap = new HashMap<Integer,Integer>();
       for (int i=0; i<tempImg.pixels.length; i++) {
         color c = tempImg.pixels[i];
         float b = brightness(c);
         int percentBrightness = int((b/255.0)*100.0);
-        tempImg.pixels[i] = getColorByPercentPosition(percentBrightness);
+        color newColor;
+        int intC = int(c);
+        if (colorMap.get(intC) != null) {
+          newColor = color(colorMap.get(intC));
+        } else {
+          newColor = getColorByPercentPosition(percentBrightness);  
+          colorMap.put(intC, int(newColor));
+        } 
+        tempImg.pixels[i] = newColor;
       }
       tempImg.updatePixels();
       overlay2();
