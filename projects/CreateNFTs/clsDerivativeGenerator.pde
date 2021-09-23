@@ -10,6 +10,11 @@ static abstract class GradientType {
   static final int DISCRETE = 1;
 }
 
+static abstract class PaletteType {
+  static final int COLOR = 0;
+  static final int GRAYSCALE = 1;
+}
+
 class DerivativeGenerator {
 
   color from; 
@@ -17,6 +22,7 @@ class DerivativeGenerator {
   BaseImage bImg;
   int gradientType = GradientType.SMOOTH;
   int gradientSliceType = GradientSliceType.EVEN;
+  int paletteType = PaletteType.COLOR;
   int[] myPalette;
   int paletteSize = 0;
   int zoomLevel = 1;
@@ -35,7 +41,7 @@ class DerivativeGenerator {
   int outputImageCount = 1;
 
   PrintWriter csvOutput;
-
+  boolean savedMetadata = false;
   DerivativeGenerator(BaseImage img, int gType) {
     Logger.fine("DerivativeGenerator constructor");
     bImg = img;
@@ -90,7 +96,7 @@ class DerivativeGenerator {
   void setColorIteration(int ci) {
     colorIteration = ci;
   }
-  
+
   void setGradientType(int i) {
     gradientType = i;
   }
@@ -121,12 +127,8 @@ class DerivativeGenerator {
   }
 
   void generatePaletteAndGradient() {
-    if (playBWEnabled) {
-      bImg.setTintOpacity(0,0);
-      generateBlackAndWhitePalette();
-    } else {
-      generateRandomPalette();
-    }
+    Logger.fine("generatePaletteAndGradient");
+    generateRandomPalette();
     generateGradient();
   }
 
@@ -198,6 +200,18 @@ class DerivativeGenerator {
     //gradValues = allGradients[colorIteration-1];
   }
 
+  void toggleGradientType() {
+    gradientType = (dg.gradientType == GradientType.SMOOTH ? GradientType.DISCRETE : GradientType.SMOOTH);
+  }
+
+  void toggleGradientSliceType() {
+    gradientSliceType = (dg.gradientSliceType == GradientSliceType.EVEN ? GradientSliceType.RAND : GradientSliceType.EVEN);
+  }
+
+  void toggleGrayscalePalettes() {
+    paletteType = (paletteType == PaletteType.COLOR) ? PaletteType.GRAYSCALE : PaletteType.COLOR;
+  }
+
   void setPalette() {
     //println("currentColorIteration: " + colorIteration);
     //arrayCopy(allPalettes[colorIteration-1], myPalette);
@@ -215,6 +229,13 @@ class DerivativeGenerator {
     color c = gradValues[percentPosition];
     //println("getColorByPercentPosition=", percentPosition, c);
     return c;
+  }
+
+  color convertToGrayscale(color c) {
+    // https://www.dynamsoft.com/blog/insights/image-processing/image-processing-101-color-space-conversion/
+    // use the luminosity method for RGB conversion
+    color tmp = color((0.21 * red(c)) + (0.72 * green(c)) + (0.07) * blue(c)); 
+    return tmp;
   }
 
   color getPercentPosition(int i) {
@@ -263,6 +284,10 @@ class DerivativeGenerator {
   }
 
   void generateRandomPalette() {
+    Logger.fine("generateRandomPalette");
+    if (paletteType == PaletteType.GRAYSCALE) {
+      maxPaletteColors = int(random(2, 6));
+    }
     int[] gradPalette = new int[maxPaletteColors];
     //gradPalette[0] = color(0);
     for (int i=0; i<maxPaletteColors; i++) {
@@ -270,17 +295,19 @@ class DerivativeGenerator {
       float g = random(255); //random(128, 255);
       float b = random(255); //random(128, 255);
       color c = color(r, g, b);
-      //print(i, hex(c), "");
-      gradPalette[i] = c;
+      if (paletteType == PaletteType.GRAYSCALE) {
+        color grayC = convertToGrayscale(c);
+        gradPalette[i] = grayC;
+        //Logger.debug("c after " + hex(grayC, 6));
+      } else {
+        gradPalette[i] = c;
+      }
     }
     //println("");
     //arrayCopy(gradPalette, myPalette);
     myPalette = gradPalette;
     paletteSize = myPalette.length;
-    //println("Current Color Iteration: " + colorIteration);
-    //println(savePaletteAsHexStrings());
-    //arrayCopy(myPalette, allPalettes[colorIteration-1]);
-    //allPalettes[colorIteration-1]=myPalette; // we started colorIterations as 1-based, but the array is 0-based, so subtract 1
+    //Logger.debug(savePaletteAsHexStrings(""));
   }
 
   void mapColors() {
@@ -311,7 +338,7 @@ class DerivativeGenerator {
       bImg.setTempImg(bImg.getGrayImg());
       PImage tempImg = bImg.getTempImg();
       tempImg.loadPixels();
-      HashMap<Integer,Integer> colorMap = new HashMap<Integer,Integer>();
+      HashMap<Integer, Integer> colorMap = new HashMap<Integer, Integer>();
       for (int i=0; i<tempImg.pixels.length; i++) {
         color c = tempImg.pixels[i];
         float b = brightness(c);
@@ -336,7 +363,7 @@ class DerivativeGenerator {
       //println("mapColors done.");
     }
   }
-  
+
   void calculateZoomOffsets() {
     xOffset = abs(zoomX - width/2) * getXHalf();
     yOffset = abs(zoomY - height/2) * getYHalf();
@@ -382,28 +409,34 @@ class DerivativeGenerator {
   }
 
   void overlay2() {
-    // draw the temp image, then overlay the original at 50% opacity
-    PImage saturatedImg = bImg.getGrayImg().copy();
-    PImage blurredImg = bImg.getTempImg().copy();
-    blurredImg.filter(BLUR, bImg.getBlurValue());
-    colorMode(HSB, 255, 255, 255);
-    for (int i=0; i<blurredImg.pixels.length; i++) {
-      //color blurredPixelColor = color(blurredImg.pixels[i]);
-
-      color newColor = color(hue(blurredImg.pixels[i]), saturation(blurredImg.pixels[i]), brightness(saturatedImg.pixels[i]));
-      saturatedImg.pixels[i] = newColor;
-    }
-    colorMode(RGB, 255, 255, 255);
-    zoom(saturatedImg, zoomLevel);
-    bImg.setTint(0);
-    if (overlayGray) {
+    if (paletteType == PaletteType.GRAYSCALE) {
+      zoom(bImg.getTempImg(), zoomLevel);
+      bImg.setTint(0);
       zoom(bImg.getGrayImg(), zoomLevel);
-    }
-    if (overlayColor) {
-      zoom(bImg.getColorImg(), zoomLevel);
+    } else {
+      // draw the temp image, then overlay the original at 50% opacity
+      PImage saturatedImg = bImg.getGrayImg().copy();
+      PImage blurredImg = bImg.getTempImg().copy();
+      blurredImg.filter(BLUR, bImg.getBlurValue());
+      colorMode(HSB, 255, 255, 255, 255);
+      for (int i=0; i<blurredImg.pixels.length; i++) {
+        //color blurredPixelColor = color(blurredImg.pixels[i]);
+        //TODO add map to save calculated colored
+        color newColor = color(hue(blurredImg.pixels[i]), saturation(blurredImg.pixels[i]), brightness(saturatedImg.pixels[i]));
+        saturatedImg.pixels[i] = newColor;
+      }
+      colorMode(RGB, 255, 255, 255, 255);
+      zoom(saturatedImg, zoomLevel);
+      bImg.setTint(0);
+      if (overlayGray) {
+        zoom(bImg.getGrayImg(), zoomLevel);
+      }
+      if (overlayColor) {
+        zoom(bImg.getColorImg(), zoomLevel);
+      }
     }
   }
-  
+
   void showMappedImages() {
   }
 
@@ -413,7 +446,6 @@ class DerivativeGenerator {
     }
     String retString = "";
     for (int i=0; i<myPalette.length; i++) {
-      //      String s = hex(myPalette[i], 6);
       String s = hex(myPalette[i]);
       retString += s + ";";
     }
@@ -487,6 +519,7 @@ class DerivativeGenerator {
           + ci + "," + savePaletteAsHexStrings(suffix) + "," + bImg.getBlurValue() + "," + bImg.getTintOpacity(0) + "," + gradientType + "," + gradientSliceType
           + "," + zoomX + "," + zoomY
           );
+        savedMetadata=true;
         csvOutput.flush();
       }
     }
@@ -505,6 +538,13 @@ class DerivativeGenerator {
     if (csvOutput != null) {
       csvOutput.flush();
       csvOutput.close();
+      if (!savedMetadata) {
+        // if we never wrote anything to the csvOutput file, delete it
+        File f = new File(csvOutputName);
+        if (f.exists()) {
+          f.delete();
+        }
+      }
     }
   }
-} 
+}

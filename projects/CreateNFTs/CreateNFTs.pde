@@ -58,9 +58,10 @@ int[] playTintOpacity = defaultTintOpacity;
 boolean playAutoEnabled=false;
 boolean playRandomEnabled=false;
 boolean playBWEnabled=false;
-boolean playChangeGradient=true;
+boolean playFreezeOverlayOptions=true;
 boolean playOpacityDefault = true;
 boolean playMonoGradients=false;
+boolean playGrayscaleGradients=false;
 
 // ------ mint mode variables ------
 
@@ -264,7 +265,7 @@ void playground() {
   } else {
     if (click == 1) {
       background(125);
-      disableImageOutput();
+      //saveImage = true;
       maxDerivatives = imageNameList.length;
       maxColorIterations = 1;
       maxZooms = 3;
@@ -278,17 +279,20 @@ void playground() {
         playImageNum = int(random(1, maxDerivatives+1));
         //playZoomLevel = int(random(1,maxZooms+1));
       }
-      maxPaletteColors = int(random(3, 50));
-      defaultBlur = random(3.0, 15.0);
+      if (!playFreezeOverlayOptions) {
+        maxPaletteColors = playMonoGradients ? 2 : int(random(3, 50));
+        Logger.debug("maxPaletteColors: " + maxPaletteColors);
+        defaultBlur = random(3.0, 15.0);
+      }
       bImg = new BaseImage(imageNameList[playImageNum-1]);
       dg.setBaseImage(bImg);
-      dg.setAllPalettes(maxPaletteColors);
-      if (playChangeGradient) {
-        dg.generatePaletteAndGradient();
-      }
       dg.setColorIteration(1);
       dg.setZoomLevel(playZoomLevel);
-      dg.setGradient();
+      if (!playFreezeOverlayOptions) {
+        dg.setAllPalettes(maxPaletteColors);
+        dg.generatePaletteAndGradient();
+        dg.setGradient();
+      }
       dg.mapColors(playZoomLevel);
     }
   }
@@ -311,12 +315,12 @@ void mousePressed() {
     playZoomLevel=1;
   }
   click=1;
-  playChangeGradient=false;
+  playFreezeOverlayOptions=false;
 }
 
 void keyPressed() {
-  playChangeGradient=true;
-  if (key == '?') {
+  playFreezeOverlayOptions=true;
+  if (key == '?' || key == 'h' || key == 'H') {
     //println("? pressed... " + showHelpTextLayer);
     showHelpTextLayer = !showHelpTextLayer;
     click=1;
@@ -345,12 +349,16 @@ void keyPressed() {
     click=1;
   }
   if (key == 'e' || key == 'E') {   // /toggle [E]ven/Random Gradient slices
-    dg.gradientSliceType = (dg.gradientSliceType == GradientSliceType.EVEN ? 
-      GradientSliceType.RAND : GradientSliceType.EVEN);
+    dg.toggleGradientSliceType();
     click=1;
   }
-  if (key == 'g' || key == 'G') {   // toggle changing/freezing the [G]radient
-    playChangeGradient = !playChangeGradient;
+  if (key == 'f' || key == 'F') {   // toggle [F]reezing the color overlay options vs generating new ones
+    playFreezeOverlayOptions=!playFreezeOverlayOptions;
+    click=1;
+  }
+  if (key == 'g' || key == 'G') {   // toggle [G]rayscale vs color gradients
+    dg.toggleGrayscalePalettes();
+    click=1;
   }
   if (key == 'm' || key == 'm') {   //  toggle [M]onochromatic vs multi-colored gradients
     playMonoGradients=!playMonoGradients;
@@ -400,14 +408,7 @@ void keyPressed() {
     saveCVSMetaData=false;
   }
   if (key == 't' || key == 'T') {   // toggle Smooth/Discrete Gradient [Type]
-    dg.gradientType = (dg.gradientType == GradientType.SMOOTH ? 
-      GradientType.DISCRETE : GradientType.SMOOTH);
-    click=1;
-  }
-
-  if (key == 'w' || key == 'W') {   // toggle B&W palette
-    playBWEnabled = !playBWEnabled;
-    dg.generateBlackAndWhitePalette();
+    dg.toggleGradientType();
     click=1;
   }
 }
@@ -522,6 +523,7 @@ void getArguments() {
 void processArguments() {
   Logger.info("processArguments");
   if (params.size()==0) {
+    Logger.info("No parameters specified");
     return;
   }
   if (params.get("mode") == null) {
@@ -620,6 +622,7 @@ String getHelpText() {
   t += "'c' - cycle effects on the current image\n";
   t += "'r' - toggle randomize mode\n";
   t += "'o' - randomize the opacity of the color overlay layer\n";
+  t += "'m' - toggle monochromatic paleltes vs multi-color\n";
   t += "'a' - toggle auto-display mode\n";
   t += "'s' - save parameters of the current display image\n      to the metadata file in the output folder\n";
   t += "'1' - animate by cycling the gradient colors\n";

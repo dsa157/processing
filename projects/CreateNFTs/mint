@@ -1,4 +1,4 @@
 #!/bin/bash
 
-processing-java --sketch=/Users/dsa157/Documents/Processing/projects/CreateNFTs --output=/Users/dsa157/Documents/Processing/projects/out1 --force --run -Dmode=mint -DdataFile=./output/cli-483-metadata.csv -Dnum=1
+processing-java --sketch=/Users/dsa157/Documents/Processing/projects/CreateNFTs --output=/Users/dsa157/Documents/Processing/projects/out1 --force --run -Dmode=mint -DdataFile=./output/cli-612-metadata.csv -Dnum=1
 
