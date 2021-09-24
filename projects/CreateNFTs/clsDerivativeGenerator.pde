@@ -1,4 +1,4 @@
-// class for processing source images to create variations of gradient, zoom, etc //<>// //<>// //<>//
+// class for processing source images to create variations of gradient, zoom, etc //<>// //<>// //<>// //<>//
 
 static abstract class GradientSliceType {
   static final int EVEN = 0;
@@ -148,7 +148,7 @@ class DerivativeGenerator {
         to = myPalette[i+1];
       }
       if (gradientSliceType == GradientSliceType.RAND) {
-        sliceWidth = int(random(ndx, width));  // random width slices
+        sliceWidth = getRandomInt(ndx, width-1);  // random width slices
       }
       if (ndx > 0) {
         prev = ndx;
@@ -265,9 +265,9 @@ class DerivativeGenerator {
     int[] gradPalette = new int[maxPaletteColors];
     //gradPalette[0] = color(0);
     for (int i=0; i<maxPaletteColors; i++) {
-      float r = random(255); //random(128, 255);
-      float g = random(255); //random(128, 255);
-      float b = random(255); //random(128, 255);
+      float r = getRandomInt(0,255); //getRandomInt(128, 255);
+      float g = getRandomInt(0,255); //getRandomInt(128, 255);
+      float b = getRandomInt(0,255); //getRandomInt(128, 255);
       color c = color(r, g, b);
       //print(i, hex(c), "");
       gradPalette[i] = c;

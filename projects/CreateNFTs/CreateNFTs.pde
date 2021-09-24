@@ -3,6 +3,9 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Map;
 import java.io.*;
+import java.util.Random;
+import java.lang.Math;
+import java.security.SecureRandom;
 
 //int scriptAction = NFTAction.CREATE;
 //int scriptAction = NFTAction.MINT;
@@ -52,6 +55,37 @@ String mintDataRecords[];
 int zoomX = 0;
 int zoomY = 0;
 
+int imageWidth, imageHeight;
+int currentDerivative=0;
+int currentZoom=0;
+//int currentColorIteration=0;
+BaseImage bImg;
+DerivativeGenerator dg;
+String actionPrefix = "";
+
+SecureRandom sr;
+String hash = ""; 
+String defaultHash = "dsa157+gen.art=awesome" + String.valueOf(System.currentTimeMillis());
+
+//--------------------------------------
+
+void setRandSeed() {
+  if (hash == "") {
+    hash = defaultHash;
+  }
+  sr.setSeed(hash.getBytes());
+}
+
+public float getRandomFloat(float min, float max) {
+  float factor = max - min;
+  return sr.nextFloat() * factor + min;
+}
+
+public int getRandomInt(int min, int max) {
+    max=max+1; // increment here so that code is more readable for the range we want to be inclusive
+    return (int) ((Math.random() * (max - min)) + min);
+}
+
 //--------------------------------------
 // help text variables
 
@@ -81,28 +115,27 @@ static abstract class LogLevel {
   static final int FINEST = 6;
 }
 
-
-
-int imageWidth, imageHeight;
-int currentDerivative=0;
-int currentZoom=0;
-//int currentColorIteration=0;
-BaseImage bImg;
-DerivativeGenerator dg;
-
-String actionPrefix = "";
+//-----------------------------------------------
 
 void setup() {
-  Logger.info("setup");
-  init();
-  if (scriptAction == NFTAction.CLI) {
-    processArguments();
+  try {
+    Logger.info("setup");
+    sr = SecureRandom.getInstance("SHA1PRNG");     
+    setRandSeed();
+
+    init();
+    if (scriptAction == NFTAction.CLI) {
+      processArguments();
+    }
+    if (scriptAction == NFTAction.CREATE) {
+      generatePaletteAndGradients();
+    }
+    playImageNum = 1;
+    frameRate(10);
   }
-  if (scriptAction == NFTAction.CREATE) {
-    generatePaletteAndGradients();
+  catch (Exception e) {
+    e.printStackTrace();
   }
-  playImageNum = 1;
-  frameRate(10);
 }
 
 void settings() {
@@ -262,11 +295,11 @@ void playground() {
       click=0;
       tint(255, 255);
       if (playRandomEnabled) {
-        playImageNum = int(random(1, maxDerivatives+1));
-        //playZoomLevel = int(random(1,maxZooms+1));
+        playImageNum = getRandomInt(1, maxDerivatives);
+        //playZoomLevel = getRandomInt(1,maxZooms+1));
       }
-      maxPaletteColors = int(random(3, 50));
-      defaultBlur = random(3.0, 15.0);
+      maxPaletteColors = getRandomInt(3,50);
+      defaultBlur = getRandomFloat(3.0, 15.0);
       bImg = new BaseImage(imageList[playImageNum-1]);
       dg.setBaseImage(bImg);
       dg.setAllPalettes(maxPaletteColors);
@@ -348,8 +381,8 @@ void keyPressed() {
     if (playOpacityDefault) {
       playTintOpacity = defaultTintOpacity;
     } else {
-      playTintOpacity[0] = int(random(0, 65));
-      playTintOpacity[1] = int(random(100, 256));
+      playTintOpacity[0] = getRandomInt(0, 64);
+      playTintOpacity[1] = getRandomInt(100, 255);
     }
     dg.bImg.setTintOpacity(0, playTintOpacity[0]);
     dg.bImg.setTintOpacity(1, playTintOpacity[1]);
@@ -520,6 +553,10 @@ void processArguments() {
       break;
     default:
       fatalError("Invalid valid for param -Dmode=[play|mint]");
+    }
+
+    if (params.get("hash") != null) {
+      hash = params.get("hash");
     }
 
     if (params.get("logLevel") != null) {
