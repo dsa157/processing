@@ -1,6 +1,6 @@
 const { exec } = require("child_process");
 
-var cmd = "processing-java --sketch=/Users/dsa157/Documents/Processing/projects/CreateNFTs --output=/Users/dsa157/Documents/Processing/projects/out1 --force --run -Dmode=mint -Dnum=2 -DdataFile=cli-867-metadata.csv -DlogLevel=fine -Dhash=dsa157+gen.art";
+var cmd = "processing-java --sketch=/Users/dsa157/Documents/Processing/projects/CreateNFTs --output=/Users/dsa157/Documents/Processing/projects/out1 --force --run -Dmode=mint -Dnum=5 -DdataFile=cli-328-metadata.csv -DlogLevel=fine -Dhash=dsa157+gen.art";
 
 exec(cmd, (error, stdout, stderr) => {
     if (error) {
