@@ -4,14 +4,11 @@ import java.text.SimpleDateFormat;
 import java.util.Map;
 import java.io.*;
 
-// ------ general variables ------
-
 //int scriptAction = NFTAction.CREATE;
 //int scriptAction = NFTAction.MINT;
 //int scriptAction = NFTAction.PLAY;
 int scriptAction = NFTAction.CLI;
 
-String actionPrefix = "";
 int maxDerivatives = 16;
 int maxColorIterations = 10;
 int maxZooms = 3;
@@ -19,24 +16,6 @@ int maxPaletteColors = 5;    // Innoculation: 3
 float defaultBlur = 10.0;
 int zoomLevel=1;
 int[] defaultTintOpacity = {128, 150}; // blurred image at 100/255 (~40%), color overlay at 128/255 (~50%)
-int maxImages = maxDerivatives * maxColorIterations * maxZooms;
-int imageNdx = 0;
-int derivativeCount = 1;
-static int logLevel = LogLevel.INFO;
-HashMap<String, String> params = new HashMap<String, String>();
-String imageNameList[] = {};
-PImage imageList[] = {};
-int zoomX = 0;
-int zoomY = 0;
-float oldFrameRate = 30;
-int imageWidth, imageHeight;
-int currentDerivative=0;
-int currentZoom=0;
-//int currentColorIteration=0;
-BaseImage bImg;
-DerivativeGenerator dg;
-
-// ------ output variables (might be modified by some execution modes ------
 
 boolean saveImage = true;
 boolean saveMetaData = false;
@@ -48,28 +27,33 @@ boolean saveBlurredImage = false;
 boolean saveOutputImage = true;
 boolean overlayGray = false;
 
-
-// ------ playground mode variables ------
-
+int maxImages = maxDerivatives * maxColorIterations * maxZooms;
+int imageNdx = 0;
+int derivativeCount = 1;
 int click=1;
+static int logLevel = LogLevel.INFO;
+HashMap<String, String> params = new HashMap<String, String>();
+
 int playImageNum=1;
 int playZoomLevel=1;
 int[] playTintOpacity = defaultTintOpacity;
 boolean playAutoEnabled=false;
 boolean playRandomEnabled=false;
 boolean playBWEnabled=false;
-boolean playFreezeOverlayOptions=true;
+boolean playChangeGradient=true;
 boolean playOpacityDefault = true;
-boolean playMonoGradients=false;
-boolean playGrayscaleGradients=false;
-
-// ------ mint mode variables ------
 
 int mintRecNum;
+
+String imageList[] = {};
+
 String mintDataRecords[];
 
+int zoomX = 0;
+int zoomY = 0;
 
-// ------ help text variables ------
+//--------------------------------------
+// help text variables
 
 PGraphics helpTextLayer;
 PImage helpImage;
@@ -77,7 +61,7 @@ PImage helpImage;
 PFont font;
 boolean showHelpTextLayer = false;
 
-// ------ enums ------
+//--------------------------------------
 
 static abstract class NFTAction {
   static final int CREATE = 0;
@@ -97,31 +81,23 @@ static abstract class LogLevel {
   static final int FINEST = 6;
 }
 
-// ------------
 
-void preloadImages() {
-  Logger.fine("preloadImages");
-  imageList = new PImage [imageNameList.length];
-  for (int i=0; i<imageNameList.length; i++) {
-    Logger.fine("loading image " + imageNameList[i]);
-    PImage img = loadImage(imageNameList[i]);
-    imageList[i]=img;
-  }
-}
+
+int imageWidth, imageHeight;
+int currentDerivative=0;
+int currentZoom=0;
+//int currentColorIteration=0;
+BaseImage bImg;
+DerivativeGenerator dg;
+
+String actionPrefix = "";
 
 void setup() {
   Logger.info("setup");
-  if (scriptAction == NFTAction.CLI) {
-    getArguments();
-  }
-  //  size(800,1118);    // Storm
-  //  size(1600,1067);   // Innoculation      - zoom at 904,349
-  //  size(800, 534);     // Innoculation small  - zoom at 452,176
-  //  size(400,400);       // Mandala small
-  //size(1000, 750);    // david's Lyre - small    
-  //size(500, 375);    // david's Lyre - small    
-  size(800, 600);    // david's Lyre - small
   init();
+  if (scriptAction == NFTAction.CLI) {
+    processArguments();
+  }
   if (scriptAction == NFTAction.CREATE) {
     generatePaletteAndGradients();
   }
@@ -129,10 +105,19 @@ void setup() {
   frameRate(10);
 }
 
+void settings() {
+  //  size(800,1118);    // Storm
+  //  size(1600,1067);   // Innoculation      - zoom at 904,349
+  //  size(800, 534);     // Innoculation small  - zoom at 452,176
+  //  size(400,400);       // Mandala small
+  //size(1000, 750);    // david's Lyre - small    
+  //size(500, 375);    // david's Lyre - small    
+  size(800, 600);    // david's Lyre - small
+}
+
 void init() {
-  Logger.info("settings");
-  processArguments();
-  preloadImages();
+  Logger.info("init");
+  settings();
   imageWidth = width;
   imageHeight = height;
   imageMode(CENTER);
@@ -199,7 +184,7 @@ void generatePaletteAndGradients() {
 
 void createNFTs() {
   if (frameCount <= maxDerivatives) {
-    bImg = new BaseImage(imageNameList[imageNdx]);
+    bImg = new BaseImage(imageList[imageNdx]);
     dg.setBaseImage(bImg);
     for (int i=1; i<=maxColorIterations; i++) {
       dg.setColorIteration(i);
@@ -238,6 +223,7 @@ void mintNFT(int ndx) {
   noLoop();
   maxImages = 1;
   derivativeCount = 1;
+  saveImage=true;
   //  image(bImg.getColorImg(), width/2, height/2, width, height);
   mintNFT(mintDataRecords[ndx]);
 }
@@ -265,8 +251,8 @@ void playground() {
   } else {
     if (click == 1) {
       background(125);
-      //saveImage = true;
-      maxDerivatives = imageNameList.length;
+      disableImageOutput();
+      maxDerivatives = imageList.length;
       maxColorIterations = 1;
       maxZooms = 3;
       maxImages = 1;
@@ -279,20 +265,17 @@ void playground() {
         playImageNum = int(random(1, maxDerivatives+1));
         //playZoomLevel = int(random(1,maxZooms+1));
       }
-      if (!playFreezeOverlayOptions) {
-        maxPaletteColors = playMonoGradients ? 2 : int(random(3, 50));
-        Logger.debug("maxPaletteColors: " + maxPaletteColors);
-        defaultBlur = random(3.0, 15.0);
-      }
-      bImg = new BaseImage(imageNameList[playImageNum-1]);
+      maxPaletteColors = int(random(3, 50));
+      defaultBlur = random(3.0, 15.0);
+      bImg = new BaseImage(imageList[playImageNum-1]);
       dg.setBaseImage(bImg);
+      dg.setAllPalettes(maxPaletteColors);
+      if (playChangeGradient) {
+        dg.generatePaletteAndGradient();
+      }
       dg.setColorIteration(1);
       dg.setZoomLevel(playZoomLevel);
-      if (!playFreezeOverlayOptions) {
-        dg.setAllPalettes(maxPaletteColors);
-        dg.generatePaletteAndGradient();
-        dg.setGradient();
-      }
+      dg.setGradient();
       dg.mapColors(playZoomLevel);
     }
   }
@@ -315,12 +298,12 @@ void mousePressed() {
     playZoomLevel=1;
   }
   click=1;
-  playFreezeOverlayOptions=false;
+  playChangeGradient=false;
 }
 
 void keyPressed() {
-  playFreezeOverlayOptions=true;
-  if (key == '?' || key == 'h' || key == 'H') {
+  playChangeGradient=true;
+  if (key == '?') {
     //println("? pressed... " + showHelpTextLayer);
     showHelpTextLayer = !showHelpTextLayer;
     click=1;
@@ -329,13 +312,10 @@ void keyPressed() {
   if (key == '1') {   // toggle animation mode
     int tempAction = 0;
     if (scriptAction == NFTAction.PLAY) { 
-      oldFrameRate = frameRate;
-      frameRate(60);
       tempAction = NFTAction.ANIMATE;
-      logLevel = LogLevel.FATAL;    // supress output to the console to speed it up
+      logLevel = LogLevel.FINEST;
     };
     if (scriptAction == NFTAction.ANIMATE) { 
-      frameRate(oldFrameRate);
       tempAction = NFTAction.PLAY;
       logLevel = LogLevel.INFO;
     };
@@ -349,20 +329,12 @@ void keyPressed() {
     click=1;
   }
   if (key == 'e' || key == 'E') {   // /toggle [E]ven/Random Gradient slices
-    dg.toggleGradientSliceType();
+    dg.gradientSliceType = (dg.gradientSliceType == GradientSliceType.EVEN ? 
+      GradientSliceType.RAND : GradientSliceType.EVEN);
     click=1;
   }
-  if (key == 'f' || key == 'F') {   // toggle [F]reezing the color overlay options vs generating new ones
-    playFreezeOverlayOptions=!playFreezeOverlayOptions;
-    click=1;
-  }
-  if (key == 'g' || key == 'G') {   // toggle [G]rayscale vs color gradients
-    dg.toggleGrayscalePalettes();
-    click=1;
-  }
-  if (key == 'm' || key == 'm') {   //  toggle [M]onochromatic vs multi-colored gradients
-    playMonoGradients=!playMonoGradients;
-    click=1;
+  if (key == 'g' || key == 'G') {   // toggle changing/freezing the [G]radient
+    playChangeGradient = !playChangeGradient;
   }
   if (key == 'n' || key == 'N') {   // [N]ext
     playImageNum++;
@@ -408,7 +380,14 @@ void keyPressed() {
     saveCVSMetaData=false;
   }
   if (key == 't' || key == 'T') {   // toggle Smooth/Discrete Gradient [Type]
-    dg.toggleGradientType();
+    dg.gradientType = (dg.gradientType == GradientType.SMOOTH ? 
+      GradientType.DISCRETE : GradientType.SMOOTH);
+    click=1;
+  }
+
+  if (key == 'w' || key == 'W') {   // toggle B&W palette
+    playBWEnabled = !playBWEnabled;
+    dg.generateBlackAndWhitePalette();
     click=1;
   }
 }
@@ -418,7 +397,7 @@ void mintNFT(String dataRecordString) {
     String[] dataRecord = dataRecordString.split(",");
     saveGradientImage = false;
     saveUnmodifiedImage = true;
-    saveGrayImage = false;
+    saveGrayImage = true;
     //String imageName = dataRecord[2];
     String baseImageName = dataRecord[3];
     String zoomLevel = dataRecord[4];
@@ -464,7 +443,7 @@ void mintNFT(String dataRecordString) {
 }
 
 void done() {
-  Logger.finer("done");
+  Logger.info("done");
   if (dg != null) {
     dg.closeWriter();
     exit();
@@ -522,10 +501,11 @@ void getArguments() {
 
 void processArguments() {
   Logger.info("processArguments");
-  if (params.size()==0) {
-    Logger.info("No parameters specified");
+  if (scriptAction != NFTAction.CLI) {
     return;
   }
+  getArguments();
+
   if (params.get("mode") == null) {
     fatalError("Missing required param -Dmode=[play|mint]");
   } else {
@@ -574,15 +554,15 @@ void processArguments() {
 
   switch(scriptAction) {
   case NFTAction.PLAY:
-    imageNameList = validateAndReadFileParam("imageList");
+    imageList = validateAndLoadFileParam("imageList");
     break;
   case NFTAction.MINT:
-    mintDataRecords = validateAndReadFileParam("dataFile");
+    mintDataRecords = validateAndLoadFileParam("dataFile");
     break;
   }
 }
 
-String[] validateAndReadFileParam(String paramName) {
+String[] validateAndLoadFileParam(String paramName) {
   if (params.get(paramName) == null) {
     fatalError("Missing required param -D" + paramName + "=[filePath]");
   } else {
@@ -622,7 +602,6 @@ String getHelpText() {
   t += "'c' - cycle effects on the current image\n";
   t += "'r' - toggle randomize mode\n";
   t += "'o' - randomize the opacity of the color overlay layer\n";
-  t += "'m' - toggle monochromatic paleltes vs multi-color\n";
   t += "'a' - toggle auto-display mode\n";
   t += "'s' - save parameters of the current display image\n      to the metadata file in the output folder\n";
   t += "'1' - animate by cycling the gradient colors\n";
