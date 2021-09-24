@@ -431,6 +431,7 @@ void mintNFT(String dataRecordString) {
     saveGradientImage = false;
     saveUnmodifiedImage = true;
     saveGrayImage = true;
+    saveMetaData = true;
     //String imageName = dataRecord[2];
     String baseImageName = dataRecord[3];
     String zoomLevel = dataRecord[4];

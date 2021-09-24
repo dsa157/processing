@@ -31,7 +31,7 @@ class DerivativeGenerator {
   int[][] allPalettes = new int [maxColorIterations][maxPaletteColors];
 
   color[] gradValues = new color[width];
-  String[] imageMetaData = new String[13];
+  String[] imageMetaData = new String[11];
   int outputImageCount = 1;
 
   PrintWriter csvOutput;
@@ -89,7 +89,7 @@ class DerivativeGenerator {
   void setColorIteration(int ci) {
     colorIteration = ci;
   }
-  
+
   void setGradientType(int i) {
     gradientType = i;
   }
@@ -121,7 +121,7 @@ class DerivativeGenerator {
 
   void generatePaletteAndGradient() {
     if (playBWEnabled) {
-      bImg.setTintOpacity(0,0);
+      bImg.setTintOpacity(0, 0);
       generateBlackAndWhitePalette();
     } else {
       generateRandomPalette();
@@ -265,9 +265,9 @@ class DerivativeGenerator {
     int[] gradPalette = new int[maxPaletteColors];
     //gradPalette[0] = color(0);
     for (int i=0; i<maxPaletteColors; i++) {
-      float r = getRandomInt(0,255); //getRandomInt(128, 255);
-      float g = getRandomInt(0,255); //getRandomInt(128, 255);
-      float b = getRandomInt(0,255); //getRandomInt(128, 255);
+      float r = getRandomInt(0, 255); //getRandomInt(128, 255);
+      float g = getRandomInt(0, 255); //getRandomInt(128, 255);
+      float b = getRandomInt(0, 255); //getRandomInt(128, 255);
       color c = color(r, g, b);
       //print(i, hex(c), "");
       gradPalette[i] = c;
@@ -326,7 +326,7 @@ class DerivativeGenerator {
       //println("mapColors done.");
     }
   }
-  
+
   void calculateZoomOffsets() {
     xOffset = abs(zoomX - width/2) * getXHalf();
     yOffset = abs(zoomY - height/2) * getYHalf();
@@ -393,7 +393,7 @@ class DerivativeGenerator {
       zoom(bImg.getColorImg(), zoomLevel);
     }
   }
-  
+
   void showMappedImages() {
   }
 
@@ -452,19 +452,18 @@ class DerivativeGenerator {
         ci = 0;
       }
       if (saveMetaData) {
-        imageMetaData[0] = "FileName: " + getOutFileName() + suffix + ".png";
-        imageMetaData[1] = "BaseFileName: " + bImg.outFilePrefix + ".png";
-        imageMetaData[2] = "Zoom Level: " + zoomLevel;
-        imageMetaData[3] = "Color Iteration: " + ci;
-        imageMetaData[4] = "Palette: " + savePaletteAsHexStrings(suffix);
-        imageMetaData[5] = "Blur: " + bImg.getBlurValue();
-        imageMetaData[6] = "Tint Opacity: " + bImg.getTintOpacity(0);
-        imageMetaData[7] = "Gradient Type: " + gradientType;
-        imageMetaData[8] = "Gradient Slice Type: " + gradientSliceType;
-        imageMetaData[9] = "ZoomX: " + zoomX;
-        imageMetaData[10] = "ZoomY: " + zoomY;
-
-        saveStrings(outputFolder + "/" + getOutFileName() + ".txt", imageMetaData);
+        imageMetaData[0] = getOutFileName() + suffix + ".png";
+        imageMetaData[1] = bImg.outFilePrefix + ".png";
+        imageMetaData[2] = "" + zoomLevel;
+        imageMetaData[3] = "" + ci;
+        imageMetaData[4] = "" + savePaletteAsHexStrings(suffix);
+        imageMetaData[5] = "" + bImg.getBlurValue();
+        imageMetaData[6] = "" + bImg.getTintOpacity(0);
+        imageMetaData[7] = "" + gradientType;
+        imageMetaData[8] = "" + gradientSliceType;
+        imageMetaData[9] = "" + zoomX;
+        imageMetaData[10] = "" + zoomY;
+        saveJSON(outputFolder + "/" + getOutFileName(), suffix);
       }
       int dCount = derivativeCount-1;
       int oCount = outputImageCount++;
@@ -483,6 +482,37 @@ class DerivativeGenerator {
     catch(Exception e) {
       e.printStackTrace();
       exit();
+    }
+  }
+
+  void saveJSON(String outFileName, String suffix) {
+      if (suffix != "") {
+        outFileName = outFileName + "." + suffix + ".json";
+      } 
+      else {
+        outFileName = outFileName + ".json";
+      }
+      Logger.fine("saveJSON: " + outFileName);
+    try {
+      PrintWriter pw = createWriter(outFileName); 
+      pw.println("{");
+      pw.println("\t\"FileName\" : \"" + imageMetaData[0] + "\",");
+      pw.println("\t\"BaseFileName\" : \"" + imageMetaData[1]  + "\",");
+      pw.println("\t\"ZoomLevel\" : " + imageMetaData[2] + ",");
+      pw.println("\t\"ColorIteration\" : " + imageMetaData[3] + ",");
+      pw.println("\t\"Palette\" : \"" + imageMetaData[4] + "\",");
+      pw.println("\t\"Blur\" : " + imageMetaData[5] + ",");
+      pw.println("\t\"Tint\" : " + imageMetaData[6] + ",");
+      pw.println("\t\"GradientType\" : " + imageMetaData[7] + ",");
+      pw.println("\t\"GradientSliceType\" : " + imageMetaData[8] + ",");
+      pw.println("\t\"ZoomX\" : " + imageMetaData[9] + ",");
+      pw.println("\t\"ZoomY\" : " + imageMetaData[10] + "");
+      pw.println("}");
+      pw.flush();
+      pw.close();
+    }
+    catch (Exception e) {
+      e.printStackTrace();
     }
   }
 
