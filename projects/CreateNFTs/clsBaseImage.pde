@@ -72,8 +72,11 @@ class BaseImage {
     maxPaletteColors = n;
   }
 
-  String getOutFileName(int colorIteration, int zoomLevel) {
-    return outFilePrefix + "-c" + colorIteration + "-z" + zoomLevel;
+  String getOutFileName(int colorIteration, int zoomLevel, String suffix) {
+    if (suffix == "") {
+      return outFilePrefix + "-c" + colorIteration + "-z" + zoomLevel;
+    }
+    return outFilePrefix;
   }
 
   String getFileNameFromURI(String uri1) {

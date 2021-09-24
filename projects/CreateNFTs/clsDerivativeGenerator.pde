@@ -98,8 +98,8 @@ class DerivativeGenerator {
     gradientSliceType = i;
   }
 
-  String getOutFileName() {
-    return bImg.getOutFileName(colorIteration, zoomLevel);
+  String getOutFileName(String suffix) {
+    return bImg.getOutFileName(colorIteration, zoomLevel, suffix);
   }
 
   void lerpColors(int prev, int ndx, color from, color to) {
@@ -293,7 +293,7 @@ class DerivativeGenerator {
   void mapColors(int zl) {
     if (saveOutputImage) {
       zoomLevel = zl;
-      Logger.fine("Processing " + getOutFileName() + ".png (" + derivativeCount++ + "/" + maxImages + ") ");
+      Logger.fine("Processing " + getOutFileName("") + ".png (" + derivativeCount++ + "/" + maxImages + ") ");
       tint(255, 255);
       //println("calling zoom from mapColors() on colorImg");
       zoom(bImg.getColorImg(), zoomLevel);
@@ -398,8 +398,11 @@ class DerivativeGenerator {
   }
 
   String savePaletteAsHexStrings(String suffix) {
-    if (suffix != "") {
-      return "none";
+    if (suffix == "-gray") {
+      return "gray";
+    }
+    if (suffix == "-orig") {
+      return "original";
     }
     String retString = "";
     for (int i=0; i<myPalette.length; i++) {
@@ -434,7 +437,7 @@ class DerivativeGenerator {
   void saveImage(String suffix) {
     if (saveImage) {
       String groupPrefix = (suffix == "-orig" || suffix == "-gray") ? "" : getUniquePrefix();
-      saveFrame(outputFolder + "/" + actionPrefix + groupPrefix + getOutFileName() + suffix + ".png");
+      saveFrame(outputFolder + "/" + actionPrefix + groupPrefix + getOutFileName(suffix) + suffix + ".png");
     }
   }
 
@@ -452,7 +455,7 @@ class DerivativeGenerator {
         ci = 0;
       }
       if (saveMetaData) {
-        imageMetaData[0] = getOutFileName() + suffix + ".png";
+        imageMetaData[0] = getOutFileName(suffix) + suffix + ".png";
         imageMetaData[1] = bImg.outFilePrefix + ".png";
         imageMetaData[2] = "" + zoomLevel;
         imageMetaData[3] = "" + ci;
@@ -463,7 +466,7 @@ class DerivativeGenerator {
         imageMetaData[8] = "" + gradientSliceType;
         imageMetaData[9] = "" + zoomX;
         imageMetaData[10] = "" + zoomY;
-        saveJSON(outputFolder + "/" + getOutFileName(), suffix);
+        saveJSON(outputFolder + "/" + getOutFileName(suffix), suffix);
       }
       int dCount = derivativeCount-1;
       int oCount = outputImageCount++;
@@ -472,7 +475,7 @@ class DerivativeGenerator {
           initPrintWriter();
         }      
 
-        csvOutput.println(oCount + "," + dCount + "," + getOutFileName() + suffix + ".png" + "," + bImg.outFilePrefix + ".png" + "," +zoomLevel + "," 
+        csvOutput.println(oCount + "," + dCount + "," + getOutFileName(suffix) + suffix + ".png" + "," + bImg.outFilePrefix + ".png" + "," +zoomLevel + "," 
           + ci + "," + savePaletteAsHexStrings(suffix) + "," + bImg.getBlurValue() + "," + bImg.getTintOpacity(0) + "," + gradientType + "," + gradientSliceType
           + "," + zoomX + "," + zoomY
           );
@@ -486,13 +489,12 @@ class DerivativeGenerator {
   }
 
   void saveJSON(String outFileName, String suffix) {
-      if (suffix != "") {
-        outFileName = outFileName + "." + suffix + ".json";
-      } 
-      else {
-        outFileName = outFileName + ".json";
-      }
-      Logger.fine("saveJSON: " + outFileName);
+    if (suffix != "") {
+      outFileName = outFileName + suffix + ".json";
+    } else {
+      outFileName = outFileName + ".json";
+    }
+    Logger.fine("saveJSON: " + outFileName);
     try {
       PrintWriter pw = createWriter(outFileName); 
       pw.println("{");
