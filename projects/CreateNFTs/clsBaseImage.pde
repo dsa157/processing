@@ -9,8 +9,17 @@ class BaseImage {
   protected int[] tintOpacity = defaultTintOpacity;
   protected float blurValue = defaultBlur;
 
+  BaseImage(PImage img, int i, int j) {
+    if (img == null) {
+      return;
+    }
+    outFilePrefix = "" + i + "-" + j;
+    setColorImg(img);
+    setGrayImg(img);
+  }
+
   BaseImage(String fileName) {
-    if (fileName == null) {
+    if (fileName == "") {
       return;
     }
     String fn = getFileNameFromURI(fileName);
@@ -49,6 +58,10 @@ class BaseImage {
 
   PImage getTempImg() {
     return tempImg;
+  }
+
+  void setColorImg(PImage img) {
+    colorImg = img.copy();
   }
 
   void setGrayImg(PImage img) {

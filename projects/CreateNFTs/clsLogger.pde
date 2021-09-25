@@ -1,3 +1,13 @@
+static abstract class LogLevel {
+  static final int FATAL = 0;
+  static final int ERROR = 1;
+  static final int WARN = 2;
+  static final int INFO = 3;
+  static final int FINE = 4;
+  static final int FINER = 5;
+  static final int FINEST = 6;
+}
+
 static class Logger {
   static void fatal(String msg) {
     log(msg, LogLevel.FATAL);

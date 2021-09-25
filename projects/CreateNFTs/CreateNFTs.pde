@@ -7,11 +7,39 @@ import java.util.Random;
 import java.lang.Math;
 import java.security.SecureRandom;
 
+//--------------------------------------
+
+static abstract class NFTAction {
+  static final int CREATE = 0;
+  static final int MINT = 1;
+  static final int PLAY = 2;
+  static final int ANIMATE = 3;
+  static final int BLENDER = 4;
+  static final int CLI = 5;
+}
+
+// -- script action default variables --
 //int scriptAction = NFTAction.CREATE;
 //int scriptAction = NFTAction.MINT;
 //int scriptAction = NFTAction.PLAY;
 int scriptAction = NFTAction.CLI;
+String actionPrefix = "";
 
+// -- app global variables --
+int imageWidth, imageHeight;
+int currentDerivative=0;
+int currentZoom=0;
+String imageList[] = {};
+String defaultImageFile = "remote.txt";
+BaseImage bImg;
+DerivativeGenerator dg;
+int click=1;
+static int logLevel = LogLevel.INFO;
+HashMap<String, String> params = new HashMap<String, String>();
+int zoomX = 0;
+int zoomY = 0;
+
+// -- image configuration default variables --
 int maxDerivatives = 16;
 int maxColorIterations = 10;
 int maxZooms = 3;
@@ -19,7 +47,11 @@ int maxPaletteColors = 5;    // Innoculation: 3
 float defaultBlur = 10.0;
 int zoomLevel=1;
 int[] defaultTintOpacity = {128, 150}; // blurred image at 100/255 (~40%), color overlay at 128/255 (~50%)
+int maxImages = maxDerivatives * maxColorIterations * maxZooms;
+int imageNdx = 0;
+int derivativeCount = 1;
 
+// -- output variables --
 boolean saveImage = true;
 boolean saveMetaData = false;
 boolean saveCVSMetaData = false;
@@ -30,13 +62,12 @@ boolean saveBlurredImage = false;
 boolean saveOutputImage = true;
 boolean overlayGray = false;
 
-int maxImages = maxDerivatives * maxColorIterations * maxZooms;
-int imageNdx = 0;
-int derivativeCount = 1;
-int click=1;
-static int logLevel = LogLevel.INFO;
-HashMap<String, String> params = new HashMap<String, String>();
+// -- PRNG variables --
+SecureRandom sr;
+String hash = ""; 
+String defaultHash = "dsa157+gen.art=awesome" + String.valueOf(System.currentTimeMillis());
 
+// -- play mode variables --
 int playImageNum=1;
 int playZoomLevel=1;
 int[] playTintOpacity = defaultTintOpacity;
@@ -46,26 +77,14 @@ boolean playBWEnabled=false;
 boolean playChangeGradient=true;
 boolean playOpacityDefault = true;
 
+// -- mint mode variables --
 int mintRecNum;
-
-String imageList[] = {};
-
 String mintDataRecords[];
 
-int zoomX = 0;
-int zoomY = 0;
+// -- blend mode variables --
+PGraphics bgLayer;
+int maxRenders = 2;
 
-int imageWidth, imageHeight;
-int currentDerivative=0;
-int currentZoom=0;
-//int currentColorIteration=0;
-BaseImage bImg;
-DerivativeGenerator dg;
-String actionPrefix = "";
-
-SecureRandom sr;
-String hash = ""; 
-String defaultHash = "dsa157+gen.art=awesome" + String.valueOf(System.currentTimeMillis());
 
 //--------------------------------------
 
@@ -82,8 +101,8 @@ public float getRandomFloat(float min, float max) {
 }
 
 public int getRandomInt(int min, int max) {
-    max=max+1; // increment here so that code is more readable for the range we want to be inclusive
-    return (int) ((Math.random() * (max - min)) + min);
+  max=max+1; // increment here so that code is more readable for the range we want to be inclusive
+  return (int) ((Math.random() * (max - min)) + min);
 }
 
 //--------------------------------------
@@ -95,25 +114,7 @@ PImage helpImage;
 PFont font;
 boolean showHelpTextLayer = false;
 
-//--------------------------------------
 
-static abstract class NFTAction {
-  static final int CREATE = 0;
-  static final int MINT = 1;
-  static final int PLAY = 2;
-  static final int ANIMATE = 3;
-  static final int CLI = 4;
-}
-
-static abstract class LogLevel {
-  static final int FATAL = 0;
-  static final int ERROR = 1;
-  static final int WARN = 2;
-  static final int INFO = 3;
-  static final int FINE = 4;
-  static final int FINER = 5;
-  static final int FINEST = 6;
-}
 
 //-----------------------------------------------
 
@@ -157,7 +158,8 @@ void init() {
   colorMode(RGB, 255, 255, 255);
   background(255);
   setActionPrefix();
-  bImg = new BaseImage(null);
+  bgLayer = createGraphics(width, height);
+  bImg = new BaseImage("");
   dg = new DerivativeGenerator(bImg, GradientSliceType.EVEN);
   setupHelpTextLayers();
 }
@@ -174,6 +176,10 @@ void draw() {
   }
   if (scriptAction == NFTAction.ANIMATE) {
     animate();
+  }
+  if (scriptAction == NFTAction.BLENDER) {
+    blend();
+    done();
   }
   if (scriptAction == NFTAction.CLI) {
     // we shouldn't be in this mode when we get to the draw method
@@ -261,14 +267,64 @@ void mintNFT(int ndx) {
   mintNFT(mintDataRecords[ndx]);
 }
 
-void playground2() {
-  //background(125);
-  //image(helpImage, width/2, height/2, width, height);
-  if (showHelpTextLayer) {
-    image(helpTextLayer, width/2, height/2, width, height);
-  } else {
-    background(125);
+void blend() {
+  Logger.info("blend");
+  noLoop();
+  saveGradientImage = false;
+  saveUnmodifiedImage = false;
+  saveGrayImage = false;
+  saveMetaData = false;
+  saveMetaData = false;
+  playOpacityDefault = false;
+  maxRenders = 5;
+
+  for (int i=0; i<maxRenders; i++) {
+    int ndx1 = getRandomInt(0, maxDerivatives);
+    BaseImage b1 = new BaseImage(imageList[ndx1]);
+    Logger.fine("Blend Img " + (i+1));
+    for (int j=0; j<maxRenders; j++) {
+      int ndx2 = getRandomInt(0, maxDerivatives);
+      Logger.fine("blend "+ ndx1 + "-" + ndx2);
+      BaseImage b2 = new BaseImage(imageList[ndx2]);
+      PImage blendImg = blend2(b1, b2, ndx1, ndx2);
+      BaseImage b3 = new BaseImage(blendImg, ndx1, ndx2);
+      dg.setBaseImage(b3);
+      dg.setAllPalettes(maxPaletteColors);
+      dg.generatePaletteAndGradient();
+      dg.setColorIteration(1);
+      dg.setZoomLevel(playZoomLevel);
+      dg.setGradient();
+      dg.mapColors(playZoomLevel);
+    }
   }
+}
+
+PImage blend2(BaseImage bi1, BaseImage bi2, int i, int j) {
+  try {
+    Logger.info("blend2");
+    bgLayer.beginDraw();
+    bgLayer.background(0, 0, 0, 150);
+    PImage tmp1 = bi1.getGrayImg().copy();
+    PImage tmp2 = bi2.getGrayImg().copy();
+    fill(255);
+    tint(255, 255);
+    if (i==j) {
+      bgLayer.image(tmp1, width/2, height/2, imageWidth*zoomLevel, imageHeight*zoomLevel);
+    } else {
+      tmp2.resize(width, height);
+      bgLayer.background(tmp2);
+      tmp1.resize(width, height);
+      bgLayer.blend(tmp1, 0, 0, width, height, 0, 0, width, height, SOFT_LIGHT);
+    }
+    bgLayer.endDraw();
+    image(bgLayer, width/2, height/2, imageWidth*zoomLevel, imageHeight*zoomLevel);
+    //String fileName = dg.outputFolder + "/" + actionPrefix + (i+1) + "-" + (j+1) + ".png";
+    //saveFrame(fileName);
+  }
+  catch(Exception e) {
+    e.printStackTrace();
+  }
+  return bgLayer;
 }
 
 void playground() {
@@ -298,7 +354,7 @@ void playground() {
         playImageNum = getRandomInt(1, maxDerivatives);
         //playZoomLevel = getRandomInt(1,maxZooms+1));
       }
-      maxPaletteColors = getRandomInt(3,50);
+      maxPaletteColors = getRandomInt(3, 50);
       defaultBlur = getRandomFloat(3.0, 15.0);
       bImg = new BaseImage(imageList[playImageNum-1]);
       dg.setBaseImage(bImg);
@@ -508,6 +564,9 @@ void setActionPrefix() {
   if (scriptAction == NFTAction.PLAY) {
     actionPrefix = "play-";
   }
+  if (scriptAction == NFTAction.BLENDER) {
+    actionPrefix = "blend-";
+  }
   if (scriptAction == NFTAction.CLI) {
     actionPrefix = "cli-";
   }
@@ -541,7 +600,7 @@ void processArguments() {
   getArguments();
 
   if (params.get("mode") == null) {
-    fatalError("Missing required param -Dmode=[play|mint]");
+    fatalError("Missing required param -Dmode=[play|mint|blend]");
   } else {
     switch(params.get("mode")) {
     case "play":
@@ -550,6 +609,10 @@ void processArguments() {
       break;
     case "mint":
       scriptAction = NFTAction.MINT;
+      setActionPrefix();
+      break;
+    case "blend":
+      scriptAction = NFTAction.BLENDER;
       setActionPrefix();
       break;
     default:
@@ -592,6 +655,9 @@ void processArguments() {
 
   switch(scriptAction) {
   case NFTAction.PLAY:
+    imageList = validateAndLoadFileParam("imageList");
+    break;
+  case NFTAction.BLENDER:
     imageList = validateAndLoadFileParam("imageList");
     break;
   case NFTAction.MINT:
