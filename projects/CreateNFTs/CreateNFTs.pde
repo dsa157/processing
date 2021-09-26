@@ -44,8 +44,13 @@ int zoomY = 0;
 int maxDerivatives = 20;
 int maxColorIterations = 14;
 int maxZooms = 3;
-int maxPaletteColors = 5;    // Innoculation: 3
+int maxPaletteColors = 5;    
+int defaultMinPaletteColors = 3;
+int defaultMaxPaletteColors = 50;
 float defaultBlur = 10.0;
+float defaultMinBlur = 3.0;
+float defaultMaxBlur = 15.0;
+
 int zoomLevel=1;
 int[] defaultTintOpacity = {128, 150}; // blurred image at 100/255 (~40%), color overlay at 128/255 (~50%)
 int maxImages = maxDerivatives * maxColorIterations * maxZooms;
@@ -300,15 +305,13 @@ void generate1LayerImages() {
   maxDerivatives=4; 
   maxColorIterations=6;
   saveImage=true;
-///
+  ///
 
   for (int i=0; i<maxDerivatives; i++) {
     for (int j=0; j<maxColorIterations; j++) {
       background(125);
-      // randomly determine if we want a 2 color gradient or a multicolor gradient
-      boolean isBasicGradient = (getRandomInt(1, 10) == 1);  // use a basic gradient ~10% of the time
-      maxPaletteColors = isBasicGradient ? 2 : getRandomInt(3, 50);
-      defaultBlur = getRandomFloat(3.0, 15.0);
+      maxPaletteColors = getNumPaletteColors();
+      defaultBlur = getRandomFloat(defaultMinBlur, defaultMaxBlur);
       setTintOpacity();
       bImg = new BaseImage(imageList[i]);
       dg.setLayer1Name(imageList[i]);
@@ -331,13 +334,45 @@ void generate2LayerImages() {
   maxDerivatives=2; 
   maxColorIterations=3;
   saveImage=true;
-///
-  
-
+  saveMetaData = true;
+  derivativeCount = 1;
+  ///
+  for (int i=0; i<maxDerivatives; i++) {
+    BaseImage b1 = new BaseImage(imageList[i]);
+    dg.setLayer1Name(imageList[i]);
+    for (int j=0; j<maxDerivatives; j++) {
+      if (i==j) {
+        continue; // don't blend the design with itself
+      }
+      blend (b1, i, j);
+    }
+  }
   //blendLoop();
 }
 
+int getNumPaletteColors() {
+  // randomly determine if we want a 2 color gradient or a multicolor gradient
+  boolean isBasicGradient = (getRandomInt(1, 10) == 1);  // use a basic gradient ~10% of the time
+  return isBasicGradient ? 2 : getRandomInt(defaultMinPaletteColors, defaultMaxPaletteColors);
+}
 
+void blend() {
+  Logger.info("blend");
+  try {
+    setBlendOptions();
+    saveMetaData = true;
+    saveImage = true;
+    derivativeCount = 1;
+    int ndx1 = getRandomInt(0, maxDerivatives);
+    BaseImage b1 = new BaseImage(imageList[ndx1]);
+    dg.setLayer1Name(imageList[ndx1]);
+    int ndx2 = getRandomInt(0, maxDerivatives);
+    blend (b1, ndx1, ndx2);
+  }
+  catch (Exception e) {
+    e.printStackTrace();
+  }
+}
 
 void mintNFTs() {
   try {
@@ -381,24 +416,6 @@ void setBlendOptions() {
   maxRenders = 3;
 }
 
-void blend() {
-  Logger.info("blend");
-  try {
-    setBlendOptions();
-    saveMetaData = true;
-    saveImage = true;
-    derivativeCount = 1;
-    int ndx1 = getRandomInt(0, maxDerivatives);
-    BaseImage b1 = new BaseImage(imageList[ndx1]);
-    dg.setLayer1Name(imageList[ndx1]);
-    int ndx2 = getRandomInt(0, maxDerivatives);
-    blend (b1, ndx1, ndx2);
-  }
-  catch (Exception e) {
-    e.printStackTrace();
-  }
-}
-
 void blendLoop() {
   Logger.info("blendLoop");
   try {
@@ -433,8 +450,8 @@ void blend(BaseImage b1, int ndx1, int ndx2) {
     BaseImage b3 = new BaseImage(blendImg, ndx1, ndx2);
     dg.setBaseImage(b3);
     dg.setAllPalettes(maxPaletteColors);
-    maxPaletteColors = getRandomInt(3, 50);
-    defaultBlur = getRandomFloat(3.0, 15.0);
+    maxPaletteColors = getNumPaletteColors();
+    defaultBlur = getRandomFloat(defaultMinBlur, defaultMaxBlur);
     dg.generatePaletteAndGradient();
     dg.setColorIteration(1);
     dg.setZoomLevel(playZoomLevel);
@@ -501,8 +518,8 @@ void playground() {
         playImageNum = getRandomInt(1, maxDerivatives);
         //playZoomLevel = getRandomInt(1,maxZooms+1));
       }
-      maxPaletteColors = getRandomInt(3, 50);
-      defaultBlur = getRandomFloat(3.0, 15.0);
+      maxPaletteColors = getNumPaletteColors();
+      defaultBlur = getRandomFloat(defaultMinBlur, defaultMaxBlur);
       bImg = new BaseImage(imageList[playImageNum-1]);
       dg.setLayer1Name(imageList[playImageNum-1]);
       dg.setBaseImage(bImg);
@@ -625,8 +642,8 @@ void setTintOpacity() {
   //if (playOpacityDefault) {
   //  playTintOpacity = defaultTintOpacity;
   //} else {
-    playTintOpacity[0] = getRandomInt(0, 64);
-    playTintOpacity[1] = getRandomInt(100, 255);
+  playTintOpacity[0] = getRandomInt(0, 64);
+  playTintOpacity[1] = getRandomInt(100, 255);
   //}
   dg.bImg.setTintOpacity(0, playTintOpacity[0]);
   dg.bImg.setTintOpacity(1, playTintOpacity[1]);
