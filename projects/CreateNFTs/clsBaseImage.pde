@@ -13,7 +13,7 @@ class BaseImage {
     if (img == null) {
       return;
     }
-    outFilePrefix = "" + i + "-" + j;
+    outFilePrefix = "" + (i+1) + "-" + (j+1);
     setColorImg(img);
     setGrayImg(img);
   }

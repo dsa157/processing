@@ -21,18 +21,22 @@ class DerivativeGenerator {
   int paletteSize = 0;
   int zoomLevel = 1;
   int colorIteration = 1;
+  int layers = 1;
   boolean overlayColor = !overlayGray;
   int xOffset = 0;
   int yOffset = 0;
   String outputFolder = "output";
   String csvOutputName = "temp-metadata.csv";
+  String layer1Name = "";
+  String layer2Name = "";
   String uniquePrefix = "";
   color[][] allGradients = new color[maxColorIterations][width];
   int[][] allPalettes = new int [maxColorIterations][maxPaletteColors];
 
   color[] gradValues = new color[width];
-  String[] imageMetaData = new String[11];
+  HashMap<String, String> imageMetaData = new HashMap<String, String>();
   int outputImageCount = 1;
+  JSONObject json = new JSONObject();
 
   PrintWriter csvOutput;
 
@@ -43,7 +47,7 @@ class DerivativeGenerator {
     setUniquePrefix();
     if (actionPrefix != "") {
       setCsvOutputName();
-      initPrintWriter();
+      //initPrintWriter();
     }
   }
 
@@ -71,6 +75,18 @@ class DerivativeGenerator {
 
   void setUniquePrefix() {
     uniquePrefix = str(millis());
+  }
+
+  void setLayers(int l) {
+    layers = l;
+  }
+
+  void setLayer1Name(String str) {
+    layer1Name = str;
+  }
+
+  void setLayer2Name(String str) {
+    layer2Name = str;
   }
 
   void setBaseImage(BaseImage img) {
@@ -454,19 +470,22 @@ class DerivativeGenerator {
       if (suffix != "") {
         ci = 0;
       }
+      imageMetaData.put("FileName", getOutFileName(suffix) + suffix + ".png");
+      imageMetaData.put("BaseFileName", this.layer1Name);
+      imageMetaData.put("Layer1FileName", this.layer1Name);
+      imageMetaData.put("Layer2FileName", (layers == 1) ? "" : this.layer2Name);
+      imageMetaData.put("Zoom", "" + zoomLevel);
+      imageMetaData.put("ColorIteration", "" + ci);
+      imageMetaData.put("Palette", savePaletteAsHexStrings(suffix));
+      imageMetaData.put("Blur", "" + bImg.getBlurValue());
+      imageMetaData.put("Tint", "" + bImg.getTintOpacity(0));
+      imageMetaData.put("GradientType", "" + gradientType);
+      imageMetaData.put("GradientSliceType", "" + gradientSliceType);
+      imageMetaData.put("ZoomX", "" + zoomX);
+      imageMetaData.put("ZoomY", "" + zoomY);
+      imageMetaData.put("Layers", "" + layers);
       if (saveMetaData) {
-        imageMetaData[0] = getOutFileName(suffix) + suffix + ".png";
-        imageMetaData[1] = bImg.outFilePrefix + ".png";
-        imageMetaData[2] = "" + zoomLevel;
-        imageMetaData[3] = "" + ci;
-        imageMetaData[4] = "" + savePaletteAsHexStrings(suffix);
-        imageMetaData[5] = "" + bImg.getBlurValue();
-        imageMetaData[6] = "" + bImg.getTintOpacity(0);
-        imageMetaData[7] = "" + gradientType;
-        imageMetaData[8] = "" + gradientSliceType;
-        imageMetaData[9] = "" + zoomX;
-        imageMetaData[10] = "" + zoomY;
-        saveJSON(outputFolder + "/" + getOutFileName(suffix), suffix);
+        saveJSON(outputFolder + "/" + actionPrefix + getUniquePrefix() + getOutFileName(suffix), suffix);
       }
       int dCount = derivativeCount-1;
       int oCount = outputImageCount++;
@@ -475,11 +494,26 @@ class DerivativeGenerator {
           initPrintWriter();
         }      
 
-        csvOutput.println(oCount + "," + dCount + "," + getOutFileName(suffix) + suffix + ".png" + "," + bImg.outFilePrefix + ".png" + "," +zoomLevel + "," 
-          + ci + "," + savePaletteAsHexStrings(suffix) + "," + bImg.getBlurValue() + "," + bImg.getTintOpacity(0) + "," + gradientType + "," + gradientSliceType
-          + "," + zoomX + "," + zoomY
+        csvOutput.println(
+          oCount + "," + 
+          dCount + "," + 
+          imageMetaData.get("FileName") + "," + 
+          imageMetaData.get("BaseFileName") + "," + 
+          imageMetaData.get("Zoom") + "," +
+          imageMetaData.get("ColorIteration") + "," +
+          imageMetaData.get("Palette") + "," +
+          imageMetaData.get("Blur") + "," +
+          imageMetaData.get("Tint") + "," +
+          imageMetaData.get("GradientType") + "," +
+          imageMetaData.get("GradientSliceType") + "," +
+          imageMetaData.get("ZoomX") + "," +
+          imageMetaData.get("ZoomY") + "," +
+          imageMetaData.get("Layers") + "," +
+          imageMetaData.get("Layer1FileName") + "," +
+          imageMetaData.get("Layer2FileName")
           );
         csvOutput.flush();
+        recordedCVSMetaData=true;
       }
     }
     catch(Exception e) {
@@ -496,37 +530,72 @@ class DerivativeGenerator {
     }
     Logger.fine("saveJSON: " + outFileName);
     try {
-      PrintWriter pw = createWriter(outFileName); 
-      pw.println("{");
-      pw.println("\t\"FileName\" : \"" + imageMetaData[0] + "\",");
-      pw.println("\t\"BaseFileName\" : \"" + imageMetaData[1]  + "\",");
-      pw.println("\t\"ZoomLevel\" : " + imageMetaData[2] + ",");
-      pw.println("\t\"ColorIteration\" : " + imageMetaData[3] + ",");
-      pw.println("\t\"Palette\" : \"" + imageMetaData[4] + "\",");
-      pw.println("\t\"Blur\" : " + imageMetaData[5] + ",");
-      pw.println("\t\"Tint\" : " + imageMetaData[6] + ",");
-      pw.println("\t\"GradientType\" : " + imageMetaData[7] + ",");
-      pw.println("\t\"GradientSliceType\" : " + imageMetaData[8] + ",");
-      pw.println("\t\"ZoomX\" : " + imageMetaData[9] + ",");
-      pw.println("\t\"ZoomY\" : " + imageMetaData[10] + "");
-      pw.println("}");
-      pw.flush();
-      pw.close();
+      json.setString("FileName", imageMetaData.get("FileName"));
+      json.setString("Layer1FileName", imageMetaData.get("Layer1FileName"));
+      json.setString("Layer2FileName", imageMetaData.get("Layer2FileName"));
+      json.setString("Zoom", imageMetaData.get("Zoom"));
+      json.setString("ColorIteration", imageMetaData.get("ColorIteration"));
+      json.setString("Palette", imageMetaData.get("Palette"));
+      json.setString("Blur", imageMetaData.get("Blur"));
+      json.setString("Tint", imageMetaData.get("Tint"));
+      json.setString("GradientType", imageMetaData.get("GradientType"));
+      json.setString("GradientSliceType", imageMetaData.get("GradientSliceType"));
+      json.setString("ZoomX", imageMetaData.get("ZoomX"));
+      json.setString("ZoomY", imageMetaData.get("ZoomY"));
+      json.setString("Layers", imageMetaData.get("Layers"));
+      saveJSONObject(json, outFileName);
     }
     catch (Exception e) {
       e.printStackTrace();
     }
   }
 
+  void loadJSON(String inFileName) {
+    Logger.fine("loadJSON: " + inFileName);
+    try {
+      json.getString("BaseFileName");
+      this.zoomLevel = int(json.getString("ZoomLevel"));
+      this.colorIteration = int(json.getString("ColorIteration"));
+      //json.getString("Palette");
+      bImg.setBlurValue(float(json.getString("Blur")));
+      bImg.setTintOpacity(0, int("Tint"));
+      this.gradientType = int(json.getString("GradientType"));
+      this.gradientSliceType = int(json.getString("GradientSliceType"));
+      zoomX = int(json.getString("ZoomX"));
+      zoomX = int(json.getString("ZoomY"));
+      this.setLayers(int(json.getString("Layers")));
+    }
+    catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  String getDataString(String str) {
+    return (str != null) ? str : "";
+  }
+
   void printCvsOutputHeader() {
-    csvOutput.println("Num,Derivative,Filename,BaseFileName,ZoomLevel,ColorIteration,Palette,Blur,Tint,Gradient Type,Gradient Slice Type,ZoomX,ZoomY");
+    csvOutput.println("Num,Derivative,Filename,BaseFileName,ZoomLevel,ColorIteration,Palette,Blur,Tint,Gradient Type,Gradient Slice Type,ZoomX,ZoomY,Layers,Layer1FileName,Layer2FileName");
     csvOutput.flush();
   }
 
   void closeWriter() {
-    if (csvOutput != null) {
-      csvOutput.flush();
-      csvOutput.close();
+    try {
+      if (csvOutput != null) {
+        csvOutput.flush();
+        csvOutput.close();
+      }
+      if (!recordedCVSMetaData) {
+        csvOutput = null;
+        // delete the file, we didn't write anything
+        File f = new File(outputFolder + "/" + getCsvOutputName());
+        if (f.exists()) {
+          f.deleteOnExit();
+        }
+      }
+    }
+    catch (Exception e) {
+      e.printStackTrace();
     }
   }
 } 

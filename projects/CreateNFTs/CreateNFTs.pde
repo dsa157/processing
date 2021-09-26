@@ -10,12 +10,13 @@ import java.security.SecureRandom;
 //--------------------------------------
 
 static abstract class NFTAction {
-  static final int CREATE = 0;
-  static final int MINT = 1;
-  static final int PLAY = 2;
-  static final int ANIMATE = 3;
-  static final int BLENDER = 4;
-  static final int CLI = 5;
+  static final int CREATE1 = 0;
+  static final int CREATE_ALL = 1;
+  static final int MINT = 2;
+  static final int PLAY = 3;
+  static final int ANIMATE = 4;
+  static final int BLENDER = 5;
+  static final int CLI = 6;
 }
 
 // -- script action default variables --
@@ -61,6 +62,7 @@ boolean saveGrayImage = true;
 boolean saveBlurredImage = false;
 boolean saveOutputImage = true;
 boolean overlayGray = false;
+boolean recordedCVSMetaData = false;
 
 // -- PRNG variables --
 SecureRandom sr;
@@ -128,7 +130,10 @@ void setup() {
     if (scriptAction == NFTAction.CLI) {
       processArguments();
     }
-    if (scriptAction == NFTAction.CREATE) {
+    if (scriptAction == NFTAction.CREATE1) {
+      generatePaletteAndGradients();
+    }
+    if (scriptAction == NFTAction.CREATE_ALL) {
       generatePaletteAndGradients();
     }
     playImageNum = 1;
@@ -165,7 +170,10 @@ void init() {
 }
 
 void draw() {
-  if (scriptAction == NFTAction.CREATE) {
+  if (scriptAction == NFTAction.CREATE1) {
+    //createNFTs();
+  }
+  if (scriptAction == NFTAction.CREATE_ALL) {
     //createNFTs();
   }
   if (scriptAction == NFTAction.MINT) {
@@ -236,6 +244,33 @@ void createNFTs() {
   }
 }
 
+void generateCollection() {
+  try {
+    noLoop();
+    generateOriginalImages();
+    generate1LayerImages();
+    generate2LayerImages();
+  }
+  catch(Exception e) {
+    fatalException(e);
+  }
+}
+
+void generateOriginalImages() {
+  Logger.info("generateOriginalImages");
+}
+
+void generate1LayerImages() {
+  Logger.info("generate1LayerImages");
+}
+
+void generate2LayerImages() {
+  Logger.info("generate2LayerImages");
+  blendLoop();
+}
+
+
+
 void mintNFTs() {
   try {
     noLoop();
@@ -267,35 +302,79 @@ void mintNFT(int ndx) {
   mintNFT(mintDataRecords[ndx]);
 }
 
-void blend() {
-  Logger.info("blend");
+void setBlendOptions() {
   noLoop();
   saveGradientImage = false;
   saveUnmodifiedImage = false;
   saveGrayImage = false;
   saveMetaData = false;
-  saveMetaData = false;
   playOpacityDefault = false;
-  maxRenders = 5;
+  maxDerivatives = 19;
+  maxRenders = 3;
+}
 
-  for (int i=0; i<maxRenders; i++) {
+void blend() {
+  Logger.info("blend");
+  try {
+    setBlendOptions();
+    saveMetaData = true;
+    derivativeCount = 1;
     int ndx1 = getRandomInt(0, maxDerivatives);
     BaseImage b1 = new BaseImage(imageList[ndx1]);
-    Logger.fine("Blend Img " + (i+1));
-    for (int j=0; j<maxRenders; j++) {
-      int ndx2 = getRandomInt(0, maxDerivatives);
-      Logger.fine("blend "+ ndx1 + "-" + ndx2);
-      BaseImage b2 = new BaseImage(imageList[ndx2]);
-      PImage blendImg = blend2(b1, b2, ndx1, ndx2);
-      BaseImage b3 = new BaseImage(blendImg, ndx1, ndx2);
-      dg.setBaseImage(b3);
-      dg.setAllPalettes(maxPaletteColors);
-      dg.generatePaletteAndGradient();
-      dg.setColorIteration(1);
-      dg.setZoomLevel(playZoomLevel);
-      dg.setGradient();
-      dg.mapColors(playZoomLevel);
+    dg.setLayer1Name(imageList[ndx1]);
+    int ndx2 = getRandomInt(0, maxDerivatives);
+    blend (b1, ndx1, ndx2);
+  }
+  catch (Exception e) {
+    e.printStackTrace();
+  }
+}
+
+void blendLoop() {
+  Logger.info("blendLoop");
+  try {
+    setBlendOptions();
+    for (int i=0; i<maxRenders; i++) {
+      int i2 = getRandomInt(0, maxDerivatives);
+      int ndx1 = i;  // change to i2 if we want more random...
+      dg.setLayer1Name(imageList[ndx1]);
+      BaseImage b1 = new BaseImage(imageList[ndx1]);
+      Logger.fine("Blend Img " + (i+1));
+      for (int j=0; j<maxRenders; j++) {
+        int j2 = getRandomInt(0, maxDerivatives);
+        int ndx2 = j;  // change to j2 if we want more random...
+        blend(b1, ndx1, ndx2);
+        Logger.fine("blendLoop "+ ndx1 + "-" + ndx2);
+      }
     }
+  }
+  catch (Exception e) {
+    e.printStackTrace();
+  }
+}
+
+void blend(BaseImage b1, int ndx1, int ndx2) {
+  try {
+    //int j2 = getRandomInt(0, maxDerivatives);
+    //int ndx2 = j;  // change to j2 if we want more random...
+    BaseImage b2 = new BaseImage(imageList[ndx2]);
+    dg.setLayer2Name(imageList[ndx2]);
+    dg.setLayers(2);
+    PImage blendImg = blend2(b1, b2, ndx1, ndx2);
+    BaseImage b3 = new BaseImage(blendImg, ndx1, ndx2);
+    dg.setBaseImage(b3);
+    dg.setAllPalettes(maxPaletteColors);
+    maxPaletteColors = getRandomInt(3, 50);
+    defaultBlur = getRandomFloat(3.0, 15.0);
+    dg.generatePaletteAndGradient();
+    dg.setColorIteration(1);
+    dg.setZoomLevel(playZoomLevel);
+    dg.setGradient();
+    setTintOpacity();
+    dg.mapColors(playZoomLevel);
+  }
+  catch (Exception e) {
+    e.printStackTrace();
   }
 }
 
@@ -309,7 +388,7 @@ PImage blend2(BaseImage bi1, BaseImage bi2, int i, int j) {
     fill(255);
     tint(255, 255);
     if (i==j) {
-      bgLayer.image(tmp1, width/2, height/2, imageWidth*zoomLevel, imageHeight*zoomLevel);
+      bgLayer.image(tmp1, 0, 0, imageWidth*zoomLevel, imageHeight*zoomLevel);
     } else {
       tmp2.resize(width, height);
       bgLayer.background(tmp2);
@@ -347,7 +426,6 @@ void playground() {
       maxImages = 1;
       derivativeCount = 1;
       saveMetaData=false;
-      saveCVSMetaData=false;
       click=0;
       tint(255, 255);
       if (playRandomEnabled) {
@@ -357,6 +435,7 @@ void playground() {
       maxPaletteColors = getRandomInt(3, 50);
       defaultBlur = getRandomFloat(3.0, 15.0);
       bImg = new BaseImage(imageList[playImageNum-1]);
+      dg.setLayer1Name(imageList[playImageNum-1]);
       dg.setBaseImage(bImg);
       dg.setAllPalettes(maxPaletteColors);
       if (playChangeGradient) {
@@ -434,15 +513,7 @@ void keyPressed() {
   }
   if (key == 'o' || key == 'O') {   // toggle default or random [O]pacity
     playOpacityDefault = !playOpacityDefault;
-    if (playOpacityDefault) {
-      playTintOpacity = defaultTintOpacity;
-    } else {
-      playTintOpacity[0] = getRandomInt(0, 64);
-      playTintOpacity[1] = getRandomInt(100, 255);
-    }
-    dg.bImg.setTintOpacity(0, playTintOpacity[0]);
-    dg.bImg.setTintOpacity(1, playTintOpacity[1]);
-    println("Tint Levels: ", playTintOpacity[0], playTintOpacity[1]);
+    setTintOpacity();
     click=1;
   }
   if (key == 'p' || key == 'P') {   // [P]revious
@@ -479,6 +550,18 @@ void keyPressed() {
     dg.generateBlackAndWhitePalette();
     click=1;
   }
+}
+
+void setTintOpacity() {
+  if (playOpacityDefault) {
+    playTintOpacity = defaultTintOpacity;
+  } else {
+    playTintOpacity[0] = getRandomInt(0, 64);
+    playTintOpacity[1] = getRandomInt(100, 255);
+  }
+  dg.bImg.setTintOpacity(0, playTintOpacity[0]);
+  dg.bImg.setTintOpacity(1, playTintOpacity[1]);
+  Logger.finer("Tint Levels: " + playTintOpacity[0]+ " " + playTintOpacity[1]);
 }
 
 void mintNFT(String dataRecordString) {
@@ -558,7 +641,10 @@ void setActionPrefix() {
   if (scriptAction == NFTAction.MINT) {
     actionPrefix = "mint-";
   } 
-  if (scriptAction == NFTAction.CREATE) {
+  if (scriptAction == NFTAction.CREATE1) {
+    actionPrefix = "create-";
+  } 
+  if (scriptAction == NFTAction.CREATE_ALL) {
     actionPrefix = "create-";
   } 
   if (scriptAction == NFTAction.PLAY) {

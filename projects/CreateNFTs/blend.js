@@ -1,6 +1,6 @@
 const { exec } = require("child_process");
 
-var cmd = "processing-java --sketch=/Users/dsa157/Documents/Processing/projects/CreateNFTs --output=/Users/dsa157/Documents/Processing/projects/out1 --force --run -Dmode=blend -DimageList=blend.txt -DlogLevel=finer";
+var cmd = "processing-java --sketch=/Users/dsa157/Documents/Processing/projects/CreateNFTs --output=/Users/dsa157/Documents/Processing/projects/out1 --force --run -Dmode=blend -DimageList=blend.txt -DlogLevel=fine";
 
 exec(cmd, (error, stdout, stderr) => {
     if (error) {
