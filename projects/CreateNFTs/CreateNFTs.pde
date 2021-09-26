@@ -34,6 +34,7 @@ String imageList[] = {};
 String defaultImageFile = "remote.txt";
 BaseImage bImg;
 DerivativeGenerator dg;
+PaletteManager paletteManager;
 int click=1;
 static int logLevel = LogLevel.INFO;
 HashMap<String, String> params = new HashMap<String, String>();
@@ -90,7 +91,7 @@ String mintDataRecords[];
 
 // -- blend mode variables --
 PGraphics bgLayer;
-int maxRenders = 2;
+int maxLayer2Combinations = maxDerivatives;
 
 
 //--------------------------------------
@@ -145,7 +146,7 @@ void setup() {
     frameRate(10);
   }
   catch (Exception e) {
-    e.printStackTrace();
+    fatalException(e);
   }
 }
 
@@ -171,6 +172,7 @@ void init() {
   bgLayer = createGraphics(width, height);
   bImg = new BaseImage("");
   dg = new DerivativeGenerator(bImg, GradientSliceType.EVEN);
+  paletteManager = new PaletteManager();
   setupHelpTextLayers();
 }
 
@@ -252,7 +254,7 @@ void createNFTs() {
 void generateCollection() {
   try {
     noLoop();
-    generateOriginalImages();
+    //generateOriginalImages();
     generate1LayerImages();
     //generate2LayerImages();
   }
@@ -303,7 +305,7 @@ void generate1LayerImages() {
 
   /// DEBUG
   maxDerivatives=4; 
-  maxColorIterations=6;
+  maxColorIterations=4;
   saveImage=true;
   ///
 
@@ -340,7 +342,7 @@ void generate2LayerImages() {
   for (int i=0; i<maxDerivatives; i++) {
     BaseImage b1 = new BaseImage(imageList[i]);
     dg.setLayer1Name(imageList[i]);
-    for (int j=0; j<maxDerivatives; j++) {
+    for (int j=0; j<maxLayer2Combinations; j++) {
       if (i==j) {
         continue; // don't blend the design with itself
       }
@@ -370,7 +372,7 @@ void blend() {
     blend (b1, ndx1, ndx2);
   }
   catch (Exception e) {
-    e.printStackTrace();
+    fatalException(e);
   }
 }
 
@@ -400,9 +402,59 @@ void mintNFT(int ndx) {
   noLoop();
   maxImages = 1;
   derivativeCount = 1;
-  saveImage=true;
-  //  image(bImg.getColorImg(), width/2, height/2, width, height);
   mintNFT(mintDataRecords[ndx]);
+}
+
+void mintNFT(String dataRecordString) {  // from CSV file
+  try {
+    String[] dataRecord = dataRecordString.split(",");
+    saveGradientImage = false;
+    saveUnmodifiedImage = false;
+    saveGrayImage = false;
+    saveImage=true;
+    saveMetaData = true;
+    //String imageName = dataRecord[2];
+    String baseImageName = dataRecord[3];
+    String zoomLevel = dataRecord[4];
+    String colorIteration = dataRecord[5];
+    String palette = dataRecord[6];
+    String blur = dataRecord[7];
+    String tint = dataRecord[8];
+    String gradientTypeStr = dataRecord[9];
+    String gradientSliceTypeStr = dataRecord[10];
+    String zoomXstr = dataRecord[11];
+    String zoomYstr = dataRecord[12];
+    Logger.finer("baseImageName: " + baseImageName);
+    Logger.finer("Color Iteration: " + colorIteration);
+    Logger.finer("Zoom Level: " + zoomLevel);
+    Logger.finer("Blur: " + blur);
+    Logger.finer("Tint: " + tint);
+    Logger.finer("ZoomX: " + zoomXstr);
+    Logger.finer("ZoomY: " + zoomYstr);
+    Logger.finer("Gradient Type: " + gradientTypeStr);
+    Logger.finer("Gradient Slice Type: " + gradientSliceTypeStr);
+    Logger.finer("Palette: " + palette);
+    Logger.finer("Log Level: " + logLevel);
+    Logger.finer("---");
+    zoomX = int(zoomXstr);
+    zoomY = int(zoomYstr);
+    bImg = new BaseImage(baseImageName);
+    bImg.setTintOpacity(0, int(tint));
+    bImg.setBlurValue(float(blur));
+    dg.setBaseImage(bImg);
+    dg.setZoomLevel(int(zoomLevel));
+    dg.calculateZoomOffsets();
+    dg.setColorIteration(int(colorIteration));
+    dg.setGradientType(int(gradientTypeStr));
+    dg.setGradientSliceType(int(gradientSliceTypeStr));
+    dg.setUniquePrefix();
+    dg.generatePalette(palette);
+    dg.generateGradient();
+    dg.mapColors(int(zoomLevel));
+  }
+  catch(Exception e) {
+    fatalException(e);
+  }
 }
 
 void setBlendOptions() {
@@ -413,20 +465,20 @@ void setBlendOptions() {
   saveMetaData = false;
   playOpacityDefault = false;
   maxDerivatives = 20;
-  maxRenders = 3;
+  maxLayer2Combinations = 3;
 }
 
 void blendLoop() {
   Logger.info("blendLoop");
   try {
     setBlendOptions();
-    for (int i=0; i<maxRenders; i++) {
+    for (int i=0; i<maxLayer2Combinations; i++) {
       int i2 = getRandomInt(0, maxDerivatives);
       int ndx1 = i;  // change to i2 if we want more random...
       dg.setLayer1Name(imageList[ndx1]);
       BaseImage b1 = new BaseImage(imageList[ndx1]);
       Logger.fine("Blend Img " + (i+1));
-      for (int j=0; j<maxRenders; j++) {
+      for (int j=0; j<maxLayer2Combinations; j++) {
         int j2 = getRandomInt(0, maxDerivatives);
         int ndx2 = j;  // change to j2 if we want more random...
         blend(b1, ndx1, ndx2);
@@ -435,7 +487,7 @@ void blendLoop() {
     }
   }
   catch (Exception e) {
-    e.printStackTrace();
+    fatalException(e);
   }
 }
 
@@ -460,7 +512,7 @@ void blend(BaseImage b1, int ndx1, int ndx2) {
     dg.mapColors(playZoomLevel);
   }
   catch (Exception e) {
-    e.printStackTrace();
+    fatalException(e);
   }
 }
 
@@ -487,7 +539,7 @@ PImage blend2(BaseImage bi1, BaseImage bi2, int i, int j) {
     //saveFrame(fileName);
   }
   catch(Exception e) {
-    e.printStackTrace();
+    fatalException(e);
   }
   return bgLayer;
 }
@@ -648,57 +700,6 @@ void setTintOpacity() {
   dg.bImg.setTintOpacity(0, playTintOpacity[0]);
   dg.bImg.setTintOpacity(1, playTintOpacity[1]);
   Logger.finer("Tint Levels: " + playTintOpacity[0]+ " " + playTintOpacity[1]);
-}
-
-void mintNFT(String dataRecordString) {
-  try {
-    String[] dataRecord = dataRecordString.split(",");
-    saveGradientImage = false;
-    saveUnmodifiedImage = true;
-    saveGrayImage = true;
-    saveMetaData = true;
-    //String imageName = dataRecord[2];
-    String baseImageName = dataRecord[3];
-    String zoomLevel = dataRecord[4];
-    String colorIteration = dataRecord[5];
-    String palette = dataRecord[6];
-    String blur = dataRecord[7];
-    String tint = dataRecord[8];
-    String gradientTypeStr = dataRecord[9];
-    String gradientSliceTypeStr = dataRecord[10];
-    String zoomXstr = dataRecord[11];
-    String zoomYstr = dataRecord[12];
-    Logger.finer("baseImageName: " + baseImageName);
-    Logger.finer("Color Iteration: " + colorIteration);
-    Logger.finer("Zoom Level: " + zoomLevel);
-    Logger.finer("Blur: " + blur);
-    Logger.finer("Tint: " + tint);
-    Logger.finer("ZoomX: " + zoomXstr);
-    Logger.finer("ZoomY: " + zoomYstr);
-    Logger.finer("Gradient Type: " + gradientTypeStr);
-    Logger.finer("Gradient Slice Type: " + gradientSliceTypeStr);
-    Logger.finer("Palette: " + palette);
-    Logger.finer("Log Level: " + logLevel);
-    Logger.finer("---");
-    zoomX = int(zoomXstr);
-    zoomY = int(zoomYstr);
-    bImg = new BaseImage(baseImageName);
-    bImg.setTintOpacity(0, int(tint));
-    bImg.setBlurValue(float(blur));
-    dg.setBaseImage(bImg);
-    dg.setZoomLevel(int(zoomLevel));
-    dg.calculateZoomOffsets();
-    dg.setColorIteration(int(colorIteration));
-    dg.setGradientType(int(gradientTypeStr));
-    dg.setGradientSliceType(int(gradientSliceTypeStr));
-    dg.setUniquePrefix();
-    dg.generatePalette(palette);
-    dg.generateGradient();
-    dg.mapColors(int(zoomLevel));
-  }
-  catch(Exception e) {
-    fatalException(e);
-  }
 }
 
 void done() {

@@ -30,12 +30,14 @@ class DerivativeGenerator {
   String layer1Name = "";
   String layer2Name = "";
   String designType = "Mutation";
+  String paletteName = "Random";
   String uniquePrefix = "";
   color[][] allGradients = new color[maxColorIterations][width];
   int[][] allPalettes = new int [maxColorIterations][maxPaletteColors];
 
   color[] gradValues = new color[width];
   HashMap<String, String> imageMetaData = new HashMap<String, String>();
+  HashMap<String, Boolean> paletteColorUsage = new HashMap<String, Boolean>();
   int outputImageCount = 1;
   JSONObject json = new JSONObject();
 
@@ -59,48 +61,53 @@ class DerivativeGenerator {
 
   void setPrintWriter() {
     Logger.fine("setPrintWriter " + outputFolder + "/" + getCsvOutputName());
-    csvOutput = createWriter(outputFolder + "/" + getCsvOutputName());
+    this.csvOutput = createWriter(outputFolder + "/" + getCsvOutputName());
   }
 
   void setCsvOutputName() {
-    csvOutputName = actionPrefix + getUniquePrefix() + "metadata.csv";
+    this.csvOutputName = actionPrefix + getUniquePrefix() + "metadata.csv";
   }
 
   String getCsvOutputName() {
-    return csvOutputName;
+    return this.csvOutputName;
   }
 
   String getUniquePrefix() {
-    return uniquePrefix + "-";
+    return this.uniquePrefix + "-";
   }
 
   void setUniquePrefix() {
-    uniquePrefix = str(millis());
+    this.uniquePrefix = str(millis());
   }
 
   void setLayers(int l) {
-    layers = l;
+    this.layers = l;
   }
 
   void setLayer1Name(String str) {
-    layer1Name = str;
+    this.layer1Name = str;
   }
 
   void setLayer2Name(String str) {
-    layer2Name = str;
+    this.layer2Name = str;
   }
 
   void setDesignType(String str) {
-    designType = str;
+    this.designType = str;
   }
 
   void setBaseImage(BaseImage img) {
-    bImg = img;
+    this.bImg = img;
   }
+
+  void setPaletteName(String str) {
+    this.paletteName = str;
+  }
+
 
   void setAllPalettes(int newMaxPaletteColors) {
     maxPaletteColors = newMaxPaletteColors;
-    allPalettes = new int [maxColorIterations][newMaxPaletteColors];
+    this.allPalettes = new int [maxColorIterations][newMaxPaletteColors];
   }
 
   void setZoomLevel(int zl) {
@@ -112,11 +119,11 @@ class DerivativeGenerator {
   }
 
   void setGradientType(int i) {
-    gradientType = i;
+    this.gradientType = i;
   }
 
   void setGradientSliceType(int i) {
-    gradientSliceType = i;
+    this.gradientSliceType = i;
   }
 
   String getOutFileName(String suffix) {
@@ -145,9 +152,47 @@ class DerivativeGenerator {
       bImg.setTintOpacity(0, 0);
       generateBlackAndWhitePalette();
     } else {
-      generateRandomPalette();
+      generateUnusedCuratedPalette();
+      //generateRandomPalette();
     }
     generateGradient();
+  }
+
+  void generateUnusedCuratedPalette() {
+    try {
+      String curatedPaletteString = "";
+      boolean usedPalette = false;
+      int maxAttempts=paletteManager.maxCuratedPalettes * 2;
+      int cntAttempts=1;
+      while (!usedPalette) {
+        curatedPaletteString = paletteManager.getRandomPalette();
+        // check to see if we have used this palette on an image in this layer set using this base layer 
+        String key =  paletteName + "-" + layer1Name + "-" + layer2Name;
+println("key=", key);
+        if (!paletteColorUsage.containsKey(key) || paletteColorUsage.get(key) != true) {
+          paletteColorUsage.put(key, true);
+          usedPalette=true;
+        } 
+        else {
+println("!!!!already used ", key);
+          // reste and try again
+          curatedPaletteString = "";
+        }
+        if (cntAttempts++ > maxAttempts) {
+          // make sure we don't infinite loop
+          usedPalette=true;
+        }
+      }
+      if (curatedPaletteString != "") {
+        generatePalette(curatedPaletteString);
+      } else {
+        generateRandomPalette();
+      }
+    }
+    catch(Exception e) {
+      generateRandomPalette();
+      //fatalException(e);
+    }
   }
 
   void generateGradient() {
@@ -297,6 +342,7 @@ class DerivativeGenerator {
     //arrayCopy(gradPalette, myPalette);
     myPalette = gradPalette;
     paletteSize = myPalette.length;
+    paletteName = "Random";
     //println("Current Color Iteration: " + colorIteration);
     //println(savePaletteAsHexStrings());
     //arrayCopy(myPalette, allPalettes[colorIteration-1]);
@@ -491,6 +537,8 @@ class DerivativeGenerator {
       imageMetaData.put("Layers", "" + layers);
       imageMetaData.put("GradientColorType", (maxPaletteColors==2 ? "Basic" : "Multicolor"));
       imageMetaData.put("DesignType", designType);
+      imageMetaData.put("PaletteName", paletteName);
+      imageMetaData.put("ColorType", (bImg.getTintOpacity(0) < 50) ? "Vibrant" : "Muted");
       if (saveMetaData) {
         saveJSON(outputFolder + "/" + actionPrefix + getUniquePrefix() + getOutFileName(suffix), suffix);
       }
@@ -517,15 +565,16 @@ class DerivativeGenerator {
           imageMetaData.get("ZoomY") + "," +
           imageMetaData.get("Layers") + "," +
           imageMetaData.get("Layer1FileName") + "," +
-          imageMetaData.get("Layer2FileName")
+          imageMetaData.get("Layer2FileName") + "," +
+          imageMetaData.get("PaletteName") + "," +
+          imageMetaData.get("ColorType")
           );
         csvOutput.flush();
         recordedCVSMetaData=true;
       }
     }
     catch(Exception e) {
-      e.printStackTrace();
-      exit();
+      fatalException(e);
     }
   }
 
@@ -552,10 +601,12 @@ class DerivativeGenerator {
       json.setString("Layers", imageMetaData.get("Layers"));
       json.setString("GradientColorType", imageMetaData.get("GradientColorType"));
       json.setString("DesignType", imageMetaData.get("DesignType"));
+      json.setString("PaletteName", imageMetaData.get("PaletteName"));
+      json.setString("ColorType", imageMetaData.get("ColorType"));
       saveJSONObject(json, outFileName);
     }
     catch (Exception e) {
-      e.printStackTrace();
+      fatalException(e);
     }
   }
 
@@ -575,7 +626,7 @@ class DerivativeGenerator {
       this.setLayers(int(json.getString("Layers")));
     }
     catch (Exception e) {
-      e.printStackTrace();
+      fatalException(e);
     }
   }
 
@@ -584,7 +635,7 @@ class DerivativeGenerator {
   }
 
   void printCvsOutputHeader() {
-    csvOutput.println("Num,Derivative,Filename,BaseFileName,ZoomLevel,ColorIteration,Palette,Blur,Tint,Gradient Type,Gradient Slice Type,ZoomX,ZoomY,Layers,Layer1FileName,Layer2FileName");
+    csvOutput.println("Num,Derivative,Filename,BaseFileName,ZoomLevel,ColorIteration,Palette,Blur,Tint,Gradient Type,Gradient Slice Type,ZoomX,ZoomY,Layers,Layer1FileName,Layer2FileName,PaletteName,ColorType");
     csvOutput.flush();
   }
 
@@ -604,7 +655,7 @@ class DerivativeGenerator {
       }
     }
     catch (Exception e) {
-      e.printStackTrace();
+      fatalException(e);
     }
   }
 } 
