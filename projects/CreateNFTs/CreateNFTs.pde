@@ -41,8 +41,8 @@ int zoomX = 0;
 int zoomY = 0;
 
 // -- image configuration default variables --
-int maxDerivatives = 16;
-int maxColorIterations = 10;
+int maxDerivatives = 19;
+int maxColorIterations = 13;
 int maxZooms = 3;
 int maxPaletteColors = 5;    // Innoculation: 3
 float defaultBlur = 10.0;
@@ -57,8 +57,8 @@ boolean saveImage = true;
 boolean saveMetaData = false;
 boolean saveCVSMetaData = false;
 boolean saveUnmodifiedImage = true;
-boolean saveGradientImage = true;
-boolean saveGrayImage = true;
+boolean saveGradientImage = false;
+boolean saveGrayImage = false;
 boolean saveBlurredImage = false;
 boolean saveOutputImage = true;
 boolean overlayGray = false;
@@ -174,7 +174,7 @@ void draw() {
     //createNFTs();
   }
   if (scriptAction == NFTAction.CREATE_ALL) {
-    //createNFTs();
+    generateCollection();
   }
   if (scriptAction == NFTAction.MINT) {
     mintNFTs();
@@ -247,17 +247,38 @@ void createNFTs() {
 void generateCollection() {
   try {
     noLoop();
-    generateOriginalImages();
-    generate1LayerImages();
-    generate2LayerImages();
+    generateOriginalImages(0);  // original and gray
+    for (int i=1; i<=maxDerivatives; i++) {
+      generateOriginalImages(i);  // each original derivative and gray
+    }
+    //generate1LayerImages();
+    //generate2LayerImages();
   }
   catch(Exception e) {
     fatalException(e);
   }
+  done();
 }
 
-void generateOriginalImages() {
-  Logger.info("generateOriginalImages");
+void generateOriginalImages(int ndx) {
+  Logger.fine("generateOriginalImages " + ndx);
+  maxImages = 1;
+  derivativeCount = 1;
+  saveImage=true;
+  saveGradientImage=false;
+  saveMetaData=true;
+  saveImage=false;
+  bImg = new BaseImage(imageList[ndx]);
+  dg.setLayer1Name(imageList[ndx]);
+  dg.setBaseImage(bImg);
+  dg.zoom(bImg.getColorImg(), zoomLevel);
+  String suffix = "-orig";
+  dg.saveImage(suffix);
+  dg.saveImageMetaData(suffix);
+  dg.zoom(bImg.getGrayImg(), zoomLevel);
+  suffix = "-gray";
+  dg.saveImage(suffix);
+  dg.saveImageMetaData(suffix);
 }
 
 void generate1LayerImages() {
@@ -309,7 +330,7 @@ void setBlendOptions() {
   saveGrayImage = false;
   saveMetaData = false;
   playOpacityDefault = false;
-  maxDerivatives = 19;
+  maxDerivatives = 20;
   maxRenders = 3;
 }
 
@@ -686,9 +707,17 @@ void processArguments() {
   getArguments();
 
   if (params.get("mode") == null) {
-    fatalError("Missing required param -Dmode=[play|mint|blend]");
+    fatalError("Missing required param -Dmode=[play|mint|blend|create|create_all]");
   } else {
     switch(params.get("mode")) {
+    case "create":
+      scriptAction = NFTAction.CREATE1;
+      setActionPrefix();
+      break;
+    case "create_all":
+      scriptAction = NFTAction.CREATE_ALL;
+      setActionPrefix();
+      break;
     case "play":
       scriptAction = NFTAction.PLAY;
       setActionPrefix();
@@ -702,7 +731,7 @@ void processArguments() {
       setActionPrefix();
       break;
     default:
-      fatalError("Invalid valid for param -Dmode=[play|mint]");
+      fatalError("Invalid valid for param -Dmode=[play|mint|blend|create|create_all]");
     }
 
     if (params.get("hash") != null) {
@@ -740,9 +769,9 @@ void processArguments() {
   }
 
   switch(scriptAction) {
+  case NFTAction.CREATE1:
+  case NFTAction.CREATE_ALL:
   case NFTAction.PLAY:
-    imageList = validateAndLoadFileParam("imageList");
-    break;
   case NFTAction.BLENDER:
     imageList = validateAndLoadFileParam("imageList");
     break;
