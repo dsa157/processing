@@ -178,7 +178,7 @@ void init() {
 
 void draw() {
   if (scriptAction == NFTAction.CREATE1) {
-    //createNFTs();
+    createNFT();
   }
   if (scriptAction == NFTAction.CREATE_ALL) {
     generateCollection();
@@ -236,27 +236,27 @@ void generatePaletteAndGradients() {
   }
 }
 
-void createNFTs() {
-  if (frameCount <= maxDerivatives) {
-    bImg = new BaseImage(imageList[imageNdx]);
-    dg.setBaseImage(bImg);
-    for (int i=1; i<=maxColorIterations; i++) {
-      dg.setColorIteration(i);
-      dg.setGradient();
-      dg.mapColors();
-    }
-    imageNdx++;
-  } else {
-    done();
-  }
+void createNFT() {
+  noLoop();
+  maxColorIterations=1;
+  saveMetaData=true;
+  saveImage=true;
+  // this will randomly determine if it should create a layer1 or layer2 design
+//  if (getRandomInt(1, 2) == 1) {
+    int i = getRandomInt(1, maxDerivatives);
+    generate1LayerImage(i-1, 0);
+//  } else {
+//    println("coming soon...");
+//  }
+  done();
 }
 
 void generateCollection() {
   try {
     noLoop();
-    //generateOriginalImages();
+    generateOriginalImages();
     generate1LayerImages();
-    //generate2LayerImages();
+    generate2LayerImages();
   }
   catch(Exception e) {
     fatalException(e);
@@ -311,34 +311,40 @@ void generate1LayerImages() {
 
   for (int i=0; i<maxDerivatives; i++) {
     for (int j=0; j<maxColorIterations; j++) {
-      background(125);
-      maxPaletteColors = getNumPaletteColors();
-      defaultBlur = getRandomFloat(defaultMinBlur, defaultMaxBlur);
-      setTintOpacity();
-      bImg = new BaseImage(imageList[i]);
-      dg.setLayer1Name(imageList[i]);
-      dg.setBaseImage(bImg);
-      dg.setAllPalettes(maxPaletteColors);
-      dg.generatePaletteAndGradient();
-      dg.setColorIteration(j+1);
-      dg.setZoomLevel(playZoomLevel);
-      dg.setGradient();
-      dg.mapColors(playZoomLevel);
+      generate1LayerImage(i,j);
     }
   }
+}
+
+void generate1LayerImage(int i, int j) {
+  background(125);
+  maxPaletteColors = getNumPaletteColors();
+  defaultBlur = getRandomFloat(defaultMinBlur, defaultMaxBlur);
+  setTintOpacity();
+  bImg = new BaseImage(imageList[i]);
+  dg.setLayer1Name(imageList[i]);
+  dg.setBaseImage(bImg);
+  dg.setAllPalettes(maxPaletteColors);
+  dg.generatePaletteAndGradient();
+  dg.setColorIteration(j+1);
+  dg.setZoomLevel(playZoomLevel);
+  dg.setGradient();
+  dg.mapColors(playZoomLevel);
 }
 
 void generate2LayerImages() {
   Logger.info("generate2LayerImages");
 
   setBlendOptions();
+
   /// DEBUG
-  maxDerivatives=2; 
+  maxDerivatives=3; 
   maxColorIterations=3;
   saveImage=true;
   saveMetaData = true;
   derivativeCount = 1;
   ///
+
   for (int i=0; i<maxDerivatives; i++) {
     BaseImage b1 = new BaseImage(imageList[i]);
     dg.setLayer1Name(imageList[i]);

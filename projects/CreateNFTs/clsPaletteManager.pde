@@ -1,7 +1,7 @@
 class PaletteManager {
 
   HashMap<String, String> curatedPalettes = new HashMap<String, String>();
-  int maxCuratedPalettes=25;
+  int maxCuratedPalettes=50;
   
   PaletteManager() {
     init();

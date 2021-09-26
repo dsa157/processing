@@ -168,13 +168,11 @@ class DerivativeGenerator {
         curatedPaletteString = paletteManager.getRandomPalette();
         // check to see if we have used this palette on an image in this layer set using this base layer 
         String key =  paletteName + "-" + layer1Name + "-" + layer2Name;
-println("key=", key);
         if (!paletteColorUsage.containsKey(key) || paletteColorUsage.get(key) != true) {
           paletteColorUsage.put(key, true);
           usedPalette=true;
         } 
         else {
-println("!!!!already used ", key);
           // reste and try again
           curatedPaletteString = "";
         }
