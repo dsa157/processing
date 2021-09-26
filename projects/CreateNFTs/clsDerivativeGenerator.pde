@@ -484,6 +484,7 @@ class DerivativeGenerator {
       imageMetaData.put("ZoomX", "" + zoomX);
       imageMetaData.put("ZoomY", "" + zoomY);
       imageMetaData.put("Layers", "" + layers);
+      imageMetaData.put("GradientColorType", (maxPaletteColors==2 ? "Basic" : "Multicolor"));
       if (saveMetaData) {
         saveJSON(outputFolder + "/" + actionPrefix + getUniquePrefix() + getOutFileName(suffix), suffix);
       }
@@ -543,6 +544,7 @@ class DerivativeGenerator {
       json.setString("ZoomX", imageMetaData.get("ZoomX"));
       json.setString("ZoomY", imageMetaData.get("ZoomY"));
       json.setString("Layers", imageMetaData.get("Layers"));
+      json.setString("GradientColorType", imageMetaData.get("GradientColorType"));
       saveJSONObject(json, outFileName);
     }
     catch (Exception e) {

@@ -14,7 +14,7 @@ boolean t1Up = false;
 boolean t2Up = true;
 int cnt=1;
 int maxImages = 10;
-int renderImages = 2;
+int renderImages = 4;
 PImage[] a1 = new PImage[maxImages];
 PImage[] a2 = new PImage[maxImages];
 String outputFolder = "output";
@@ -31,6 +31,28 @@ color[] gradValues = new color[width];
 color from;
 color to;
 boolean saveGradientImage = true;
+String[] dataFile = {
+  "http://www.dsa157.com/NFT/Davids-Lyre-1-small.png", 
+  "http://www.dsa157.com/NFT/Davids-Lyre-10-small.png", 
+  "http://www.dsa157.com/NFT/Davids-Lyre-16-small.png", 
+  "http://www.dsa157.com/NFT/Davids-Lyre-9-small.png", 
+  "http://www.dsa157.com/NFT/Davids-Lyre-2-small.png", 
+  "http://www.dsa157.com/NFT/Davids-Lyre-4-small.png", 
+  "http://www.dsa157.com/NFT/Davids-Lyre-5-small.png", 
+  "http://www.dsa157.com/NFT/Davids-Lyre-6-small.png", 
+  "http://www.dsa157.com/NFT/Davids-Lyre-7-small.png", 
+  "http://www.dsa157.com/NFT/Davids-Lyre-8-small.png", 
+  "http://www.dsa157.com/NFT/Davids-Lyre-11-small.png", 
+  "http://www.dsa157.com/NFT/Davids-Lyre-12-small.png", 
+  "http://www.dsa157.com/NFT/Davids-Lyre-13-small.png", 
+  "http://www.dsa157.com/NFT/Davids-Lyre-3-small.png", 
+  "http://www.dsa157.com/NFT/Davids-Lyre-14-small.png", 
+  "http://www.dsa157.com/NFT/Davids-Lyre-15-small.png", 
+  "http://www.dsa157.com/NFT/Davids-Lyre-17-small.png", 
+  "http://www.dsa157.com/NFT/Davids-Lyre-18-small.png", 
+  "http://www.dsa157.com/NFT/Davids-Lyre-19-small.png", 
+  "http://www.dsa157.com/NFT/Davids-Lyre-20-small.png"
+};
 
 //--
 
@@ -44,13 +66,13 @@ void setup() {
 
   for (File file : new java.io.File(dirName).listFiles()) {
     if (!file.isDirectory()) {
-        file.delete();
+      file.delete();
     }
   }
   bgLayer = createGraphics(width, height);
   gradValues = new color[width];
   for (i=0; i< maxImages; i++) {
-    String fileName = "http://www.dsa157.com/NFT/Davids-Lyre-" + (i+1) + "-small.png";
+    String fileName = dataFile[i];
     println("Loading " + fileName);
     PImage img = loadImage(fileName);
     a1[i]=img;
@@ -71,19 +93,7 @@ void setup() {
 //--------------------------------------------
 
 void draw() {
-  if (done) {
-    println("done.");
-    exit();
-  }
-  for (i=0; i<renderImages; i++) {
-    int ndx1 = int(random(0, maxImages));
-    println("Blend Img " + (i+1));
-    for (j=0; j<renderImages; j++) {
-      int ndx2 = int(random(0, maxImages));
-      blend2(a1[ndx1], a2[ndx2], ndx1, ndx2);
-    }
-  }
-  done=true;
+  blend2();
   println("end draw.");
 }
 
@@ -118,8 +128,35 @@ void blend1(PImage i1, PImage i2) {
 
 //--------------------------------------------
 
-void blend2(PImage i1, PImage i2, int i, int j) {
-  generatePaletteAndGradient();
+void blend2() {
+  for (i=0; i<renderImages; i++) {
+    int ndx1 = int(random(0, maxImages));
+    PImage tmpImg = a1[ndx1].copy();
+    tmpImg.filter(GRAY);
+    println("Blend Img " + (i+1));
+    for (j=0; j<renderImages; j++) {
+      int ndx2 = int(random(0, maxImages));
+      generatePaletteAndGradient();
+      PImage blendImg = blend2(a1[ndx1], a2[ndx2], ndx1, ndx2);
+      colorAndSaveBlendedImage(blendImg, a1[ndx1]);
+    }
+  }
+}
+
+void colorAndSaveBlendedImage(PImage bgImg, PImage tmp1  ) {
+  tint(255, 255);
+  mapColors(tmp1);
+  tint(255, 255);
+  image(bgImg, 0, 0);
+  tint(255, 32);
+  image(tmp1, 0, 0);
+  String fileName = outputFolder + "/File-" + (i+1) + "-" + (j+1) + ".png";
+  saveFrame(fileName);
+}
+
+//--------------------------------------------
+
+PImage blend2(PImage i1, PImage i2, int i, int j) {
   bgLayer.beginDraw();
   bgLayer.background(0, 0, 0, 150);
   PImage tmp1 = i1.copy();
@@ -131,27 +168,17 @@ void blend2(PImage i1, PImage i2, int i, int j) {
   if (i==j) {
     bgLayer.image(tmp1, 0, 0, width, height);
   } else {
-    //tint(255, 128);
     tmp2.resize(width, height);
-    image(tmp2, 0, 0, width, height);
-    //background(tmp2);
-    //bgLayer.image(tmp2, 0, 0, width, height);
-    tint(255, 128);
+    bgLayer.background(tmp2);
     tmp1.resize(width, height);
-    image(tmp1, 0, 0, width, height);
-    blend(tmp1, 0, 0, width, height, 0, 0, width, height, SOFT_LIGHT); 
+    bgLayer.blend(tmp1, 0, 0, width, height, 0, 0, width, height, SOFT_LIGHT);
   }
   bgLayer.endDraw();
-  
-  //image(bgLayer, 0, 0);
-  String fileName = outputFolder + "/blend-" + (i+1) + "-" + (j+1) + ".png";
-  saveFrame(fileName);
-  tint(255, 255);
-  mapColors(tmp1);
-  tint(255, 255);
+
   image(bgLayer, 0, 0);
-  fileName = outputFolder + "/File-" + (i+1) + "-" + (j+1) + ".png";
-  saveFrame(fileName);
+  String fileName = outputFolder + "/blend-" + (i+1) + "-" + (j+1) + ".png";
+  //  saveFrame(fileName);
+  return bgLayer;
 }
 
 //--------------------------------------------
@@ -366,5 +393,5 @@ void overlay2(PImage img) {
   image(img, 0, 0);
   tint(255, 32);
   image(saturatedImg, 0, 0);
-  //saveFrame(outputFolder + "/overlay2-" + (i+1) + "-" + (j+1) + ".png");  
+  //saveFrame(outputFolder + "/overlay2-" + (i+1) + "-" + (j+1) + ".png");
 }

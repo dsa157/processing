@@ -41,8 +41,8 @@ int zoomX = 0;
 int zoomY = 0;
 
 // -- image configuration default variables --
-int maxDerivatives = 19;
-int maxColorIterations = 13;
+int maxDerivatives = 20;
+int maxColorIterations = 14;
 int maxZooms = 3;
 int maxPaletteColors = 5;    // Innoculation: 3
 float defaultBlur = 10.0;
@@ -56,7 +56,7 @@ int derivativeCount = 1;
 boolean saveImage = true;
 boolean saveMetaData = false;
 boolean saveCVSMetaData = false;
-boolean saveUnmodifiedImage = true;
+boolean saveUnmodifiedImage = false;
 boolean saveGradientImage = false;
 boolean saveGrayImage = false;
 boolean saveBlurredImage = false;
@@ -247,17 +247,21 @@ void createNFTs() {
 void generateCollection() {
   try {
     noLoop();
-    generateOriginalImages(0);  // original and gray
-    for (int i=1; i<=maxDerivatives; i++) {
-      generateOriginalImages(i);  // each original derivative and gray
-    }
-    //generate1LayerImages();
+    //generateOriginalImages();
+    generate1LayerImages();
     //generate2LayerImages();
   }
   catch(Exception e) {
     fatalException(e);
   }
   done();
+}
+
+void generateOriginalImages() {
+  generateOriginalImages(0);  // original and gray
+  for (int i=1; i<maxDerivatives; i++) {
+    generateOriginalImages(i);  // each original derivative and gray
+  }
 }
 
 void generateOriginalImages(int ndx) {
@@ -283,11 +287,53 @@ void generateOriginalImages(int ndx) {
 
 void generate1LayerImages() {
   Logger.info("generate1LayerImages");
+  saveGradientImage=false;
+  saveMetaData=true;
+  saveImage=false;
+  //maxColorIterations = 1;
+  maxZooms = 3;
+  maxImages = 1;
+  derivativeCount = 1;
+
+  /// DEBUG
+  maxDerivatives=4; 
+  maxColorIterations=6;
+  saveImage=true;
+///
+
+  for (int i=0; i<maxDerivatives; i++) {
+    for (int j=0; j<maxColorIterations; j++) {
+      background(125);
+      // randomly determine if we want a 2 color gradient or a multicolor gradient
+      boolean isBasicGradient = (getRandomInt(1, 10) == 1);  // use a basic gradient ~10% of the time
+      maxPaletteColors = isBasicGradient ? 2 : getRandomInt(3, 50);
+      defaultBlur = getRandomFloat(3.0, 15.0);
+      setTintOpacity();
+      bImg = new BaseImage(imageList[i]);
+      dg.setLayer1Name(imageList[i]);
+      dg.setBaseImage(bImg);
+      dg.setAllPalettes(maxPaletteColors);
+      dg.generatePaletteAndGradient();
+      dg.setColorIteration(j+1);
+      dg.setZoomLevel(playZoomLevel);
+      dg.setGradient();
+      dg.mapColors(playZoomLevel);
+    }
+  }
 }
 
 void generate2LayerImages() {
   Logger.info("generate2LayerImages");
-  blendLoop();
+
+  setBlendOptions();
+  /// DEBUG
+  maxDerivatives=2; 
+  maxColorIterations=3;
+  saveImage=true;
+///
+  
+
+  //blendLoop();
 }
 
 
@@ -339,6 +385,7 @@ void blend() {
   try {
     setBlendOptions();
     saveMetaData = true;
+    saveImage = true;
     derivativeCount = 1;
     int ndx1 = getRandomInt(0, maxDerivatives);
     BaseImage b1 = new BaseImage(imageList[ndx1]);
@@ -574,12 +621,12 @@ void keyPressed() {
 }
 
 void setTintOpacity() {
-  if (playOpacityDefault) {
-    playTintOpacity = defaultTintOpacity;
-  } else {
+  //if (playOpacityDefault) {
+  //  playTintOpacity = defaultTintOpacity;
+  //} else {
     playTintOpacity[0] = getRandomInt(0, 64);
     playTintOpacity[1] = getRandomInt(100, 255);
-  }
+  //}
   dg.bImg.setTintOpacity(0, playTintOpacity[0]);
   dg.bImg.setTintOpacity(1, playTintOpacity[1]);
   Logger.finer("Tint Levels: " + playTintOpacity[0]+ " " + playTintOpacity[1]);
