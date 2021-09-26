@@ -29,6 +29,7 @@ class DerivativeGenerator {
   String csvOutputName = "temp-metadata.csv";
   String layer1Name = "";
   String layer2Name = "";
+  String designType = "Mutation";
   String uniquePrefix = "";
   color[][] allGradients = new color[maxColorIterations][width];
   int[][] allPalettes = new int [maxColorIterations][maxPaletteColors];
@@ -87,6 +88,10 @@ class DerivativeGenerator {
 
   void setLayer2Name(String str) {
     layer2Name = str;
+  }
+
+  void setDesignType(String str) {
+    designType = str;
   }
 
   void setBaseImage(BaseImage img) {
@@ -485,6 +490,7 @@ class DerivativeGenerator {
       imageMetaData.put("ZoomY", "" + zoomY);
       imageMetaData.put("Layers", "" + layers);
       imageMetaData.put("GradientColorType", (maxPaletteColors==2 ? "Basic" : "Multicolor"));
+      imageMetaData.put("DesignType", designType);
       if (saveMetaData) {
         saveJSON(outputFolder + "/" + actionPrefix + getUniquePrefix() + getOutFileName(suffix), suffix);
       }
@@ -545,6 +551,7 @@ class DerivativeGenerator {
       json.setString("ZoomY", imageMetaData.get("ZoomY"));
       json.setString("Layers", imageMetaData.get("Layers"));
       json.setString("GradientColorType", imageMetaData.get("GradientColorType"));
+      json.setString("DesignType", imageMetaData.get("DesignType"));
       saveJSONObject(json, outFileName);
     }
     catch (Exception e) {

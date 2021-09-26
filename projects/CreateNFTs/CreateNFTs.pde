@@ -247,7 +247,7 @@ void createNFTs() {
 void generateCollection() {
   try {
     noLoop();
-    //generateOriginalImages();
+    generateOriginalImages();
     generate1LayerImages();
     //generate2LayerImages();
   }
@@ -274,6 +274,7 @@ void generateOriginalImages(int ndx) {
   saveImage=false;
   bImg = new BaseImage(imageList[ndx]);
   dg.setLayer1Name(imageList[ndx]);
+  dg.setDesignType((ndx==0) ? "original" : "derivative");
   dg.setBaseImage(bImg);
   dg.zoom(bImg.getColorImg(), zoomLevel);
   String suffix = "-orig";
@@ -286,7 +287,7 @@ void generateOriginalImages(int ndx) {
 }
 
 void generate1LayerImages() {
-  Logger.info("generate1LayerImages");
+  Logger.fine("generate1LayerImages");
   saveGradientImage=false;
   saveMetaData=true;
   saveImage=false;
