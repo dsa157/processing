@@ -1,4 +1,0 @@
-#!/bin/bash
-
-processing-java --sketch=/Users/dsa157/Documents/Processing/projects/CreateNFTs --output=/Users/dsa157/Documents/Processing/projects/out1 --force --run -Dmode=play -DimageList=remote.txt
-

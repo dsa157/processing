@@ -1,6 +1,13 @@
 const { exec } = require("child_process");
 
-var cmd = "processing-java --sketch=/Users/dsa157/Documents/Processing/projects/CreateNFTs --output=/Users/dsa157/Documents/Processing/projects/out1 --force --run -Dmode=create -DimageList=remote.txt -DlogLevel=info -Dhash=abcdef21572157";
+var myArgs = process.argv.slice(2);
+var myOutFile = myArgs[0];
+var myHash = myArgs[1];
+//console.log('outFile: ', myArgs[0]);
+//console.log('hash: ', myArgs[1]);
+
+
+var cmd = `processing-java --sketch=/Users/dsa157/Documents/Processing/projects/CreateNFTs --output=/Users/dsa157/Documents/Processing/projects/out1 --force --run -DoutputFileName=${myOutFile} -Dhash=${myHash} `;
 
 exec(cmd, (error, stdout, stderr) => {
     if (error) {
