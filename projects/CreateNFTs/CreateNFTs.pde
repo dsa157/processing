@@ -145,8 +145,8 @@ void createNFT() {
     generate1LayerImage(i-1, 0);
   } else {
     int i = getRandomInt(1, maxDerivatives);
-    BaseImage b1 = new BaseImage(imageList[i]);
-    dg.setLayer1Name(imageList[i]);
+    BaseImage b1 = new BaseImage(imageList[i-1]);
+    dg.setLayer1Name(imageList[i-1]);
     generate2LayerImage(b1, i-1, 0);
   }
   done();
