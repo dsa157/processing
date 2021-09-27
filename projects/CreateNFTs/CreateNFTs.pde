@@ -11,7 +11,6 @@ import java.net.URI;
 //--------------------------------------
 
 // -- app global variables --
-int imageWidth, imageHeight;
 int currentDerivative=0;
 int currentZoom=0;
 String imageList[] = {};
@@ -25,6 +24,8 @@ int click=1;
 HashMap<String, String> params = new HashMap<String, String>();
 int zoomX = 0;
 int zoomY = 0;
+int imageWidth=800;
+int imageHeight=600;
 
 // -- image configuration default variables --
 int maxDerivatives = 20;
@@ -90,7 +91,6 @@ public int getRandomInt(int min, int max) {
 
 void setup() {
   try {
-    processArguments();
     init();
     prng = new Random();     
     setRandSeed();
@@ -106,18 +106,16 @@ void setup() {
 }
 
 void settings() {
-  size(1000, 750);
+  processArguments();
+  size(imageWidth, imageHeight);
 }
 
 void init() {
-  settings();
-  imageWidth = width;
-  imageHeight = height;
   imageMode(CENTER);
   colorMode(RGB, 255, 255, 255);
   background(255);
-  println("hash=" + hash);
-  println("outputFileName=" + outputFileName);
+  logDebug("hash=" + hash);
+  logDebug("outputFileName=" + outputFileName);
 }
 
 void draw() {
@@ -401,6 +399,7 @@ void processArguments() {
   }
   if (params.containsKey("outputFileName")) {
     outputFileName = params.get("outputFileName");
+    logDebug("outputFileName from params=" + outputFileName);
   }
   if (params.containsKey("maxDerivatives")) {
     maxDerivatives = int(params.get("maxDerivatives"));
@@ -410,6 +409,12 @@ void processArguments() {
   }
   if (params.containsKey("maxLayer2Combinations")) {
     maxLayer2Combinations = int(params.get("maxLayer2Combinations"));
+  }
+  if (params.containsKey("imageWidth")) {
+    imageWidth = int(params.get("imageWidth"));
+  }
+  if (params.containsKey("imageHeight")) {
+    imageHeight = int(params.get("imageHeight"));
   }
 
 
@@ -438,7 +443,11 @@ String[] validateAndLoadFileParam(String paramName) {
 }
 
 void log(String msg) {
-  println(msg + timeStamp());
+  println(msg + " - " + timeStamp());
+}
+
+void logDebug(String msg) {
+  println("DEBUG: " + msg + " - " +  timeStamp());
 }
 
 void fatalError(String msg) {
@@ -476,7 +485,6 @@ class BaseImage {
     if (img == null) {
       return;
     }
-    //outFilePrefix = "" + (i+1) + "-" + (j+1);
     setColorImg(img);
     setGrayImg(img);
   }
@@ -946,6 +954,9 @@ class DerivativeGenerator {
       String s = hex(myPalette[i]);
       retString += s + ";";
     }
+    if (retString == "") {
+      return retString;
+    }
     retString = retString.substring(0, retString.length()-1);  // chop off the last ";"  
     //retString += "}";
     return retString;
@@ -1084,7 +1095,7 @@ class PaletteManager {
       dg.setPaletteName(name);
     }
     catch(Exception e) {
-      e.printStackTrace();
+      fatalException(e);
     }
     return curatedPalettes.get(name);
   }
