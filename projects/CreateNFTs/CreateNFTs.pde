@@ -106,6 +106,7 @@ void setup() {
 }
 
 void settings() {
+  println("");
   processArguments();
   size(imageWidth, imageHeight);
 }
@@ -114,8 +115,8 @@ void init() {
   imageMode(CENTER);
   colorMode(RGB, 255, 255, 255);
   background(255);
-  logDebug("hash=" + hash);
-  logDebug("outputFileName=" + outputFileName);
+  log("hash=" + hash);
+  log("outputFileName=" + outputFileName);
 }
 
 void draw() {
@@ -399,7 +400,6 @@ void processArguments() {
   }
   if (params.containsKey("outputFileName")) {
     outputFileName = params.get("outputFileName");
-    logDebug("outputFileName from params=" + outputFileName);
   }
   if (params.containsKey("maxDerivatives")) {
     maxDerivatives = int(params.get("maxDerivatives"));
