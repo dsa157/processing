@@ -73,7 +73,7 @@ boolean recordedCVSMetaData = false;
 // -- PRNG variables --
 SecureRandom sr;
 String hash = ""; 
-String defaultHash = "dsa157+gen.art=awesome" + String.valueOf(System.currentTimeMillis());
+String defaultHash = "dsa157+gen.art=awesome";
 
 // -- play mode variables --
 int playImageNum=1;
@@ -100,6 +100,7 @@ void setRandSeed() {
   if (hash == "") {
     hash = defaultHash;
   }
+println("hash=" + hash);
   sr.setSeed(hash.getBytes());
 }
 
@@ -118,7 +119,6 @@ public int getRandomInt(int min, int max) {
 
 PGraphics helpTextLayer;
 PImage helpImage;
-;
 PFont font;
 boolean showHelpTextLayer = false;
 
@@ -129,13 +129,14 @@ boolean showHelpTextLayer = false;
 void setup() {
   try {
     Logger.info("setup");
+
+    init();
+//    if (scriptAction == NFTAction.CLI) {
+      processArguments();
+//    }
     sr = SecureRandom.getInstance("SHA1PRNG");     
     setRandSeed();
 
-    init();
-    if (scriptAction == NFTAction.CLI) {
-      processArguments();
-    }
     if (scriptAction == NFTAction.CREATE1) {
       generatePaletteAndGradients();
     }
