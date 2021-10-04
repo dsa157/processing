@@ -1,13 +1,13 @@
 #!/opt/local/bin/perl
 
-my $max=15;
+my $max=20;
 for( $i=1; $i<=$max; $i++ ) {
   $fn = "dsa157_" . $i;
-  $range = 100;
+  $range = 1000;
   $rand1 = int(rand($range));
 
   $seed = "abcdef21572158" . $rand1;
-  print("Processing $fn $i/$max\n");
+  print("Processing $fn $seed $i/$max\n");
   `node create1.js $fn $seed`;
 }
 

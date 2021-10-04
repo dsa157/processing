@@ -1,4 +1,4 @@
-import java.util.Date; //<>// //<>//
+import java.util.Date;  //<>// //<>// //<>// //<>// //<>// //<>// //<>// //<>// //<>// //<>//
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Map;
@@ -24,12 +24,12 @@ int click=1;
 HashMap<String, String> params = new HashMap<String, String>();
 int zoomX = 0;
 int zoomY = 0;
-int imageWidth=800;
-int imageHeight=600;
+int imageWidth=1000;
+int imageHeight=750;
 
 // -- image configuration default variables --
-int maxDerivatives = 20;
-int maxColorIterations = 14;
+int maxDerivatives = 25;
+int maxColorIterations = 11;
 int maxZooms = 3;
 int maxPaletteColors = 5;    
 int defaultMinPaletteColors = 3;
@@ -96,9 +96,8 @@ void setup() {
     setRandSeed();
     bgLayer = createGraphics(width, height);
     bImg = new BaseImage("");
-    dg = new DerivativeGenerator(bImg, GradientSliceType.EVEN);
+    dg = new DerivativeGenerator(bImg, GradientType.SMOOTH);
     paletteManager = new PaletteManager();
-    generatePaletteAndGradients();
   }
   catch (Exception e) {
     fatalException(e);
@@ -123,16 +122,13 @@ void draw() {
   createNFT();
 }
 
-void generatePaletteAndGradients() {
-  for (int i=1; i<=maxColorIterations; i++) {
-    dg.setColorIteration(i);
-    dg.generatePaletteAndGradient();
-  }
-  for (int i=1; i<=maxColorIterations; i++) {
-    dg.setColorIteration(i);
-    //dg.setGradient();
-  }
+void generatePaletteAndGradient(int i) {
+  int gradientType = (getRandomInt(0, 1));
+  dg.setColorIteration(i);
+  dg.setGradientType(gradientType);
+  dg.generatePaletteAndGradient();
 }
+
 
 void createNFT() {
   noLoop();
@@ -140,76 +136,16 @@ void createNFT() {
   boolean generate1Layer = false;
   generate1Layer = (getRandomInt(1, 2) == 1);
   if (generate1Layer) {
-    int i = getRandomInt(1, maxDerivatives);
-    generate1LayerImage(i-1, 0);
+    int i = getRandomInt(0, maxDerivatives-1);
+    generate1LayerImage(i, 0);
   } else {
-    int i = getRandomInt(1, maxDerivatives);
-    BaseImage b1 = new BaseImage(imageList[i-1]);
-    dg.setLayer1Name(imageList[i-1]);
-    generate2LayerImage(b1, i-1, 0);
+    int i = getRandomInt(0, maxDerivatives-1);
+    BaseImage b1 = new BaseImage(imageList[i]);
+    dg.setLayer1Name(imageList[i]);
+    int j = getRandomInt(0, maxDerivatives-1);
+    generate2LayerImage(b1, i, j);
   }
   done();
-}
-
-//void generateCollection() {
-//  try {
-//    noLoop();
-//    generateOriginalImages();
-//    generate1LayerImages();
-//    generate2LayerImages();
-//  }
-//  catch(Exception e) {
-//    fatalException(e);
-//  }
-//  done();
-//}
-
-//void generateOriginalImages() {
-//  generateOriginalImages(0);  // original and gray
-//  for (int i=1; i<maxDerivatives; i++) {
-//    generateOriginalImages(i);  // each original derivative and gray
-//  }
-//}
-
-//void generateOriginalImages(int ndx) {
-//  maxImages = 1;
-//  derivativeCount = 1;
-//  saveImage=true;
-//  saveGradientImage=false;
-//  saveMetaData=true;
-//  saveImage=false;
-//  bImg = new BaseImage(imageList[ndx]);
-//  dg.setLayer1Name(imageList[ndx]);
-//  dg.setDesignType((ndx==0) ? "original" : "derivative");
-//  dg.setBaseImage(bImg);
-//  dg.zoom(bImg.getColorImg(), zoomLevel);
-//  String suffix = "-orig";
-//  dg.saveImage(suffix);
-//  dg.saveImageMetaData(suffix);
-//  dg.zoom(bImg.getGrayImg(), zoomLevel);
-//  suffix = "-gray";
-//  dg.saveImage(suffix);
-//  dg.saveImageMetaData(suffix);
-//}
-
-void generate1LayerImages() {
-  saveGradientImage=false;
-  saveMetaData=true;
-  saveImage=false;
-  maxZooms = 3;
-  maxImages = 1;
-  derivativeCount = 1;
-
-  /// DEBUG
-  maxDerivatives=4; 
-  maxColorIterations=4;
-  ///
-
-  for (int i=0; i<maxDerivatives; i++) {
-    for (int j=0; j<maxColorIterations; j++) {
-      generate1LayerImage(i, j);
-    }
-  }
 }
 
 void generate1LayerImage(int i, int j) {
@@ -223,22 +159,7 @@ void generate1LayerImage(int i, int j) {
   dg.generatePaletteAndGradient();
   dg.setColorIteration(j+1);
   dg.setZoomLevel(defaultZoomLevel);
-  //dg.setGradient();
   dg.mapColors(defaultZoomLevel);
-}
-
-void generate2LayerImages() {
-  setBlendOptions();
-  for (int i=0; i<maxDerivatives; i++) {
-    BaseImage b1 = new BaseImage(imageList[i]);
-    dg.setLayer1Name(imageList[i]);
-    for (int j=0; j<maxLayer2Combinations; j++) {
-      if (i==j) {
-        continue; // don't blend the design with itself
-      }
-      generate2LayerImage(b1, i, j);
-    }
-  }
 }
 
 void generate2LayerImage(BaseImage b1, int i, int j) {
@@ -330,7 +251,7 @@ PImage blend2(BaseImage bi1, BaseImage bi2, int i, int j) {
 }
 
 void setTintOpacity() {
-  dg.bImg.setTintOpacity(0, getRandomInt(0, 64));
+  dg.bImg.setTintOpacity(0, getRandomInt(0, 255));
   dg.bImg.setTintOpacity(1, getRandomInt(100, 255));
 }
 
@@ -658,6 +579,10 @@ class DerivativeGenerator {
     this.paletteName = str;
   }
 
+  String getPaletteName() {
+    return this.paletteName;
+  }
+
   void setZoomLevel(int zl) {
     zoomLevel = zl;
   }
@@ -709,21 +634,26 @@ class DerivativeGenerator {
       int cntAttempts=1;
       while (!usedPalette) {
         curatedPaletteString = paletteManager.getRandomPalette();
-        // check to see if we have used this palette on an image in this layer set using this base layer 
-        String key =  paletteName + "-" + layer1Name + "-" + layer2Name;
-        if (!paletteColorUsage.containsKey(key) || paletteColorUsage.get(key) != true) {
-          paletteColorUsage.put(key, true);
+        if (curatedPaletteString == null) { //<>//
+          //generateRandomPalette(); //<>//
           usedPalette=true;
         } else {
-          // reste and try again
-          curatedPaletteString = "";
-        }
-        if (cntAttempts++ > maxAttempts) {
-          // make sure we don't infinite loop
-          usedPalette=true;
+          // check to see if we have used this palette on an image in this layer set using this base layer 
+          String key =  paletteName + "-" + layer1Name + "-" + layer2Name;
+          if (!paletteColorUsage.containsKey(key) || paletteColorUsage.get(key) != true) {
+            paletteColorUsage.put(key, true);
+            usedPalette=true;
+          } else {
+            // reset and try again
+            curatedPaletteString = "";
+          }
+          if (!usedPalette && (cntAttempts++ > maxAttempts)) {
+            // make sure we don't infinite loop
+            usedPalette=true;
+          }
         }
       }
-      if (curatedPaletteString != "") {
+      if (curatedPaletteString != "" && curatedPaletteString != null) {
         generatePalette(curatedPaletteString);
       } else {
         generateRandomPalette();
@@ -735,20 +665,62 @@ class DerivativeGenerator {
   }
 
   void generateGradient() {
+    if (gradientType == GradientType.DISCRETE) {
+      generateDiscreteGradient();
+    } else {
+      generateSmoothGradient();
+    }
+    if (saveGradientImage) {
+      tint(255, 255);
+      String suffix = "-gradient";
+      saveImage(suffix);
+      background(255);
+    }
+  }
+
+  void generateSmoothGradient() {
     int ndx = 0;
     int prev = 0;
     int sliceWidth = 0;
-    if (gradientType == GradientType.DISCRETE) {
-      // for discrete gradients, we want the same number of slices as palette size
-      sliceWidth = int(round(width/(paletteSize * 1.0)));  // even width slices
-    } else {
-      //for smooth gradients, one less, since we need to end on the last color
-      sliceWidth = int(round(width/(paletteSize-1 * 1.0)));  // even width slices
+    //for smooth gradients, one less, since we need to end on the last color
+    sliceWidth = int(round(width/(paletteSize-1 * 1.0)));  // even width slices //<>//
+    for (int i=0; i<paletteSize-1; i++) { //<>//
+      from = myPalette[i];
+      if (i == paletteSize-2) {
+        to = myPalette[paletteSize-1];
+      } else {
+        to = myPalette[i+1];
+      }
+      if (gradientSliceType == GradientSliceType.RAND) {
+        sliceWidth = getRandomInt(ndx, width-1);  // random width slices
+      }
+      if (ndx > 0) {
+        prev = ndx;
+      }
+      ndx = ndx + sliceWidth;
+      if (ndx > width) {
+        ndx = width;
+      } else {
+        // if this is our last slice and the end of our segment is less than width, pad it out
+        if (i == paletteSize-2) {
+          ndx = width;
+        }
+      }      
+      lerpColors(prev, ndx, from, to);
     }
-    for (int i=0; i<paletteSize-1; i++) {
+  }
+
+  void generateDiscreteGradient() {
+   int ndx = 0;
+    int prev = 0;
+    int sliceWidth = 0;
+    // for discrete gradients, we want the same number of slices as palette size
+    sliceWidth = int(round(width/(paletteSize * 1.0)));  // even width slices //<>// //<>//
+    for (int i=0; i<=paletteSize-1; i++) { //<>// //<>//
       from = myPalette[i];
       if (i == paletteSize-1) {
-        to = myPalette[paletteSize-1];
+        from = myPalette[paletteSize-1];
+        to = from;
       } else {
         to = myPalette[i+1];
       }
@@ -767,22 +739,12 @@ class DerivativeGenerator {
           ndx = width;
         }
       }      
-      if (gradientType == GradientType.DISCRETE) {
-        color newColor = myPalette[i];
-        for (int j=prev; j<ndx; j++) {
-          line(j, 0, j, height);
-          stroke(newColor);
-          gradValues[j]=newColor;
-        }
-      } else {
-        lerpColors(prev, ndx, from, to);
+      color newColor = myPalette[i];
+      for (int j=prev; j<ndx; j++) {
+        line(j, 0, j, height);
+        stroke(newColor);
+        gradValues[j]=newColor;
       }
-    }
-    if (saveGradientImage) {
-      tint(255, 255);
-      String suffix = "-gradient";
-      saveImage(suffix);
-      background(255);
     }
   }
 
@@ -818,18 +780,24 @@ class DerivativeGenerator {
   }
 
   void generateRandomPalette() {
-    int[] gradPalette = new int[maxPaletteColors];
-    //gradPalette[0] = color(0);
-    for (int i=0; i<maxPaletteColors; i++) {
-      float r = getRandomInt(0, 255); //getRandomInt(128, 255);
-      float g = getRandomInt(0, 255); //getRandomInt(128, 255);
-      float b = getRandomInt(0, 255); //getRandomInt(128, 255);
-      color c = color(r, g, b);
-      gradPalette[i] = c;
+    try {
+      int[] gradPalette = new int[maxPaletteColors];
+      //gradPalette[0] = color(0);
+      for (int i=0; i<maxPaletteColors; i++) {
+        float r = getRandomInt(0, 255); //getRandomInt(128, 255);
+        float g = getRandomInt(0, 255); //getRandomInt(128, 255);
+        float b = getRandomInt(0, 255); //getRandomInt(128, 255);
+        color c = color(r, g, b); //<>//
+        gradPalette[i] = c; //<>//
+      }
+      myPalette = gradPalette;
+      paletteSize = myPalette.length;
+      paletteName = "Random";
+      dg.setPaletteName(paletteName);
     }
-    myPalette = gradPalette;
-    paletteSize = myPalette.length;
-    paletteName = "Random";
+    catch(Exception e) {
+      fatalException(e);
+    }
   }
 
   void mapColors() {
@@ -1007,15 +975,15 @@ class DerivativeGenerator {
       imageMetaData.put("Palette", savePaletteAsHexStrings(suffix));
       imageMetaData.put("Blur", "" + bImg.getBlurValue());
       imageMetaData.put("Tint", "" + bImg.getTintOpacity(0));
-      imageMetaData.put("GradientType", "" + gradientType);
-      imageMetaData.put("GradientSliceType", "" + gradientSliceType);
+      imageMetaData.put("GradientType", (gradientType == GradientType.SMOOTH) ? "Smooth" : "Discrete");
+      imageMetaData.put("GradientSliceType", (gradientSliceType == GradientSliceType.EVEN) ? "Even" : "Random");
       imageMetaData.put("ZoomX", "" + zoomX);
       imageMetaData.put("ZoomY", "" + zoomY);
       imageMetaData.put("Layers", "" + layers);
-      imageMetaData.put("GradientColorType", (maxPaletteColors==2 ? "Basic" : "Multicolor"));
+      imageMetaData.put("GradientColorType", (paletteSize==2 ? "Basic" : "Multicolor"));
       imageMetaData.put("DesignType", designType);
       imageMetaData.put("PaletteName", paletteName);
-      imageMetaData.put("ColorType", (bImg.getTintOpacity(0) < 50) ? "Vibrant" : "Muted");
+      imageMetaData.put("ColorType", (bImg.getTintOpacity(0) < 64) ? "Vibrant" : (bImg.getTintOpacity(0) > 160) ? "Muted" : "Normal");
       if (saveMetaData) {
         saveJSON(outputFolder + "/" + getOutFileName(suffix));
       }
@@ -1060,8 +1028,8 @@ class DerivativeGenerator {
       //json.getString("Palette");
       bImg.setBlurValue(float(json.getString("Blur")));
       bImg.setTintOpacity(0, int("Tint"));
-      this.gradientType = int(json.getString("GradientType"));
-      this.gradientSliceType = int(json.getString("GradientSliceType"));
+      this.gradientType = json.getString("GradientType") == "Smooth" ? GradientType.SMOOTH : GradientType.DISCRETE;
+      this.gradientSliceType = json.getString("GradientSliceType") == "Even" ? GradientSliceType.EVEN : GradientSliceType.RAND;
       zoomX = int(json.getString("ZoomX"));
       zoomX = int(json.getString("ZoomY"));
       this.setLayers(int(json.getString("Layers")));
@@ -1088,8 +1056,8 @@ class PaletteManager {
   }
 
   String getRandomPalette() {
-    String name = "";
-    try {
+    String name = ""; //<>//
+    try { //<>//
       int num = getRandomInt(1, maxCuratedPalettes);
       name = "Palette" + num;
       dg.setPaletteName(name);
@@ -1107,6 +1075,7 @@ class PaletteManager {
 
   void init() {
     String[] paletteList = loadStrings(params.get("paletteList"));
+    maxCuratedPalettes = paletteList.length; 
     for (int i=0; i<paletteList.length; i++) {
       String paletteRec=paletteList[i];
       //println(paletteRec);
