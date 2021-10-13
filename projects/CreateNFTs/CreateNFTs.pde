@@ -1,4 +1,4 @@
-import java.util.Date;       //<>// //<>// //<>// //<>// //<>//
+import java.util.Date;       //<>// //<>// //<>// //<>// //<>// //<>// //<>// //<>// //<>// //<>// //<>// //<>// //<>// //<>// //<>// //<>// //<>//
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Map;
@@ -31,9 +31,9 @@ int imageHeight=750;
 int maxDerivatives = 50;
 int maxColorIterations = 5;
 int maxZooms = 2;
-int maxPaletteColors = 20;    
+int maxPaletteColors = 30;    
 int defaultMinPaletteColors = 3;
-int defaultMaxPaletteColors = 50;
+int defaultMaxPaletteColors = 15;
 float defaultBlur = 10.0;
 float defaultMinBlur = 3.0;
 float defaultMaxBlur = 15.0;
@@ -41,7 +41,7 @@ int defaultZoomLevel = 1;
 
 int zoomLevel=1;
 boolean useOpacityDefault = false;
-int[] defaultTintOpacity = {128, 150}; // blurred image at 100/255 (~40%), color overlay at 128/255 (~50%)
+int[] defaultTintOpacity = {30, 150}; 
 int maxImages = maxDerivatives * maxColorIterations * maxZooms;
 int imageNdx = 0;
 int derivativeCount = 1;
@@ -84,7 +84,7 @@ public float getRandomFloat(float min, float max) {
 
 public int getRandomInt(int min, int max) {
   max=max+1; // increment here so that code is more readable for the range we want to be inclusive
-  return (int) prng.nextInt((max - min) + min);
+  return (int) prng.nextInt((max - min)) + min;
 }
 
 //-----------------------------------------------
@@ -94,9 +94,13 @@ void setup() {
     init();
     prng = new Random();     
     setRandSeed();
+
+    //zoomLevel=getRandomInt(1, 2);
     bgLayer = createGraphics(width, height);
     bImg = new BaseImage("");
-    dg = new DerivativeGenerator(bImg, GradientType.SMOOTH);
+    int gradientType = (getRandomInt(0, 1));
+    //int gradientType = GradientType.DISCRETE;
+    dg = new DerivativeGenerator(bImg, gradientType);
     paletteManager = new PaletteManager();
   }
   catch (Exception e) {
@@ -105,17 +109,27 @@ void setup() {
 }
 
 void settings() {
-  println("");
-  processArguments();
-  size(imageWidth, imageHeight);
+  try {
+    println("");
+    processArguments();
+    size(imageWidth, imageHeight);
+  }
+  catch (Exception e) {
+    fatalException(e);
+  }
 }
 
 void init() {
-  imageMode(CENTER);
-  colorMode(RGB, 255, 255, 255);
-  background(255);
-  log("hash=" + hash);
-  log("outputFileName=" + outputFileName);
+  try {
+    imageMode(CENTER);
+    colorMode(RGB, 255, 255, 255);
+    background(255);
+    log("hash=" + hash);
+    log("outputFileName=" + outputFileName);
+  }
+  catch (Exception e) {
+    fatalException(e);
+  }
 }
 
 void draw() {
@@ -128,9 +142,7 @@ void draw() {
 }
 
 void generatePaletteAndGradient(int i) {
-  int gradientType = (getRandomInt(0, 1));
   dg.setColorIteration(i);
-  dg.setGradientType(gradientType);
   dg.generatePaletteAndGradient();
 }
 
@@ -139,15 +151,22 @@ void createNFT() {
   noLoop();
   // this will randomly determine if it should create a layer1 or layer2 design
   boolean generate1Layer = false;
-  generate1Layer = (getRandomInt(1, 2) == 1);
+  int coinFlip = getRandomInt(1, 2);
+  generate1Layer = (coinFlip == 1);
+  int i = getRandomInt(0, maxDerivatives-1);
   if (generate1Layer) {
-    int i = getRandomInt(0, maxDerivatives-1);
     generate1LayerImage(i, 0);
   } else {
-    int i = getRandomInt(0, maxDerivatives-1);
     BaseImage b1 = new BaseImage(imageList[i]);
     dg.setLayer1Name(imageList[i]);
-    int j = getRandomInt(0, maxDerivatives-1);
+    int j = i;
+    while (i == j) {
+      j = getRandomInt(0, (maxDerivatives/2)-1);  // start with the bottom half
+      if (i >= (maxDerivatives/2)) {
+        j = j + (maxDerivatives/2);  // make sure we only blend 1-25 or 26-50 with each other, or it looks ugly
+      }
+    }
+    println("Layer2 images: ", i+1, j+1);
     generate2LayerImage(b1, i, j);
   }
   done();
@@ -159,13 +178,16 @@ void generate1LayerImage(int i, int j) {
     maxPaletteColors = getNumPaletteColors();
     defaultBlur = getRandomFloat(defaultMinBlur, defaultMaxBlur);
     setTintOpacity();
+    if (i>=imageList.length) {  // just make sure...
+      i=imageList.length-1;
+    }
     bImg = new BaseImage(imageList[i]);
     dg.setLayer1Name(imageList[i]);
     dg.setBaseImage(bImg);
     dg.generatePaletteAndGradient();
     dg.setColorIteration(j+1);
-    dg.setZoomLevel(defaultZoomLevel);
-    dg.mapColors(defaultZoomLevel);
+    dg.setZoomLevel(zoomLevel);
+    dg.mapColors(zoomLevel);
   }
   catch(Exception e) {
     fatalException(e);
@@ -174,7 +196,7 @@ void generate1LayerImage(int i, int j) {
 
 void generate2LayerImage(BaseImage b1, int i, int j) {
   try {
-    blend (b1, i, j);
+    blend(b1, i, j);
   }
   catch(Exception e) {
     fatalException(e);
@@ -184,7 +206,8 @@ void generate2LayerImage(BaseImage b1, int i, int j) {
 int getNumPaletteColors() {
   // randomly determine if we want a 2 color gradient or a multicolor gradient
   boolean isBasicGradient = (getRandomInt(1, 5) == 1);  // use a basic gradient ~20% of the time
-  return isBasicGradient ? 2 : getRandomInt(defaultMinPaletteColors, defaultMaxPaletteColors);
+  int numColors = isBasicGradient ? 2 : getRandomInt(defaultMinPaletteColors, defaultMaxPaletteColors);
+  return numColors;
 }
 
 void blend() {
@@ -219,6 +242,13 @@ void blend(BaseImage b1, int ndx1, int ndx2) {
   try {
     //int j2 = getRandomInt(0, maxDerivatives);
     //int ndx2 = j;  // change to j2 if we want more random...
+    if (ndx1>=imageList.length) {  // just make sure...
+      ndx1=imageList.length-1;
+    }
+    if (ndx2>=imageList.length) { // just make sure...
+      ndx2=imageList.length-1;
+    }
+
     BaseImage b2 = new BaseImage(imageList[ndx2]);
     dg.setLayer2Name(imageList[ndx2]);
     dg.setLayers(2);
@@ -229,9 +259,9 @@ void blend(BaseImage b1, int ndx1, int ndx2) {
     defaultBlur = getRandomFloat(defaultMinBlur, defaultMaxBlur);
     dg.generatePaletteAndGradient();
     dg.setColorIteration(1);
-    dg.setZoomLevel(defaultZoomLevel);
+    dg.setZoomLevel(zoomLevel);
     setTintOpacity();
-    dg.mapColors(defaultZoomLevel);
+    dg.mapColors(zoomLevel);
   }
   catch (Exception e) {
     fatalException(e);
@@ -241,7 +271,7 @@ void blend(BaseImage b1, int ndx1, int ndx2) {
 PImage blend2(BaseImage bi1, BaseImage bi2, int i, int j) {
   try {
     bgLayer.beginDraw();
-    bgLayer.background(0, 0, 0, 150);
+    bgLayer.background(0, 0, 0, 255); //x 150);
     PImage tmp1 = bi1.getGrayImg().copy();
     PImage tmp2 = bi2.getGrayImg().copy();
     fill(255);
@@ -266,7 +296,7 @@ PImage blend2(BaseImage bi1, BaseImage bi2, int i, int j) {
 }
 
 void setTintOpacity() {
-  dg.bImg.setTintOpacity(0, getRandomInt(0, 255));
+  dg.bImg.setTintOpacity(0, getRandomInt(0, 50));
   dg.bImg.setTintOpacity(1, getRandomInt(100, 255));
 }
 
@@ -379,7 +409,9 @@ void fatalException(Exception e) {
   println("-------------");
   PrintWriter pw = createWriter("error.txt"); 
   //pw.println(e.getMessage());
-  e.printStackTrace(pw);
+  pw.println("hash=" + hash);
+  pw.println("outputFileName=" + outputFileName);
+  //e.printStackTrace(pw);
   pw.flush();
   pw.close();
   exit();
@@ -516,7 +548,7 @@ class DerivativeGenerator {
   color from; 
   color to; 
   BaseImage bImg;
-  int gradientType = GradientType.SMOOTH;
+  int gradientType = GradientType.DISCRETE;
   int gradientSliceType = GradientSliceType.EVEN;
   int[] myPalette;
   int paletteSize = 0;
@@ -583,6 +615,10 @@ class DerivativeGenerator {
     return this.paletteName;
   }
 
+  int getZoomLevel() {
+    return zoomLevel;
+  }
+
   void setZoomLevel(int zl) {
     zoomLevel = zl;
   }
@@ -624,8 +660,7 @@ class DerivativeGenerator {
     int percent = getRandomInt(1, 101);  // create ~ 30% curated vs 70% random palettes
     if (percent > 70) {
       generateUnusedCuratedPalette();
-    } 
-    else {
+    } else {
       generateRandomPalette();
     }
     generateGradient();
@@ -635,7 +670,7 @@ class DerivativeGenerator {
     try {
       String curatedPaletteString = "";
       boolean usedPalette = false;
-      int maxAttempts=paletteManager.maxCuratedPalettes * 2; //<>//
+      int maxAttempts=paletteManager.maxCuratedPalettes * 2;
       int cntAttempts=1;
       while (!usedPalette) {
         curatedPaletteString = paletteManager.getRandomPalette();
@@ -684,7 +719,7 @@ class DerivativeGenerator {
   }
 
   void generateSmoothGradient() {
-    int ndx = 0; //<>//
+    int ndx = 0;
     int prev = 0;
     int sliceWidth = 0;
     //for smooth gradients, one less, since we need to end on the last color
@@ -716,7 +751,7 @@ class DerivativeGenerator {
   }
 
   void generateDiscreteGradient() {
-    int ndx = 0; //<>// //<>//
+    int ndx = 0;
     int prev = 0;
     int sliceWidth = 0;
     // for discrete gradients, we want the same number of slices as palette size
@@ -788,7 +823,7 @@ class DerivativeGenerator {
     try {
       int[] gradPalette = new int[maxPaletteColors];
       //gradPalette[0] = color(0);
-      for (int i=0; i<maxPaletteColors; i++) { //<>//
+      for (int i=0; i<maxPaletteColors; i++) {
         float r = getRandomInt(0, 255); //getRandomInt(128, 255);
         float g = getRandomInt(0, 255); //getRandomInt(128, 255);
         float b = getRandomInt(0, 255); //getRandomInt(128, 255);
@@ -1057,7 +1092,7 @@ class PaletteManager {
   int maxCuratedPalettes=50;
 
   PaletteManager() {
-    init(); //<>//
+    init();
   }
 
   String getRandomPalette() {
