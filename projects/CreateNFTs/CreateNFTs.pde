@@ -154,6 +154,7 @@ void createNFT() {
   int coinFlip = getRandomInt(1, 2);
   generate1Layer = (coinFlip == 1);
   int i = getRandomInt(0, maxDerivatives-1);
+  imageNdx = i;
   if (generate1Layer) {
     generate1LayerImage(i, 0);
   } else {
@@ -411,7 +412,7 @@ void fatalException(Exception e) {
   //pw.println(e.getMessage());
   pw.println("hash=" + hash);
   pw.println("outputFileName=" + outputFileName);
-  //e.printStackTrace(pw);
+  e.printStackTrace(pw);
   pw.flush();
   pw.close();
   exit();
@@ -1013,7 +1014,8 @@ class DerivativeGenerator {
       imageMetaData.put("Zoom", "" + zoomLevel);
       imageMetaData.put("ColorIteration", "" + ci);
       imageMetaData.put("Palette", savePaletteAsHexStrings(suffix));
-      imageMetaData.put("Blur", "" + bImg.getBlurValue());
+      imageMetaData.put("BlurValue", "" + bImg.getBlurValue());
+      imageMetaData.put("Blur", "" + (bImg.getBlurValue() <= 5 ? "Low" : (bImg.getBlurValue() <= 10 ? "Med" : "High")));
       imageMetaData.put("Tint", "" + bImg.getTintOpacity(0));
       imageMetaData.put("GradientType", (gradientType == GradientType.SMOOTH) ? "Smooth" : "Discrete");
       imageMetaData.put("GradientSliceType", (gradientSliceType == GradientSliceType.EVEN) ? "Even" : "Random");
@@ -1023,6 +1025,7 @@ class DerivativeGenerator {
       imageMetaData.put("GradientColorType", (paletteSize==2 ? "Basic" : "Multicolor"));
       imageMetaData.put("DesignType", designType);
       imageMetaData.put("PaletteName", paletteName);
+      imageMetaData.put("RotatedLayer", imageNdx > 25 ? "True" : "False");
       imageMetaData.put("ColorType", (bImg.getTintOpacity(0) < 64) ? "Vibrant" : (bImg.getTintOpacity(0) > 160) ? "Muted" : "Normal");
       if (saveMetaData) {
         saveJSON(outputFolder + "/" + getOutFileName(suffix));
@@ -1042,6 +1045,7 @@ class DerivativeGenerator {
       json.setString("Zoom", imageMetaData.get("Zoom"));
       json.setString("ColorIteration", imageMetaData.get("ColorIteration"));
       json.setString("Palette", imageMetaData.get("Palette"));
+      json.setString("BlurValue", imageMetaData.get("BlurValue"));
       json.setString("Blur", imageMetaData.get("Blur"));
       json.setString("Tint", imageMetaData.get("Tint"));
       json.setString("GradientType", imageMetaData.get("GradientType"));
@@ -1052,6 +1056,7 @@ class DerivativeGenerator {
       json.setString("GradientColorType", imageMetaData.get("GradientColorType"));
       json.setString("DesignType", imageMetaData.get("DesignType"));
       json.setString("PaletteName", imageMetaData.get("PaletteName"));
+      json.setString("RotatedLayer", imageMetaData.get("RotatedLayer"));
       json.setString("ColorType", imageMetaData.get("ColorType"));
       saveJSONObject(json, outFileName);
     }
