@@ -13,17 +13,19 @@ float colorRadius = 100; // radius for color effect
 int colorFrames = 100; // number of frames the color lasts
 float stkWeight = 1;
 
+// Global variable for color inversion
+boolean invertColors = true;
+
 PVector[][] field;
 ArrayList<Particle> particles;
 
 void setup() {
   size(450, 800);
-  background(255);
   noiseSeed(seed);
   randomSeed(seed);
   field = new PVector[width][height];
   particles = new ArrayList<Particle>();
-  
+
   nextColorDelay = (int) random(minDelay, maxDelay);
 
   // Pre-calculate the flow field
@@ -39,13 +41,25 @@ void setup() {
   for (int i = 0; i < 5000; i++) {
     particles.add(new Particle(random(width), random(height)));
   }
+
+  // Set initial background and particle colors based on inversion
+  if (invertColors) {
+    background(0);
+  } else {
+    background(255);
+  }
 }
 
 void draw() {
-  fill(255, 15);
+  // Semi-transparent overlay for trails, inverted if needed
+  if (invertColors) {
+    fill(0, 15);
+  } else {
+    fill(255, 15);
+  }
   noStroke();
   rect(0, 0, width, height);
-  
+
   // Check for random color event
   if (millis() > lastColorChange + nextColorDelay) {
     for (int x = 0; x < numColorBursts; x++) {
@@ -54,7 +68,7 @@ void draw() {
     lastColorChange = millis();
     nextColorDelay = (int) random(minDelay, maxDelay);
   }
-  
+
   // Animate the flow field over time
   if (frameCount % 10 == 0) {
     for (int y = 0; y < height; y++) {
@@ -70,15 +84,16 @@ void draw() {
     p.update();
     p.display();
   }
+  saveFrame("frames/####.tif");
 }
 
 void applyRandomColorBurst() {
   colorMode(HSB, 255);
   int randomColor = color(random(255), 255, 255);
   colorMode(RGB, 255);
-  
+
   PVector randomPos = new PVector(random(width), random(height));
-  
+
   for (Particle p : particles) {
     float distToPos = dist(p.position.x, p.position.y, randomPos.x, randomPos.y);
     if (distToPos < colorRadius) {
@@ -96,7 +111,11 @@ class Particle {
   Particle(float x, float y) {
     position = new PVector(x, y);
     prevPosition = position.copy();
-    particleColor = color(0);
+    if (invertColors) {
+      particleColor = color(255); // White for black background
+    } else {
+      particleColor = color(0); // Black for white background
+    }
     colorFramesLeft = 0;
   }
 
@@ -107,7 +126,7 @@ class Particle {
       position.y = random(height);
       prevPosition = position.copy();
     }
-    
+
     // Store current position before updating
     prevPosition = position.copy();
 
@@ -119,7 +138,11 @@ class Particle {
     if (colorFramesLeft > 0) {
       colorFramesLeft--;
     } else {
-      particleColor = color(0); // Revert to black
+      if (invertColors) {
+        particleColor = color(255); // Revert to white
+      } else {
+        particleColor = color(0); // Revert to black
+      }
     }
   }
 
