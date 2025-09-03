@@ -2,8 +2,11 @@
 
 // Global seed for random number generation
 long seed = 12345;
+<<<<<<< HEAD
 int MAXFRAMES = 600;
 boolean SAVEFRAMES = true;
+=======
+>>>>>>> 5f7497efcf361ce64c1904216bd9f30d065cb491
 
 int cols = 5;
 int rows = 9;
@@ -75,6 +78,7 @@ void draw() {
   // Pulsating glow and line color
   glowHue = (glowHue + 0.5) % 360;
   lineHue = (lineHue + 1) % 360;
+<<<<<<< HEAD
   
   if (SAVEFRAMES) {
     saveFrame("frames/####.tif");
@@ -83,6 +87,8 @@ void draw() {
     }
   }
 
+=======
+>>>>>>> 5f7497efcf361ce64c1904216bd9f30d065cb491
 }
 
 void drawNewGrid() {
