@@ -1,9 +1,11 @@
-long seed = 12345;
+long seed = 157;
 float timeSpeed = 0.005;
 float noiseScale = 0.005;
 float stepSize = 1;
 
 boolean invertColors = true;
+int MAXFRAMES = 600;
+boolean SAVEFRAMES = true;
 
 PVector[][] field;
 ArrayList<Particle> particles;
@@ -57,6 +59,13 @@ void draw() {
   for (Particle p : particles) {
     p.update();
     p.display();
+  }
+  
+  if (SAVEFRAMES) {
+    saveFrame("frames/####.tif");
+    if (frameCount >= MAXFRAMES) {
+      noLoop();
+    }
   }
 }
 

@@ -1,0 +1,15 @@
+*.tif
+*.mp4
+*.zip
+*.png
+libraries
+data
+projects/out1
+projects/overlayImages
+Processing-Shader-Examples
+tools
+CreateNFTs
+modes
+projects/CreateNFTs_p5js/CreateNFTs_p5js.js
+projects/CreateNFTs_p5js/index.html
+projects/CreateNFTs_p5js/sketch.properties

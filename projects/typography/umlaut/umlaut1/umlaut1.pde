@@ -1,10 +1,12 @@
 PFont myFont;
 char[] letters = {'ë', 'ö', 'ä', 'ü'};
-String[] fonts = {"Impact", "Arial Black", "Helvetica"};
+String[] fonts = {"Impact", "Arial Black"};
 
 float defaultFontSize = 160;
 int xSpacing = 80;
 int ySpacing = 80;
+int MAXFRAMES = 600;
+boolean SAVEFRAMES = true;
 
 ArrayList<Character> characters;
 PGraphics pg;
@@ -53,6 +55,12 @@ void draw() {
   
   // Display the PGraphics buffer to the main window
   image(pg, 0, 0);
+  if (SAVEFRAMES) {
+    saveFrame();
+    if (frameCount >= MAXFRAMES) {
+      noLoop();
+    }
+  }
 }
 
 class Character {

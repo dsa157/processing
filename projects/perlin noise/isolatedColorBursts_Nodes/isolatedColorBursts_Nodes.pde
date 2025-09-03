@@ -29,6 +29,8 @@ float circleRadius = 6; // New variable for the circle size
 
 // Global variable for color inversion
 boolean invertColors = true;
+int MAXFRAMES = 600;
+boolean SAVEFRAMES = true;
 
 PVector[][] field;
 ArrayList<Particle> particles;
@@ -98,7 +100,14 @@ void draw() {
     p.update();
     p.display();
   }
-  // saveFrame("frames/####.tif");
+
+  if (SAVEFRAMES) {
+    saveFrame("frames/####.tif");
+    if (frameCount >= MAXFRAMES) {
+      noLoop();
+    }
+  }
+
 }
 
 void applyRandomColorBurst() {
