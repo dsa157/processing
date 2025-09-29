@@ -1,7 +1,11 @@
 long seed = 12345;
 float timeSpeed = 0.0005;
-float noiseScale = 0.005;
+float noiseScale = 0.007;
 float stepSize = 1;
+
+final int MAX_FRAMES = 900;
+final boolean SAVE_FRAMES = true;
+final int ANIMATION_SPEED = 60;
 
 boolean invertColors = true;
 
@@ -58,7 +62,13 @@ void draw() {
     p.update();
     p.display();
   }
-  saveFrame();
+  if (SAVE_FRAMES) {
+    if (frameCount <= MAX_FRAMES) {
+      saveFrame("frames/####.tif");
+    } else {
+      noLoop();
+    }
+  }
 }
 
 class Particle {
