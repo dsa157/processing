@@ -16,9 +16,12 @@ final boolean SAVE_FRAMES = true; // Save frames to disk
 
 // Lissajous & Particle Parameters
 final float PARTICLE_SIZE = 10.0; // Size of the tracing particle
-final float CURVE_WEIGHT = 1; 
+final float CURVE_WEIGHT = 1;   
 final float SPEED_MULTIPLIER = 0.02; // Controls animation speed (time increment)
 final int HUE_RANGE = 255;      // Range for HSL hue (0-255)
+
+// === TRAIL PARAMETER ===
+final int TRAIL_ALPHA = 10;     // Transparency of the background wash (0-255). Lower = longer trail.
 
 // Lissajous Data Structure (to hold parameters for each cell)
 class LissajousParams {
@@ -49,7 +52,8 @@ LissajousParams[][] gridData;
 void setup() {
   size(480, 800);
   randomSeed(SEED);
-  colorMode(HSB, HUE_RANGE, 255, 255);
+  // Set HSB color mode with a max alpha of 255 for the background wash
+  colorMode(HSB, HUE_RANGE, 255, 255, 255);
 
   // Calculate Grid Dimensions
   gridW = width - 2 * PADDING;
@@ -74,19 +78,29 @@ void setup() {
     GRID_LINE_COLOR = color(0, 0, 0); // Black
   } else {
     background(0); // Black (min brightness)
-    // GRID_LINE_COLOR is already set to light gray
+    // GRID_LINE_COLOR is already set to #444444
   }
   
   frameRate(30);
 }
 
 void draw() {
-  // Clear the background each frame
+  // === TRAIL EFFECT IMPLEMENTATION ===
+  // Instead of background(color), use fill(color, alpha) and rect(0,0,width,height)
+  // This draws a semi-transparent rectangle over the whole canvas,
+  // causing previous frames to slowly fade out and creating a trail.
   if (INVERT_COLORS) {
-    background(HUE_RANGE);
+    // White background wash
+    noStroke();
+    fill(HUE_RANGE, 0, 255, TRAIL_ALPHA); 
+    rect(0, 0, width, height);
   } else {
-    background(0);
+    // Black background wash
+    noStroke();
+    fill(0, TRAIL_ALPHA); 
+    rect(0, 0, width, height);
   }
+  // ===================================
 
   // Draw the grid content and particle
   for (int r = 0; r < BASE_ROWS; r++) {
@@ -123,7 +137,8 @@ void draw() {
 
   // Frame saving and loop termination
   if (SAVE_FRAMES) {
-    saveFrame("frames/####.tif");
+    // The frame numbering is based on Processing's internal frameCount
+    saveFrame("frames/####.tif"); 
     if (frameCount >= MAX_FRAMES) {
       noLoop();
     }
@@ -146,7 +161,7 @@ void drawLissajous(float x, float y, float w, float h, LissajousParams params) {
   // === Draw the Curve Path (Now visible with full color opacity) ===
   noFill();
   stroke(params.curveColor); // Use the curve's color
-  strokeWeight(CURVE_WEIGHT);
+  strokeWeight(CURVE_WEIGHT); // Uses global parameter
   beginShape();
   // Draw the full curve path over a period of 2*PI
   for (float theta = 0; theta <= TWO_PI; theta += 0.05) {
