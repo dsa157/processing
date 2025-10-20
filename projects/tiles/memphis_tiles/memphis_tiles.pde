@@ -25,7 +25,7 @@ final int ANIMATION_TICK_RATE = 10; // default 10
 final float FIXED_LINE_THICKNESS = 2.0; // default 2.0 (Fixed pixel thickness)
 
 // Layout
-final int PADDING = 40; // default 40
+final int PADDING = 10; // default 40
 
 // Color inversion
 final boolean INVERT_COLORS = false; // default false

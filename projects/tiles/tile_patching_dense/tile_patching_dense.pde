@@ -17,7 +17,7 @@ int SKETCH_HEIGHT = 800; // default 800
 
 // Animation and saving
 final int MAX_FRAMES = 900; // default 900
-final boolean SAVE_FRAMES = true; // default false
+final boolean SAVE_FRAMES = false; // default false
 final int ANIMATION_SPEED = 30; // default 30 (frames per second)
 // Patch regeneration frequency: number of frames between each patch replacement (default 100)
 final int PATCH_REFRESH_INTERVAL = 100; // default 100
