@@ -15,8 +15,8 @@ int ANIMATION_SPEED = 30;     // default: 30
 boolean INVERT_BG = false;    // default: false
 
 // Grid and Curve Parameters
-int GRID_COLS = 2;            // default: 3
-int GRID_ROWS = 3;            // default: 5
+int GRID_COLS = 3;            // default: 3
+int GRID_ROWS = 5;            // default: 5
 int MAX_RECURSION = 1;        // default: 1
 float STROKE_WEIGHT = 2.5f;   // default: 2.5
 float GLOW_SIZE = 12.0f;      // default: 12.0
@@ -25,7 +25,7 @@ float MAX_DIST_FACTOR = 2.6f; // default: 4.6
 
 // Animation Range Parameters
 float CURVE_TIGHTNESS_MIN = -5.0f; // default: -5.0
-float CURVE_TIGHTNESS_MAX = 10.0f; // default: 10.0
+float CURVE_TIGHTNESS_MAX = 5.0f; // default: 10.0
 float TIGHTNESS_SPEED = 0.02f;     // default: 0.02
 
 // --- Color Palettes ---
