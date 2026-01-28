@@ -1,16 +1,16 @@
 /**
- * Bitwise Architectural Noise - Sound Reactive
- * A study in emergent structures from logical bitwise operations,
- * driven by the amplitude of an audio track.
+ * Bitwise Architectural Noise - FFT Sound Reactive
+ * Frequency bands modulate logical bitwise calculations across the grid.
  */
 
 import ddf.minim.*;
+import ddf.minim.analysis.*;
 
 // --- Parameters ---
 int SKETCH_WIDTH = 480;       // Default: 480
 int SKETCH_HEIGHT = 800;      // Default: 800
 int PADDING = 40;             // Default: 40
-int SEED = 12345;             // Default: 12345
+int SEED = 42;             // Default: 12345
 int MAX_FRAMES = 900;         // Calculated in setup() based on audio length
 boolean SAVE_FRAMES = false;  // Default: false
 int ANIMATION_SPEED = 30;     // Default: 30
@@ -29,13 +29,14 @@ int PALETTE_INDEX = 1;        // Range 0-4
 int BG_COLOR_INDEX = 0;       // Color within palette for background
 
 // Bitwise Logic Parameters
-int CELL_SIZE = 40;           // Default: 40
-float ZOOM = 0.05;            // Scaling for the bitwise input
-float SPEED_MULT = 0.1;       // Speed of evolution
+int CELL_SIZE = 20;           // Default: 20 (smaller for higher FFT resolution)
+float SPEED_MULT = 0.15;      // Speed of evolution
+float SENSITIVITY = 1.5;      // Multiplier for FFT impact
 
 // --- Sound Variables ---
 Minim minim;
 AudioPlayer player;
+FFT fft;
 
 void settings() {
   size(SKETCH_WIDTH, SKETCH_HEIGHT);
@@ -53,6 +54,9 @@ void setup() {
     println("Error: Could not find frenzy.mp3");
     exit();
   }
+  
+  // Initialize FFT
+  fft = new FFT(player.bufferSize(), player.sampleRate());
   
   // Set MAX_FRAMES to length of sound file based on frameRate
   float durationSeconds = player.length() / 1000.0;
@@ -76,9 +80,8 @@ void draw() {
     background(bg);
   }
 
-  // Audio Analysis
-  float level = player.mix.level(); // 0.0 to 1.0
-  float bitShift = level * 50;      // Sound modulation factor
+  // Perform FFT
+  fft.forward(player.mix);
 
   // Calculate Drawing Area
   int drawWidth = width - (PADDING * 2);
@@ -91,22 +94,29 @@ void draw() {
   for (int x = 0; x < drawWidth; x += CELL_SIZE) {
     for (int y = 0; y < drawHeight; y += CELL_SIZE) {
       
+      // Map Y-coordinate to FFT frequency band
+      // Lower Y (top) = higher frequencies, Higher Y (bottom) = bass
+      int band = (int) map(y, 0, drawHeight, fft.specSize() - 1, 0);
+      float bandAmp = fft.getBand(band) * SENSITIVITY;
+      
       // Logical Texture Generation
       int t = round(frameCount * SPEED_MULT);
-      int audioOffset = round(bitShift);
+      int audioOffset = round(bandAmp * 10);
+      
+      // Bitwise operation influenced by specific frequency band amplitude
       int val = ((x + t + audioOffset) & (y - t)) ^ (x | (y + t + audioOffset));
       
       // Determine visual properties based on bitwise "errors"
       float noiseVal = (val % 255) / 255.0;
       
       if (SHOW_GRID) {
-        stroke(secondaryColor, 50);
+        stroke(secondaryColor, 30);
         noFill();
         rect(x, y, CELL_SIZE, CELL_SIZE);
       }
 
-      // Pass level to affect visual scale or alpha
-      drawArchitecturalElement(x, y, CELL_SIZE, noiseVal, mainColor, accentColor, level);
+      // Draw elements modulated by the specific band's amplitude
+      drawArchitecturalElement(x, y, CELL_SIZE, noiseVal, mainColor, accentColor, bandAmp / 20.0);
     }
   }
   popMatrix();
@@ -124,31 +134,30 @@ void draw() {
 
 /**
  * Draws a shape based on the bitwise noise value.
- * Elements scale and change intensity based on audio level.
+ * Frequency intensity (bandLevel) drives the scale and stroke weight.
  */
-void drawArchitecturalElement(float x, float y, float size, float n, int c1, int accent, float level) {
+void drawArchitecturalElement(float x, float y, float size, float n, int c1, int accent, float bandLevel) {
   noStroke();
-  float pulse = level * 20; // Extra size based on volume
+  float pulse = constrain(bandLevel * 15, 0, size); 
   
-  if (n > 0.8) {
+  if (n > 0.85) {
     // Solid Block
     fill(c1);
-    rect(x + 2 - pulse/2, y + 2 - pulse/2, size - 4 + pulse, size - 4 + pulse);
-  } else if (n > 0.5) {
-    // Cross-hatch/Bars
+    rect(x + 1, y + 1, size - 2 + pulse, size - 2);
+  } else if (n > 0.6) {
+    // Bars modulated by frequency
     fill(accent);
-    float barW = (size/2) * (1 + level);
+    float barW = (size/3) * (1 + bandLevel);
     rect(x + (size - barW)/2, y, barW, size);
-  } else if (n > 0.3) {
-    // Small detailing
-    fill(c1, 150 + (level * 105));
-    rect(x + 5, y + 5, size/4 + pulse, size/4 + pulse);
-    rect(x + size - 10, y + size - 10, 5, 5);
-  } else if (n > 0.1) {
-    // Horizontal thin lines
-    stroke(c1, 100 + (level * 155));
-    strokeWeight(1 + (level * 3));
-    line(x, y + size/2, x + size, y + size/2);
+  } else if (n > 0.4) {
+    // Micro-structures
+    fill(c1, 100 + (bandLevel * 155));
+    rect(x + size/2, y + size/2, 2 + pulse, 2 + pulse);
+  } else if (n > 0.15) {
+    // Grid-aligned lines
+    stroke(c1, 80 + (bandLevel * 175));
+    strokeWeight(0.5 + bandLevel);
+    line(x, y, x + size, y);
   }
 }
 
@@ -156,7 +165,7 @@ void drawArchitecturalElement(float x, float y, float size, float n, int c1, int
  * Ensures audio resources are released when the sketch is closed.
  */
 void exit() {
-  player.close();
-  minim.stop();
+  if (player != null) player.close();
+  if (minim != null) minim.stop();
   super.exit();
 }
