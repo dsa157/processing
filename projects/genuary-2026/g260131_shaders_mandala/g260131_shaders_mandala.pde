@@ -1,14 +1,15 @@
 /**
  * Dual Static-Symmetry Audio-Reactive Mandala - Heartbeat Focus
- * Version: 2026.01.29.14.48.15
+ * Version: 2026.01.29.14.05.42
  * ------------------------------------------------------------------------
  * Technique: Buffer-mapped vertical oscilloscope rendering.
- * Fix: COLOR_CYCLE_SPEED now correctly scales the rate of color transitions.
- * Fix: Background color (index 0) remains static; elements cycle indices 1-9.
+ * Update: Boomerang Morphing Engine. ARM_OSCILLATION and STARBURST_ARM_WIDTH 
+ * now oscillate between Min/Max bounds at a dedicated MORPH_SPEED.
  * Features:
- * - Dynamic Stop: Termination at MAX_FRAMES (synced to 30 FPS).
- * - Multi-Band Rings: Elastic rings reacting to raw wave data.
- * - AGC Normalization: Ensures consistent movement across the track.
+ * - Morphing: Uses sin(progress * speed) for seamless boomeranging.
+ * - Background Lock: Palette index 0 remains static for background.
+ * - Dynamic Stop: Hard termination at pre-calculated MAX_FRAMES.
+ * - Elastic Pond Rings: Sharp, rubber-band style pulsing.
  * ------------------------------------------------------------------------
  */
 
@@ -21,30 +22,31 @@ int SKETCH_HEIGHT = 800;     // default: 800
 int SEED_VALUE = 42;         // default: 42
 int PADDING = 40;            // default: 40
 int MAX_FRAMES;              // Pre-calculated in setup based on audio length
-boolean SAVE_FRAMES = false; // default: false
+boolean SAVE_FRAMES = false; // default: false (Set TRUE for frame-locked disk export)
 int ANIMATION_SPEED = 30;    // default: 30 fps
 int PALETTE_INDEX = 1;       // default: 1
 boolean INVERT_BG = false;   // default: false (Toggle background color inversion)
 
 // --- Visibility Toggles ---
-boolean SHOW_M1 = true;        // default: true
-boolean SHOW_M2 = true;        // default: true
-boolean BEAT_PULSE_BG = false; // default: false
-boolean SHOW_STRANDS = true;   // default: true
+boolean SHOW_M1 = true;        // default: true (Mandala 1 visibility)
+boolean SHOW_M2 = true;        // default: true (Mandala 2 visibility)
+boolean BEAT_PULSE_BG = false; // default: false (Background brightness pulse)
+boolean SHOW_STRANDS = true;   // default: true (Toggle connecting EKG strand)
 
 // --- Progression Parameters ---
 float SPIN_SPEED = 0.5;         // default: 0.5 (Base rotation velocity)
-float SPIRAL_TWIST = 3.2;       // default: 1.2 (Spiral factor for mandala arms)
+float SPIRAL_TWIST = 3.2;       // default: 3.2 (User refined)
 int JITTER_DURATION = 90;       // default: 90 (Frames to hold asymmetric peak bias)
-float COLOR_CYCLE_SPEED = 30.5;  // default: 1.5 (Rate of color index rotation)
+float COLOR_CYCLE_SPEED = 30.0; // default: 30.5 (Rapid palette shifting)
+float MORPH_SPEED = 5.0;       // default: 30.5 (Boomerang speed for oscillation/width)
 float FREQ_SMOOTHING = 0.15;    // default: 0.15 (Ease-out factor for AGC band values)
 float NOISE_FLOOR = 0.0001;     // default: 0.0001 (Noise gate for motion)
 
 // --- Frequency Strength Parameters ---
-float BASS_STRENGTH = 0.02;      // Scaled for direct visibility
-float MID_STRENGTH = 0.004;       // Scaled for direct visibility
-float TREBLE_STRENGTH = 0.004;    // Scaled for direct visibility
-float RIPPLE_STRENGTH = 25.0;   // default: 25.0 (Multiplier for elastic pond rings)
+float BASS_STRENGTH = 0.02;      // User refined: 0.02
+float MID_STRENGTH = 0.004;      // User refined: 0.004
+float TREBLE_STRENGTH = 0.004;   // User refined: 0.004
+float RIPPLE_STRENGTH = 25.0;    // default: 25.0 (Multiplier for elastic pond rings)
 
 // --- Visual Style Parameters ---
 float GLOW_STRENGTH = 1.5;     // default: 1.5 (Overall brightness multiplier)
@@ -52,23 +54,28 @@ float STRAND_WIDTH = 0.002;    // default: 0.002 (EKG line thickness)
 
 // --- Mandala Parameters ---
 float MANDALA_DIAMETER = 0.85;     // default: 0.85
-float STARBURST_ARM_WIDTH = 0.02;  // default: 0.02
-float ARM_OSCILLATION = 20.0;      // default: 20.0 (Wave frequency on arms)
-float NODE_DISTORTION = 0.5;       // default: 0.5 (Bead spacing; valid range 0.1-3.0)
-float MAX_RIPPLE_DIAMETER = 0.4;   // default: 0.4
-int RIPPLE_COUNT = 1;              // default: 1
+
+// --- Morphing Parameter Bounds ---
+float STARBURST_ARM_WIDTH_MIN = 0.02; // Initial default
+float STARBURST_ARM_WIDTH_MAX = 0.20; // User refined max
+float ARM_OSCILLATION_MIN = 20.0;     // Low frequency wave
+float ARM_OSCILLATION_MAX = 50.0;     // User refined high frequency
+
+float NODE_DISTORTION = 0.5;       // default: 0.5 (Bead spacing)
+float MAX_RIPPLE_DIAMETER = 0.4;   // default: 0.4 (Pond ring limit)
+int RIPPLE_COUNT = 1;              // default: 1 (Number of elastic rings)
 
 // --- Fixed Symmetry ---
 float TOP_SYMMETRY = 11.0;   
 float BOT_SYMMETRY = 9.0;    
 
-// --- Positions ---
+// --- Positions (Normalized 0.0 - 1.0) ---
 float CENTER_T_X = 0.5;      
 float CENTER_T_Y = 0.72;     
 float CENTER_B_X = 0.5;      
 float CENTER_B_Y = 0.28;     
 
-// --- 10-Color Palettes (Adobe Kuler inspired) ---
+// --- 10-Color Palettes ---
 String[][] PALETTES = {
   {"#1a091a", "#2e112d", "#540032", "#820333", "#c02739", "#e71d36", "#ff5d5d", "#ff9191", "#f1e4e8", "#ffffff"}, 
   {"#000814", "#001d3d", "#003566", "#ffc300", "#ffd60a", "#fb8500", "#ffb703", "#8ecae6", "#219ebc", "#023047"}, 
@@ -77,6 +84,7 @@ String[][] PALETTES = {
   {"#1b4332", "#2d6a4f", "#40916c", "#52b788", "#74c69d", "#95d5b2", "#b7e4c7", "#d8f3dc", "#081c15", "#ffffff"}  
 };
 
+// --- Engine Objects ---
 Minim minim;
 AudioPlayer song;
 FFT fft;
@@ -87,6 +95,10 @@ float waveJitterX = 0.5;
 float jitterDir = 1.0;
 int jitterCounter = 0;
 
+// Runtime Calculated Morph values
+float currentArmWidth, currentArmOsc;
+
+// AGC internal state
 float bandBass, bandMid, bandTreble;
 float peakBass = 0.01, peakMid = 0.01, peakTreble = 0.01;
 
@@ -104,7 +116,7 @@ void setup() {
   MAX_FRAMES = int(durationSeconds * ANIMATION_SPEED);
   
   println("--- Audio Engine Loaded ---");
-  println("FPS: " + ANIMATION_SPEED + " | Limit: " + MAX_FRAMES);
+  println("FPS: " + ANIMATION_SPEED + " | Target Limit: " + MAX_FRAMES);
   println("---------------------------");
   
   fft = new FFT(song.bufferSize(), song.sampleRate());
@@ -148,7 +160,6 @@ void setup() {
     "uniform bool u_showStrands;",
     "out vec4 fragColor;",
 
-    // Fixed color helper: COLOR_CYCLE_SPEED now drives the animation rate
     "vec3 getSmoothColor(float offset, float dir) {",
     "  float cycle = u_loopProgress * u_colorCycleSpeed * 10.0;",
     "  float t = mod(cycle * dir + offset, 9.0);",
@@ -163,20 +174,24 @@ void setup() {
     "  p_uv.y /= aspect;",
     "  float r = length(p_uv) * 2.5;",
     "  if (r > 1.4) return vec3(0.0);",
+    "  ",
     "  float a = atan(p_uv.y, p_uv.x);", 
     "  float phi = a + (u_loopProgress * 6.28318 * spinDir) + (r * u_spiral * isSpiral);",
     "  float s = 6.2831853 / sectors;",
     "  float folded_a = abs(mod(phi + 3.14159, s) - s * 0.5);",
     "  vec2 p = vec2(cos(folded_a), sin(folded_a)) * r;",
+    "  ",
     "  float centerRingRadius = 0.12 + u_audioIntensity * 0.2;",
     "  float rings = 0.0;",
     "  for(int i=1; i<=u_rippleCount; i++) {",
     "    float elasticRadius = centerRingRadius + (abs(u_waveVal) * u_rippleStrength * float(i) * 0.05);",
     "    rings += 0.001 / (abs(r - clamp(elasticRadius, centerRingRadius, u_maxRipple)) + 0.0003);",
     "  }",
+    "  ",
     "  float ring1 = abs(r - centerRingRadius);",
     "  float arms = abs(p.y - (u_armWidth + sin(r * u_armOscillation - u_loopProgress * 50.0) * 0.01));",
     "  float beads = length(vec2(mod(r, 0.15 * u_distortion) - 0.075, p.y)) - (0.01 + u_audioIntensity * 0.03);",
+    "  ",
     "  vec3 col = vec3(0.0);",
     "  col += getSmoothColor(2.0, spinDir) * (0.005 / arms);",
     "  col += getSmoothColor(5.0, spinDir) * (0.004 / ring1);",
@@ -191,6 +206,7 @@ void setup() {
     "  vec3 col = vec3(0.0);",
     "  if(u_showM1) col += renderMandala(uv, u_centerT, u_topSectors, 0.0, 1.0);",
     "  if(u_showM2) col += renderMandala(uv, u_centerB, u_botSectors, 1.0, -1.0);",
+    "  ",
     "  if(u_showStrands) {",
     "    float yLow = min(u_centerB.y, u_centerT.y);",
     "    float yHigh = max(u_centerB.y, u_centerT.y);",
@@ -227,6 +243,12 @@ void draw() {
   }
 
   float progress = (float)(frameCount % MAX_FRAMES) / MAX_FRAMES;
+  
+  // Calculate Boomerang Morphing (Sine-based for smooth ping-pong)
+  float morphFactor = (sin(progress * TWO_PI * MORPH_SPEED) + 1.0) * 0.5;
+  currentArmWidth = lerp(STARBURST_ARM_WIDTH_MIN, STARBURST_ARM_WIDTH_MAX, morphFactor);
+  currentArmOsc = lerp(ARM_OSCILLATION_MIN, ARM_OSCILLATION_MAX, morphFactor);
+
   fft.forward(song.mix);
   
   float rawB = fft.calcAvg(20, 200);   
@@ -273,8 +295,8 @@ void draw() {
   dualShader.set("u_diameter", MANDALA_DIAMETER);
   dualShader.set("u_maxRipple", MAX_RIPPLE_DIAMETER);
   dualShader.set("u_spiral", SPIRAL_TWIST);
-  dualShader.set("u_armWidth", STARBURST_ARM_WIDTH);
-  dualShader.set("u_armOscillation", ARM_OSCILLATION);
+  dualShader.set("u_armWidth", currentArmWidth); // Mapped to morph
+  dualShader.set("u_armOscillation", currentArmOsc); // Mapped to morph
   dualShader.set("u_distortion", NODE_DISTORTION);
   dualShader.set("u_colorCycleSpeed", COLOR_CYCLE_SPEED);
   dualShader.set("u_glow", GLOW_STRENGTH);
