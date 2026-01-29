@@ -1,8 +1,7 @@
 /**
- * Digital Marble: Parametric Spectral Synthesis
- * Version: 2026.01.28.15.45.20
- * Creative Approach: "Floating Slabs" - The marble texture is applied to 
- * dynamic geometric layers to simulate shifting tectonic plates.
+ * Digital Marble: Harmonic Tectonic Morph
+ * Version: 2026.01.28.16.02.15
+ * Focuses on the rhythmic expansion and contraction of slab geometry.
  */
 
 // --- Parameters ---
@@ -11,16 +10,17 @@ int SKETCH_HEIGHT = 800;      // Default: 800
 int PADDING = 40;             // Default: 40
 int GLOBAL_SEED = 999;        // Default: 12345
 int MAX_FRAMES = 900;         // Default: 900
-boolean SAVE_FRAMES = true;  // Default: false
+boolean SAVE_FRAMES = false;  // Default: false
 int ANIMATION_SPEED = 60;     // Default: 30
 int PALETTE_INDEX = 3;        // Default: 0-4
 boolean INVERT_BG = false;    // Default: false
 
 // --- Shader Parameters ---
-float NOISE_SCALE = 3.5;      // Default: 3.0 (Zoom level of marble)
-float TURBULENCE = 5.2;       // Default: 4.0 (Strength of distortion)
-float FLOW_SPEED = 0.4;       // Default: 0.5 (Time multiplier)
-int SLAB_COUNT = 8;           // Default: 8 (Creative element count)
+float NOISE_SCALE = 3.5;      // Default: 3.5
+float TURBULENCE = 9.2;       // Default: 4.0 (Enhanced distortion)
+float FLOW_SPEED = 2.0;       // Default: 0.5 (Accelerated time)
+int MIN_SLABS = 21;            // Default: 8
+int MAX_SLABS = 21;           // Default: 21
 
 // --- Color Palettes ---
 String[][] palettes = {
@@ -81,36 +81,42 @@ void setup() {
 }
 
 void draw() {
-  background(INVERT_BG ? 255 : 15);
+  background(INVERT_BG ? 245 : 10);
   
   updateShaderUniforms();
   
-  // Creative Visualization: Floating Slabs
-  // Instead of one rectangle, we draw offset "tectonic plates"
-  float totalH = height - (PADDING * 2);
-  float slabH = totalH / SLAB_COUNT;
+  // Calculate Slab Morphing (Seamless Sinusoidal Cycle)
+  float cycleProgress = (float)(frameCount % MAX_FRAMES) / MAX_FRAMES;
+  float morphFactor = (sin(cycleProgress * TWO_PI - HALF_PI) + 1.0) / 2.0;
+  int currentSlabs = round(lerp(MIN_SLABS, MAX_SLABS, morphFactor));
   
-  for (int i = 0; i < SLAB_COUNT; i++) {
+  float totalH = height - (PADDING * 2);
+  float slabH = totalH / currentSlabs;
+  
+  for (int i = 0; i < currentSlabs; i++) {
     float yOffset = PADDING + (i * slabH);
-    // Use sine and noise to shift slabs horizontally for a "drifting" effect
-    float xShift = sin(timeTracker + i) * 20.0;
+    
+    // Horizontal drift based on index and time
+    float xShift = sin(timeTracker * 0.5 + i * 0.8) * 15.0;
     
     pushMatrix();
     translate(xShift, 0);
     
     shader(marbleShader);
     noStroke();
-    rect(PADDING, yOffset + 2, width - (PADDING * 2), slabH - 4); 
+    // 2px gap between slabs for structural definition
+    rect(PADDING, yOffset + 1, width - (PADDING * 2), slabH - 2); 
     resetShader();
     
-    // Subtle shadow/edge effect
-    stroke(0, 50);
-    line(PADDING, yOffset + slabH - 2, width - PADDING, yOffset + slabH - 2);
+    // Aesthetic accent line at the bottom of each slab
+    stroke(0, 40);
+    line(PADDING, yOffset + slabH - 1, width - PADDING, yOffset + slabH - 1);
     popMatrix();
   }
   
   timeTracker += 0.01 * FLOW_SPEED;
 
+  // Frame Management
   if (SAVE_FRAMES) {
     saveFrame("frames/####.tif");
     if (frameCount >= MAX_FRAMES) noLoop();
@@ -118,16 +124,18 @@ void draw() {
 }
 
 void updateShaderUniforms() {
-  marbleShader.set("u_time", timeTracker);
-  marbleShader.set("u_resolution", (float)width, (float)height);
-  marbleShader.set("u_scale", NOISE_SCALE);
-  marbleShader.set("u_turbulence", TURBULENCE);
-  
-  String[] activePal = palettes[PALETTE_INDEX % palettes.length];
-  marbleShader.set("u_col1", hexToVec(activePal[0]));
-  marbleShader.set("u_col2", hexToVec(activePal[1]));
-  marbleShader.set("u_col3", hexToVec(activePal[2]));
-  marbleShader.set("u_col4", hexToVec(activePal[3]));
+  if (marbleShader != null) {
+    marbleShader.set("u_time", timeTracker);
+    marbleShader.set("u_resolution", (float)width, (float)height);
+    marbleShader.set("u_scale", NOISE_SCALE);
+    marbleShader.set("u_turbulence", TURBULENCE);
+    
+    String[] activePal = palettes[PALETTE_INDEX % palettes.length];
+    marbleShader.set("u_col1", hexToVec(activePal[0]));
+    marbleShader.set("u_col2", hexToVec(activePal[1]));
+    marbleShader.set("u_col3", hexToVec(activePal[2]));
+    marbleShader.set("u_col4", hexToVec(activePal[3]));
+  }
 }
 
 PVector hexToVec(String hex) {
