@@ -1,13 +1,10 @@
 /**
- * Dual Static-Symmetry Audio-Reactive Mandala - Shader Fix
+ * Dual Static-Symmetry Audio-Reactive Mandala - Heartbeat Focus
+ * Version: 2026.01.29.11.35.10
  * ------------------------------------------------------------------------
- * Technique: Continuous trigonometric projection for seamless 360-degree rotation.
- * Fix: Removed uniform assignment in shader to resolve compile errors.
- * Features: 
- * - Fixed Symmetry: Top (Starburst) 11 segments, Bottom (Spiral) 5 segments.
- * - Multi-colored Palette: Elements use unique indices from Adobe Kuler palettes.
- * - Node Distortion: Irregular blob shapes driven by u_distortion.
- * - Beat-Pulse BG: Background brightness oscillates with audio (Toggleable).
+ * Technique: Buffer-mapped vertical oscilloscope rendering.
+ * Fix: Forced resolution uniform to use physical pixel dimensions to resolve
+ * the quadrant rendering issue on high-DPI displays.
  * ------------------------------------------------------------------------
  */
 
@@ -19,35 +16,55 @@ int SKETCH_WIDTH = 480;      // default: 480
 int SKETCH_HEIGHT = 800;     // default: 800
 int SEED_VALUE = 42;         // default: 42
 int PADDING = 40;            // default: 40
-int MAX_FRAMES = 900;        // Dynamically set based on audio duration
+int MAX_FRAMES = 900;        // default: 900
 boolean SAVE_FRAMES = false; // default: false
 int ANIMATION_SPEED = 60;    // default: 60 fps
-int PALETTE_INDEX = 2;       // default: 0-4
+int PALETTE_INDEX = 2;       // default: 2 (0-4)
 boolean INVERT_BG = false;   // default: false
 
-// --- Audio Features ---
-boolean BEAT_PULSE_BG = true; // default: true (Toggle background beat reactivity)
+// --- Visibility Toggles ---
+boolean SHOW_M1 = true;        // default: true (Mandala 1 visibility)
+boolean SHOW_M2 = true;        // default: true (Mandala 2 visibility)
+boolean BEAT_PULSE_BG = false; // default: false (Background brightness pulse)
+boolean SHOW_STRANDS = true;   // default: true (Toggle connecting EKG strand)
 
-// --- Visual Parameters ---
-float BLOOM_STRENGTH = 1.0;  // default: 1.0
-float SPIN_SPEED = 1.5;      // default: 2.5
+// --- Progression Parameters ---
+float SPIN_SPEED = 0.5;      // default: 0.5
+float SPIRAL_TWIST = 1.2;    // default: 1.2
+int JITTER_DURATION = 15;    // default: 15 (Frames to hold a jitter direction)
+
+// --- Frequency Strength Parameters ---
+float BASS_STRENGTH = 0.001;   // default: 2.0
+float MID_STRENGTH = 0.003;    // default: 1.5
+float TREBLE_STRENGTH = 0.03;  // default: 3.0
+
+// --- Visual Style Parameters ---
+float GLOW_STRENGTH = 1.5;     // default: 1.5 (Overall brightness multiplier)
+float STRAND_WIDTH = 0.003;   // default: 0.0012 (Thickness of the heartbeat line)
+
+// --- Mandala Parameters ---
 float MANDALA_DIAMETER = 0.88;     // default: 0.88
-float SPIRAL_TWIST = 1.2;          // default: 1.2
 float STARBURST_ARM_WIDTH = 0.008; // default: 0.008
 float ARM_OSCILLATION = 20.0;      // default: 20.0
-float NODE_DISTORTION = 0.5;       // default: 0.5 (0 = circle, 1 = blob)
+float NODE_DISTORTION = 0.5;       // default: 0.5
 
 // --- Fixed Symmetry ---
-float TOP_SYMMETRY = 9.0;   // Fixed segments for Starburst
-float BOT_SYMMETRY = 7.0;    // Fixed segments for Spiral
+float TOP_SYMMETRY = 7.0;    // default: 7.0
+float BOT_SYMMETRY = 5.0;    // default: 5.0
 
-// --- Color Palettes (Adobe Color / Kuler inspired) ---
+// --- Mandala Positions (Normalized 0.0 - 1.0) ---
+float CENTER_T_X = 0.5;      // default: 0.5
+float CENTER_T_Y = 0.72;     // default: 0.72 (Top Mandala)
+float CENTER_B_X = 0.5;      // default: 0.5
+float CENTER_B_Y = 0.28;     // default: 0.28 (Bottom Mandala)
+
+// --- 10-Color Palettes (Adobe Kuler) ---
 String[][] PALETTES = {
-  {"#2E112D", "#540032", "#820333", "#C02739", "#F1E4E8"}, // Deep Reds
-  {"#001B2E", "#294C60", "#ADB5BD", "#FFEFD3", "#FFD60A"}, // Midnight Gold
-  {"#1A1A1A", "#4E598C", "#AFCBFF", "#FFFFFF", "#F9C784"}, // Cosmic Blue
-  {"#2B2D42", "#8D99AE", "#EDF2F4", "#EF233C", "#D90429"}, // Modern High Contrast
-  {"#011627", "#FDFFFC", "#2EC4B6", "#E71D36", "#FF9F1C"}  // Cyberpunk
+  {"#1a091a", "#2e112d", "#540032", "#820333", "#c02739", "#e71d36", "#ff5d5d", "#ff9191", "#f1e4e8", "#ffffff"}, // Palette 0: Crimson/Dark
+  {"#000814", "#001d3d", "#003566", "#ffc300", "#ffd60a", "#fb8500", "#ffb703", "#8ecae6", "#219ebc", "#023047"}, // Palette 1: Blue/Gold
+  {"#011627", "#2ec4b6", "#e71d36", "#ff9f1c", "#fdfffc", "#011627", "#2ec4b6", "#e71d36", "#ff9f1c", "#fdfffc"}, // Palette 2: High Contrast
+  {"#2b2d42", "#8D99AE", "#edf2f4", "#ef233c", "#d90429", "#2b2d42", "#8d99ae", "#edf2f4", "#ef233c", "#d90429"}, // Palette 3: Industrial
+  {"#1b4332", "#2d6a4f", "#40916c", "#52b788", "#74c69d", "#95d5b2", "#b7e4c7", "#d8f3dc", "#081c15", "#ffffff"}  // Palette 4: Forest
 };
 
 // --- Engine Objects ---
@@ -56,19 +73,18 @@ AudioPlayer song;
 FFT fft;
 PShader dualShader;
 
-// Color State Variables
-color curBg, curC1, curC2, curC3, curC4;
-color targetBg, targetC1, targetC2, targetC3, targetC4;
-float colorLerpFactor = 0.015; 
-
-void settings() {
-  size(SKETCH_WIDTH, SKETCH_HEIGHT, P2D);
-  pixelDensity(displayDensity());
-}
+float[] shaderColors = new float[30]; 
+float waveJitterX = 0.5; 
+float paletteTime = 0.0; 
+float bandBass, bandMid, bandTreble;
+float jitterDir = 1.0;
+int jitterCounter = 0;
 
 void setup() {
+  size(480, 800, P2D);
   randomSeed(SEED_VALUE);
   frameRate(ANIMATION_SPEED);
+  pixelDensity(displayDensity());
   
   minim = new Minim(this);
   song = minim.loadFile("islandman.mp3", 1024);
@@ -76,10 +92,6 @@ void setup() {
   
   fft = new FFT(song.bufferSize(), song.sampleRate());
   MAX_FRAMES = int((song.length() / 1000.0) * ANIMATION_SPEED);
-  
-  updateTargetPalette(PALETTE_INDEX);
-  curBg = targetBg; curC1 = targetC1; curC2 = targetC2; curC3 = targetC3; curC4 = targetC4;
-  
   song.play();
 
   String[] vertSource = {
@@ -95,129 +107,143 @@ void setup() {
     "uniform float u_time;",
     "uniform float u_topSectors;",
     "uniform float u_botSectors;",
-    "uniform vec3 u_color1;", // Arms
-    "uniform vec3 u_color2;", // Rings
-    "uniform vec3 u_color3;", // Core
-    "uniform vec3 u_color4;", // Nodes
-    "uniform float u_bloom;",
+    "uniform vec3 u_palette[10];", 
     "uniform float u_audioIntensity;",
+    "uniform float u_waveVal;",       
+    "uniform float u_waveJitterX;",   
+    "uniform float u_jitterDir;",
+    "uniform float u_bandBass;",      
+    "uniform float u_bandMid;",       
+    "uniform float u_bandTreble;",    
     "uniform float u_diameter;",
     "uniform float u_spiral;",
     "uniform float u_armWidth;",
     "uniform float u_armPulse;",
     "uniform float u_distortion;",
+    "uniform float u_glow;",
+    "uniform float u_strandWidth;",
     "uniform vec2 u_centerT;",
     "uniform vec2 u_centerB;",
+    "uniform bool u_showM1;",
+    "uniform bool u_showM2;",
+    "uniform bool u_showStrands;",
     "out vec4 fragColor;",
 
-    "vec3 renderMandala(vec2 fragCoord, vec2 center, float sectors, float isSpiral, float spinDir) {",
-    "  vec2 uv = fragCoord / u_resolution.xy;",
+    "vec3 renderMandala(vec2 uv, vec2 center, float sectors, float isSpiral, float spinDir) {",
     "  float aspect = u_resolution.x / u_resolution.y;",
     "  vec2 p_uv = (uv - center);",
     "  p_uv.y /= aspect;",
-    "  ",
     "  float r = length(p_uv) * 2.5;",
-    "  if (r > 1.2) return vec3(0.0);",
-    "  ",
-    "  // Continuous projection to avoid seams",
+    "  if (r > 1.4) return vec3(0.0);",
     "  float a = atan(p_uv.y, p_uv.x);",
     "  float phi = a + (u_time * 0.4 * spinDir) + (r * u_spiral * isSpiral);",
-    "  ",
     "  float s = 6.2831853 / sectors;",
     "  float folded_a = abs(mod(phi + 3.14159, s) - s * 0.5);",
     "  vec2 p = vec2(cos(folded_a), sin(folded_a)) * r;",
-    "  ",
     "  float ring1 = abs(r - (0.12 + u_audioIntensity * 0.2));",
-    "  float wave = sin(r * u_armPulse - u_time * 8.0) * 0.01 * (1.0 + u_audioIntensity);",
+    "  float wave = sin(r * 20.0 - u_time * 8.0) * 0.01;",
     "  float arms = abs(p.y - (u_armWidth + wave));",
-    "  ",
-    "  float beadSpacing = 0.15;",
-    "  float beadR = mod(r, beadSpacing) - beadSpacing * 0.5;",
-    "  float distAngle = atan(p.y, beadR);",
-    "  float distortion = sin(distAngle * 5.0) * cos(distAngle * 3.0) * u_distortion * 0.02;",
-    "  float beads = length(vec2(beadR, p.y)) - (0.01 + u_audioIntensity * 0.03 + distortion);",
-    "  ",
+    "  float beads = length(vec2(mod(r, 0.15) - 0.075, p.y)) - (0.01 + u_audioIntensity * 0.03);",
     "  vec3 col = vec3(0.0);",
-    "  col += u_color1 * (0.005 / arms);",
-    "  col += u_color2 * (0.004 / ring1);",
-    "  col += u_color4 * (0.003 / abs(beads));",
-    "  col += u_color3 * (0.015 / (r + 0.05));",
-    "  ",
-    "  return col * smoothstep(u_diameter, u_diameter * 0.7, r);",
+    "  col += u_palette[int(mod(u_time * 1.5 + 2, 10))] * (0.005 / arms);",
+    "  col += u_palette[int(mod(u_time * 1.5 + 5, 10))] * (0.004 / ring1);",
+    "  col += u_palette[int(mod(u_time * 1.5 + 8, 10))] * (0.003 / abs(beads));",
+    "  col += u_palette[int(mod(u_time * 1.5, 10))] * (0.015 / (r + 0.05));",
+    "  return col * u_glow * smoothstep(u_diameter, u_diameter * 0.7, r);",
     "}",
 
     "void main() {",
-    "  vec3 mTop = renderMandala(gl_FragCoord.xy, u_centerT, u_topSectors, 0.0, 1.0);",
-    "  vec3 mBot = renderMandala(gl_FragCoord.xy, u_centerB, u_botSectors, 1.0, -1.0);",
-    "  ",
-    "  vec3 final = (mTop + mBot) * u_bloom * (1.0 + u_audioIntensity);",
-    "  fragColor = vec4(final, 1.0);",
+    "  vec2 uv = gl_FragCoord.xy / u_resolution.xy;",
+    "  vec3 col = vec3(0.0);",
+    "  if(u_showM1) col += renderMandala(uv, u_centerT, u_topSectors, 0.0, 1.0);",
+    "  if(u_showM2) col += renderMandala(uv, u_centerB, u_botSectors, 1.0, -1.0);",
+    "  if(u_showStrands) {",
+    "    float yLow = min(u_centerB.y, u_centerT.y);",
+    "    float yHigh = max(u_centerB.y, u_centerT.y);",
+    "    if(uv.y >= yLow && uv.y <= yHigh) {",
+    "      float localY = (uv.y - yLow) / (yHigh - yLow);",
+    "      float bandRes = (localY > 0.66) ? u_bandTreble : (localY > 0.33 ? u_bandMid : u_bandBass);",
+    "      float heartbeat = u_waveJitterX + (sin(uv.y * 60.0 + u_time * 12.0) * u_waveVal * bandRes * u_jitterDir);",
+    "      float dist = abs(uv.x - heartbeat);",
+    "      col += u_palette[8] * (u_strandWidth / dist) * u_glow;",
+    "    }",
+    "  }",
+    "  fragColor = vec4(col * (1.0 + u_audioIntensity), 1.0);",
     "}"
   };
 
   dualShader = new PShader(this, vertSource, fragSource);
 }
 
-void updateTargetPalette(int index) {
-  String[] p = PALETTES[index % PALETTES.length];
-  targetBg = unhex("FF" + p[0].substring(1));
-  targetC1 = unhex("FF" + p[1].substring(1));
-  targetC2 = unhex("FF" + p[2].substring(1));
-  targetC3 = unhex("FF" + p[3].substring(1));
-  targetC4 = unhex("FF" + p[4].substring(1));
+void updatePalette() {
+  paletteTime += 0.005; 
+  int pIdx = PALETTE_INDEX % PALETTES.length;
+  int nextIdx = (pIdx + 1) % PALETTES.length;
+  float transition = paletteTime - floor(paletteTime);
+  for (int i = 0; i < 10; i++) {
+    color c1 = unhex("FF" + PALETTES[pIdx][i].substring(1));
+    color c2 = unhex("FF" + PALETTES[nextIdx][i].substring(1));
+    color lerped = lerpColor(c1, c2, transition);
+    shaderColors[i*3] = red(lerped)/255.0;
+    shaderColors[i*3+1] = green(lerped)/255.0;
+    shaderColors[i*3+2] = blue(lerped)/255.0;
+  }
 }
 
 void draw() {
   fft.forward(song.mix);
-  float intensity = constrain(fft.calcAvg(20, 200) * 0.15, 0, 1.0);
+  bandBass = fft.calcAvg(20, 200) * BASS_STRENGTH;   
+  bandMid = fft.calcAvg(200, 2000) * MID_STRENGTH; 
+  bandTreble = fft.calcAvg(2000, 10000) * TREBLE_STRENGTH; 
+  float intensity = (bandBass + bandMid + bandTreble) * 0.05;
 
-  // Background and Palette Lerping
-  curBg = lerpColor(curBg, targetBg, colorLerpFactor);
-  color displayBg = curBg;
-  if (BEAT_PULSE_BG) {
-    float pulse = intensity * 45.0; // Oscillate brightness
-    displayBg = color(red(curBg) + pulse, green(curBg) + pulse, blue(curBg) + pulse);
-  }
-  background(displayBg);
-  
-  curC1 = lerpColor(curC1, targetC1, colorLerpFactor);
-  curC2 = lerpColor(curC2, targetC2, colorLerpFactor);
-  curC3 = lerpColor(curC3, targetC3, colorLerpFactor);
-  curC4 = lerpColor(curC4, targetC4, colorLerpFactor);
-  
-  if (frameCount % (MAX_FRAMES / PALETTES.length) == 0) {
-    PALETTE_INDEX = (PALETTE_INDEX + 1) % PALETTES.length;
-    updateTargetPalette(PALETTE_INDEX);
-  }
+  updatePalette();
+  color baseBg = color(shaderColors[0]*255, shaderColors[1]*255, shaderColors[2]*255);
+  if (INVERT_BG) baseBg = color(255 - red(baseBg), 255 - green(baseBg), 255 - blue(baseBg));
+  background(baseBg);
 
-  // Set Uniforms
-  dualShader.set("u_resolution", (float)width * pixelDensity, (float)height * pixelDensity);
+  float waveVal = song.mix.get(frameCount % song.bufferSize());
+  
+  jitterCounter++;
+  if (jitterCounter >= JITTER_DURATION) {
+    jitterDir = random(1.0) > 0.5 ? 1.0 : -1.0;
+    jitterCounter = 0;
+  }
+  
+  if (bandBass > 1.0) { waveJitterX = random(0.48, 0.52); }
+
+  // PASS PHYSICAL PIXELS: Logic for high-DPI displays
+  dualShader.set("u_resolution", (float)width * displayDensity(), (float)height * displayDensity());
   dualShader.set("u_time", millis() / 1000.0 * SPIN_SPEED);
   dualShader.set("u_topSectors", TOP_SYMMETRY);
   dualShader.set("u_botSectors", BOT_SYMMETRY);
-  dualShader.set("u_bloom", BLOOM_STRENGTH);
   dualShader.set("u_audioIntensity", intensity);
+  dualShader.set("u_waveVal", waveVal);
+  dualShader.set("u_waveJitterX", waveJitterX);
+  dualShader.set("u_jitterDir", jitterDir);
+  dualShader.set("u_bandBass", bandBass);
+  dualShader.set("u_bandMid", bandMid);
+  dualShader.set("u_bandTreble", bandTreble);
   dualShader.set("u_diameter", MANDALA_DIAMETER);
   dualShader.set("u_spiral", SPIRAL_TWIST);
   dualShader.set("u_armWidth", STARBURST_ARM_WIDTH);
   dualShader.set("u_armPulse", ARM_OSCILLATION);
   dualShader.set("u_distortion", NODE_DISTORTION);
-  
-  // Normalized center coordinates
-  dualShader.set("u_centerT", 0.5, 0.72);
-  dualShader.set("u_centerB", 0.5, 0.28);
-  
-  dualShader.set("u_color1", red(curC1)/255.0, green(curC1)/255.0, blue(curC1)/255.0);
-  dualShader.set("u_color2", red(curC2)/255.0, green(curC2)/255.0, blue(curC2)/255.0);
-  dualShader.set("u_color3", red(curC3)/255.0, green(curC3)/255.0, blue(curC3)/255.0);
-  dualShader.set("u_color4", red(curC4)/255.0, green(curC4)/255.0, blue(curC4)/255.0);
+  dualShader.set("u_glow", GLOW_STRENGTH);
+  dualShader.set("u_strandWidth", STRAND_WIDTH);
+  dualShader.set("u_centerT", CENTER_T_X, CENTER_T_Y);
+  dualShader.set("u_centerB", CENTER_B_X, CENTER_B_Y);
+  dualShader.set("u_showM1", SHOW_M1);
+  dualShader.set("u_showM2", SHOW_M2);
+  dualShader.set("u_showStrands", SHOW_STRANDS);
+  dualShader.set("u_palette", shaderColors, 3);
 
   shader(dualShader);
   rect(0, 0, width, height);
   resetShader();
 
   if (SAVE_FRAMES) saveFrame("frames/####.tif");
-  if (frameCount >= MAX_FRAMES || !song.isPlaying()) {
+  if (SAVE_FRAMES && frameCount >= MAX_FRAMES) {
     noLoop(); song.close(); minim.stop();
   }
 }
