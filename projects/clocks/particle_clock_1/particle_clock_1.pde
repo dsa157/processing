@@ -1,15 +1,15 @@
 /*
- * Dynamic Particle Clock - Physics Restore & Instant Date Hide
- * Version: 2026.02.05.15.25.00
+ * Dynamic Particle Clock - Palette Update & Logic Lock
+ * Version: 2026.02.05.15.50.00
  * * --- Logic Overview ---
- * 1. Selective Fading: globalAlpha controls the Glow. Date hides instantly at Phase 0.
- * 2. Instant Hide: Date alpha is hard-set to 0 the moment Phase 0 (Scatter) starts.
- * 3. Physics Restore: Scatter phase uses PVector random bursts and 0.94 velocity friction.
- * 4. State Machine: 
+ * 1. Palette Logic: Ensures the new Primary color is never the same as the 
+ * previous Primary color OR the current Background color (#0).
+ * 2. Selective Fading: globalAlpha controls the Glow. Date hides instantly at Phase 0.
+ * 3. State Machine: 
  * - Phase 0 (Scatter): Particles explode; Glow fades; Date hidden immediately.
  * - Phase 1 (Coalesce): Particles lerp to target; Glow/Date fade in.
  * - Phase 2 (Display): All elements 100% visible; colons pulse.
- * 5. Typography: Explicit 7x5 binary matrix with carriage returns for easy editing.
+ * 4. Typography: Explicit 7x5 binary matrix with carriage returns for easy editing.
  */
 
 // --- Configuration Parameters ---
@@ -40,14 +40,14 @@ float PARALLAX_SPEED = 0.05;
 float GRID_CELL_SIZE = 9.0;    // Horizontal/Vertical spacing of digit dots
 float PARTICLE_SIZE = 7.0;     // Diameter of individual time particles
 float DATE_V_OFFSET = 80.0;    // Vertical distance from center for the date string
-int PALETTE_INDEX = 2;         // Initial palette (0-4)
+int PALETTE_INDEX = 4;         // Initial palette (0-4) - Updated to Acid Green
 
 // --- Vivid Color Palettes ---
 // Format: {Background, Primary 1, Primary 2, Primary 3, Primary 4}
 String[][] PALETTES = {
   {"#0A0A0A", "#FF0000", "#FF4F00", "#FF8D00", "#FFFB00"}, // 0: Solar Fire
   {"#050505", "#00FF00", "#00FF9F", "#00EFFF", "#007BFF"}, // 1: Cyber Electric
-  {"#000000", "#FF00FF", "#9D00FF", "#4900FF", "#00FFFF"}, // 2: Synthwave (Default)
+  {"#000000", "#FF00FF", "#9D00FF", "#4900FF", "#00FFFF"}, // 2: Synthwave
   {"#0A0500", "#FFFF00", "#FFD700", "#FFA500", "#FF4500"}, // 3: Molten Gold
   {"#050A05", "#ADFF2F", "#32CD32", "#00FA9A", "#00CED1"}  // 4: Acid Green
 };
@@ -62,7 +62,7 @@ color[] activePalette;
 color targetThemeColor;
 color currentInterpColor;
 int currentPaletteIdx;
-float globalAlpha = 0;     // Controls Date and Glow fade
+float globalAlpha = 0;     
 
 /*
  * EXPLICIT BINARY MATRIX (7 rows x 5 columns)
@@ -192,10 +192,15 @@ void setup() {
 }
 
 void initPaletteColors() {
+  color lastPrimary = targetThemeColor;
   for (int i = 0; i < 5; i++) {
     activePalette[i] = unhex("FF" + PALETTES[currentPaletteIdx][i].substring(1));
   }
-  targetThemeColor = activePalette[floor(random(1, 5))];
+  int newIdx;
+  do {
+    newIdx = floor(random(1, 5));
+    targetThemeColor = activePalette[newIdx];
+  } while (targetThemeColor == lastPrimary);
 }
 
 void draw() {
@@ -237,7 +242,7 @@ void drawBackground() {
 }
 
 void drawDate() {
-  if (globalAlpha > 0 && currentPhase != 0) { // Enforce instant hide at phase 0
+  if (globalAlpha > 0 && currentPhase != 0) {
     textAlign(CENTER, CENTER);
     java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MM/dd/yyyy");
     java.text.SimpleDateFormat dayName = new java.text.SimpleDateFormat("EEEE");
@@ -364,19 +369,19 @@ class Particle {
   }
 
   void update() {
-    if (currentPhase == 0) { // Physics restore
+    if (currentPhase == 0) { // Scatter
       acc.add(PVector.random2D().mult(0.4));
       vel.add(acc);
       pos.add(vel);
       acc.mult(0);
       vel.mult(0.94);
-    } else if (currentPhase == 1) { 
+    } else if (currentPhase == 1) { // Coalesce
       float pct = phaseTimer / TIME_COALESCE;
       float ease = 1 - pow(1 - pct, 4); 
       if (pct == 0) startPos.set(pos); 
       pos.x = lerp(startPos.x, target.x, ease);
       pos.y = lerp(startPos.y, target.y, ease);
-    } else { 
+    } else { // Display
       pos.set(target);
       vel.set(0, 0);
     }
@@ -384,16 +389,13 @@ class Particle {
 
   void display() {
     if (!active && currentPhase != 0) return;
-    
     float renderSize = PARTICLE_SIZE;
     if (isColon && currentPhase == 2) {
       float pulse = sin((millis() % 1000) / 1000.0 * PI);
       renderSize += (pulse * 3.0) - 1.5;
     }
-    
     noStroke();
-    float fadeGlow = (currentPhase == 0) ? map(phaseTimer, 0, TIME_SCATTER, GLOW_ALPHA, 0) : (globalAlpha/255.0) * GLOW_ALPHA;
-    fill(currentInterpColor, fadeGlow);
+    fill(currentInterpColor, (globalAlpha/255.0) * GLOW_ALPHA);
     ellipse(pos.x, pos.y, renderSize * 3.5, renderSize * 3.5);
     fill(currentInterpColor);
     ellipse(pos.x, pos.y, renderSize, renderSize);
