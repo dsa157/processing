@@ -1,14 +1,15 @@
 /*
- * Dynamic Particle Clock - Initial Glow Fix
- * Version: 2026.02.05.14.30.00
+ * Dynamic Particle Clock - Physics Restore & Instant Date Hide
+ * Version: 2026.02.05.15.25.00
  * * --- Logic Overview ---
- * 1. Typography: A 3D array [digit][row][col] provides a 1:1 visual map of the clock.
- * 2. State Machine: 
- * - Phase 0 (Scatter): Particles explode from their current positions.
- * - Phase 1 (Coalesce): Particles lerp toward the next time's target grid.
- * - Phase 2 (Display): Particles lock to the grid; colons pulse at 1Hz.
- * 3. Ghosting Fix: Every frame, all particle 'active' states are reset before targets are assigned.
- * 4. Time Formatting: Zero-padding is enforced on HH, mm, and ss via nf().
+ * 1. Selective Fading: globalAlpha controls the Glow. Date hides instantly at Phase 0.
+ * 2. Instant Hide: Date alpha is hard-set to 0 the moment Phase 0 (Scatter) starts.
+ * 3. Physics Restore: Scatter phase uses PVector random bursts and 0.94 velocity friction.
+ * 4. State Machine: 
+ * - Phase 0 (Scatter): Particles explode; Glow fades; Date hidden immediately.
+ * - Phase 1 (Coalesce): Particles lerp to target; Glow/Date fade in.
+ * - Phase 2 (Display): All elements 100% visible; colons pulse.
+ * 5. Typography: Explicit 7x5 binary matrix with carriage returns for easy editing.
  */
 
 // --- Configuration Parameters ---
@@ -55,21 +56,20 @@ String[][] PALETTES = {
 ArrayList<Particle> particles = new ArrayList<Particle>();
 PVector[] bgStars;
 float[] starSpeeds;
-int currentPhase = 2; 
-float phaseTimer = 0.01; // Tiny offset to trigger initial state logic
+int currentPhase = 1;      
+float phaseTimer = 0;
 color[] activePalette;
 color targetThemeColor;
 color currentInterpColor;
 int currentPaletteIdx;
-float textAlpha = 0;
+float globalAlpha = 0;     // Controls Date and Glow fade
 
 /*
  * EXPLICIT BINARY MATRIX (7 rows x 5 columns)
  * 1 = Pixel On (X), 0 = Pixel Off (.)
- * This visual map allows for direct editing of digit shapes.
  */
 int[][][] font = {
-  { // 0: Rounded Oval
+  { // 0
     {0,1,1,1,0},
     {1,0,0,0,1},
     {1,0,0,0,1},
@@ -78,7 +78,7 @@ int[][][] font = {
     {1,0,0,0,1},
     {0,1,1,1,0}
   },
-  { // 1: Pillar
+  { // 1
     {0,0,1,0,0},
     {0,1,1,0,0},
     {0,0,1,0,0},
@@ -87,7 +87,7 @@ int[][][] font = {
     {0,0,1,0,0},
     {0,1,1,1,0}
   },
-  { // 2: Rounded S-Reverse
+  { // 2
     {0,1,1,1,0},
     {1,0,0,0,1},
     {0,0,0,0,1},
@@ -96,7 +96,7 @@ int[][][] font = {
     {0,1,0,0,0},
     {1,1,1,1,1}
   },
-  { // 3: Rounded Arches
+  { // 3
     {0,1,1,1,0},
     {1,0,0,0,1},
     {0,0,0,0,1},
@@ -105,7 +105,7 @@ int[][][] font = {
     {1,0,0,0,1},
     {0,1,1,1,0}
   },
-  { // 4: Calibrated Diagonal (Matched to user reference)
+  { // 4
     {0,0,0,1,0},
     {0,0,1,1,0},
     {0,1,0,1,0},
@@ -114,7 +114,7 @@ int[][][] font = {
     {0,0,0,1,0},
     {0,0,0,1,0}
   },
-  { // 5: Rounded S-Shape
+  { // 5
     {1,1,1,1,1},
     {1,0,0,0,0},
     {1,1,1,1,0},
@@ -123,7 +123,7 @@ int[][][] font = {
     {1,0,0,0,1},
     {0,1,1,1,0}
   },
-  { // 6: Rounded G-Shape
+  { // 6
     {0,1,1,1,0},
     {1,0,0,0,0},
     {1,1,1,1,0},
@@ -132,7 +132,7 @@ int[][][] font = {
     {1,0,0,0,1},
     {0,1,1,1,0}
   },
-  { // 7: Diagonal Spine
+  { // 7
     {1,1,1,1,1},
     {0,0,0,0,1},
     {0,0,0,1,0},
@@ -141,7 +141,7 @@ int[][][] font = {
     {1,0,0,0,0},
     {1,0,0,0,0}
   },
-  { // 8: Figure Eight
+  { // 8
     {0,1,1,1,0},
     {1,0,0,0,1},
     {1,0,0,0,1},
@@ -150,7 +150,7 @@ int[][][] font = {
     {1,0,0,0,1},
     {0,1,1,1,0}
   },
-  { // 9: Rounded P-Shape
+  { // 9
     {0,1,1,1,0},
     {1,0,0,0,1},
     {1,0,0,0,1},
@@ -169,7 +169,6 @@ void setup() {
   randomSeed(GLOBAL_SEED);
   frameRate(ANIMATION_SPEED);
   
-  // Initialize colors immediately to prevent background flash on startup
   currentPaletteIdx = PALETTE_INDEX;
   activePalette = new color[5];
   for (int i = 0; i < 5; i++) {
@@ -178,7 +177,6 @@ void setup() {
   targetThemeColor = activePalette[floor(random(1, 5))];
   currentInterpColor = targetThemeColor;
   
-  // Setup Background Stars for parallax
   bgStars = new PVector[BG_PARTICLE_COUNT];
   starSpeeds = new float[BG_PARTICLE_COUNT];
   for (int i = 0; i < BG_PARTICLE_COUNT; i++) {
@@ -186,17 +184,14 @@ void setup() {
     starSpeeds[i] = random(0.5, 2.0) * PARALLAX_SPEED;
   }
 
-  // Pre-fill particle buffer (enough for 6 digits + 2 colons)
   for (int i = 0; i < 800; i++) {
     particles.add(new Particle());
   }
   
-  // Ensure targets are set for the initial display frame
-  updateTargets();
+  updateTargets(); 
 }
 
 void initPaletteColors() {
-  // Update the theme when phases cycle
   for (int i = 0; i < 5; i++) {
     activePalette[i] = unhex("FF" + PALETTES[currentPaletteIdx][i].substring(1));
   }
@@ -204,11 +199,9 @@ void initPaletteColors() {
 }
 
 void draw() {
-  // Calculate Background
   color bg = activePalette[0];
   if (INVERT_BG) bg = color(255 - red(bg), 255 - green(bg), 255 - blue(bg));
   
-  // Apply trails if toggled
   if (ENABLE_TRAILS) {
     noStroke();
     fill(bg, 55); 
@@ -217,21 +210,18 @@ void draw() {
     background(bg);
   }
   
-  // Smooth color shifting
   currentInterpColor = lerpColor(currentInterpColor, targetThemeColor, 0.04);
   
   drawBackground();
   updatePhases();
   updateTargets();
   
-  // Process particles
   for (Particle p : particles) {
     p.update();
     p.display();
   }
   
-  // Date is only visible in display phase
-  if (currentPhase == 2) drawDate();
+  drawDate();
 }
 
 void drawBackground() {
@@ -247,15 +237,14 @@ void drawBackground() {
 }
 
 void drawDate() {
-  textAlpha = lerp(textAlpha, 255, 0.05);
-  if (textAlpha > 1) {
+  if (globalAlpha > 0 && currentPhase != 0) { // Enforce instant hide at phase 0
     textAlign(CENTER, CENTER);
     java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MM/dd/yyyy");
     java.text.SimpleDateFormat dayName = new java.text.SimpleDateFormat("EEEE");
     java.util.Date now = new java.util.Date();
     String dateStr = dayName.format(now).toUpperCase() + "  " + sdf.format(now);
     
-    fill(currentInterpColor, textAlpha);
+    fill(currentInterpColor, globalAlpha);
     textSize(14);
     text(dateStr, width/2, (height/2) + DATE_V_OFFSET);
   }
@@ -265,13 +254,19 @@ void updatePhases() {
   phaseTimer += 1.0 / ANIMATION_SPEED;
   float threshold = (currentPhase == 0) ? TIME_SCATTER : (currentPhase == 1) ? TIME_COALESCE : TIME_DISPLAY;
   
+  if (currentPhase == 0) {
+    globalAlpha = 0; 
+  } else if (currentPhase == 1) {
+    globalAlpha = map(phaseTimer, 0, threshold, 0, 255);
+  } else {
+    globalAlpha = 255;
+  }
+
   if (phaseTimer >= threshold) {
     phaseTimer = 0;
     currentPhase = (currentPhase + 1) % 3;
     
-    // On phase 0, trigger explosion and change colors
     if (currentPhase == 0) {
-      textAlpha = 0;
       currentPaletteIdx = (currentPaletteIdx + 1) % PALETTES.length;
       initPaletteColors();
       for (Particle p : particles) p.prepareExplosion();
@@ -280,14 +275,12 @@ void updatePhases() {
 }
 
 void updateTargets() {
-  // Handle 12/24 hour conversion
   int h = hour();
   if (!USE_24HOUR) {
     h = h % 12;
     if (h == 0) h = 12;
   }
   
-  // String format with mandatory zero padding
   String timeStr = nf(h, 2) + ":" + nf(minute(), 2) + ":" + nf(second(), 2);
   
   float charWidth = 5 * GRID_CELL_SIZE;
@@ -297,7 +290,6 @@ void updateTargets() {
   float startY = (height - (7 * GRID_CELL_SIZE)) / 2;
   
   int pIdx = 0;
-  // CRITICAL: Set all particles to inactive to clear the previous digit's buffer
   for (Particle p : particles) p.active = false;
 
   for (int i = 0; i < timeStr.length(); i++) {
@@ -336,7 +328,7 @@ int setTargetDigit(int d, float x, float y, int pIdx, float space) {
 }
 
 int setTargetColon(float x, float y, int pIdx, float space) {
-  int[] rows = {1, 5}; // Vertical dots for the colon
+  int[] rows = {1, 5}; 
   for (int r : rows) {
     if (pIdx < particles.size()) {
       particles.get(pIdx).setTarget(x + space, y + r * space, true);
@@ -372,19 +364,19 @@ class Particle {
   }
 
   void update() {
-    if (currentPhase == 0) { // Scatter: Physics simulation
+    if (currentPhase == 0) { // Physics restore
       acc.add(PVector.random2D().mult(0.4));
       vel.add(acc);
       pos.add(vel);
       acc.mult(0);
       vel.mult(0.94);
-    } else if (currentPhase == 1) { // Coalesce: Quadratic easing toward target
+    } else if (currentPhase == 1) { 
       float pct = phaseTimer / TIME_COALESCE;
       float ease = 1 - pow(1 - pct, 4); 
       if (pct == 0) startPos.set(pos); 
       pos.x = lerp(startPos.x, target.x, ease);
       pos.y = lerp(startPos.y, target.y, ease);
-    } else { // Display: Rigid positioning
+    } else { 
       pos.set(target);
       vel.set(0, 0);
     }
@@ -394,14 +386,14 @@ class Particle {
     if (!active && currentPhase != 0) return;
     
     float renderSize = PARTICLE_SIZE;
-    // Apply pulsing to colons in display phase
     if (isColon && currentPhase == 2) {
       float pulse = sin((millis() % 1000) / 1000.0 * PI);
       renderSize += (pulse * 3.0) - 1.5;
     }
     
     noStroke();
-    fill(currentInterpColor, GLOW_ALPHA);
+    float fadeGlow = (currentPhase == 0) ? map(phaseTimer, 0, TIME_SCATTER, GLOW_ALPHA, 0) : (globalAlpha/255.0) * GLOW_ALPHA;
+    fill(currentInterpColor, fadeGlow);
     ellipse(pos.x, pos.y, renderSize * 3.5, renderSize * 3.5);
     fill(currentInterpColor);
     ellipse(pos.x, pos.y, renderSize, renderSize);
