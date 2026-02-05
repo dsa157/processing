@@ -1,14 +1,16 @@
 /**
  * Animated Carlson Truchet Morph
- * Version: 2026.02.03.18.22.45
- * An expert implementation of morphing Truchet patterns with glow effects.
+ * Version: 2026.02.04.09.00.12
+ * * All cross tiles use dot-pulsing logic.
+ * * Synchronized retraction: Dot is smallest when arms are furthest away.
+ * * Cleaned glow layers to remove end-cap artifacts.
  */
 
 // --- Parameters ---
 int SKETCH_WIDTH = 480;           // default 480
 int SKETCH_HEIGHT = 800;          // default 800
 int CANVAS_PADDING = 40;          // default 40
-int GLOBAL_SEED = 999;            // default 999
+int GLOBAL_SEED = 157;            // default 999
 int MAX_FRAMES = 900;             // default 900
 boolean SAVE_FRAMES = false;      // default false
 int ANIMATION_SPEED = 30;         // default 30
@@ -16,10 +18,15 @@ boolean SHOW_GRID = false;        // default false
 boolean INVERT_COLORS = false;    // default false
 int PALETTE_INDEX = 1;            // 0 to 4
 
-// Visual Tweaks
-int GRID_COUNT = 6;               // default 6 (columns)
-float GLOW_INTENSITY = 20;       // default 120 (alpha of glow)
+// Distribution & Animation
+float CURVE_RATIO = 0.5;         // default 0.65
+int GRID_COUNT = 6;               // default 6
 float MORPH_SPEED = 0.08;         // default 0.05
+float STROKE_WEIGHT_RATIO = 0.16; // default 0.15
+
+// Glow Parameters
+float GLOW_ALPHA = 20;            // default 20
+float GLOW_SPREAD = 4.0;          // default 6.0
 
 // --- Colors ---
 String[][] PALETTES = {
@@ -94,7 +101,7 @@ void draw() {
 
 class TruchetTile {
   float x, y, s;
-  int type;
+  boolean isCurved;
   int rotation;
   float morphPhase;
   float offset;
@@ -103,7 +110,7 @@ class TruchetTile {
     this.x = x;
     this.y = y;
     this.s = s;
-    this.type = int(random(1, 16));
+    this.isCurved = random(1.0) < CURVE_RATIO;
     this.rotation = int(random(4));
     this.offset = random(TWO_PI);
   }
@@ -117,56 +124,52 @@ class TruchetTile {
     translate(x + s/2, y + s/2);
     rotate(HALF_PI * rotation);
 
-    if (SHOW_GRID) {
-      noFill();
-      stroke(strokeCol, 30);
-      rect(-s/2, -s/2, s, s);
-    }
+    float baseWeight = s * STROKE_WEIGHT_RATIO;
 
-    // Glow Effect: Draw soft underlayers
+    // Render Glow (Background to Foreground)
     for (int i = 3; i > 0; i--) {
-      float glowSize = map(i, 3, 1, s * 0.1, 0);
-      drawPattern(type, s, color(strokeCol, GLOW_INTENSITY / (i * 2)), glowSize);
+      float extraWeight = i * GLOW_SPREAD;
+      drawPattern(color(strokeCol, GLOW_ALPHA / (i * 1.5)), extraWeight, baseWeight);
     }
     
-    // Main Pattern
-    drawPattern(type, s, strokeCol, 0);
+    // Render Core
+    drawPattern(strokeCol, 0, baseWeight);
     
     popMatrix();
   }
 
-  void drawPattern(int t, float sz, color c, float weightMod) {
-    float r = (sz * 0.25) + (morphPhase * 5);
+  void drawPattern(color c, float weightMod, float bWeight) {
     stroke(c);
-    strokeWeight(sz * 0.15 + weightMod);
+    strokeWeight(bWeight + weightMod);
     noFill();
     strokeCap(ROUND);
 
-    float m = map(morphPhase, -1, 1, 0.2, 1.0);
-
-    // Carlson logic: based on connecting points on the 1/4 and 3/4 marks of each side
-    if (t < 5) {
-      // Type: Arcs and simple paths
-      arc(-sz/2, -sz/2, sz, sz, 0, HALF_PI * m);
-      arc(sz/2, sz/2, sz, sz, PI, PI + (HALF_PI * m));
-    } else if (t < 10) {
-      // Type: Intersection/Bridge
-      line(-sz/2, 0, sz/2 * m, 0);
-      line(0, -sz/2, 0, sz/2 * m);
-      ellipse(0, 0, r * m, r * m);
+    if (isCurved) {
+      // Arcs morph by length
+      float m = map(morphPhase, -1, 1, 0.1, 1.0);
+      arc(-s/2, -s/2, s, s, 0, HALF_PI * m);
+      arc(s/2, s/2, s, s, PI, PI + (HALF_PI * m));
     } else {
-      // Type: Complex Hubs
+      // Synchronized Dot & Cross
+      // Abs(phase) goes 0 -> 1 -> 0. 
+      // Dot is smallest (0.1) when retract is furthest (0.45)
+      float pulse = abs(morphPhase); 
+      float retractVal = map(pulse, 0, 1, s * 0.45, 0); 
+      float dotScale = map(pulse, 0, 1, 0.1, 1.0);
+
+      // Draw retracting arms
+      line(-s/2, 0, -retractVal, 0);
+      line(s/2, 0, retractVal, 0);
+      line(0, -s/2, 0, -retractVal);
+      line(0, s/2, 0, retractVal);
+      
+      // Draw pulsing dot
+      pushStyle();
       fill(c);
       noStroke();
-      float hubSize = sz * 0.4 * abs(morphPhase);
-      rectMode(CENTER);
-      rect(0, 0, hubSize, hubSize, r);
-      
-      // Dynamic connectors
-      rect(0, -sz/4, sz * 0.1, sz/2 * abs(morphPhase));
-      rect(0, sz/4, sz * 0.1, sz/2 * abs(morphPhase));
-      rect(-sz/4, 0, sz/2 * abs(morphPhase), sz * 0.1);
-      rect(sz/4, 0, sz/2 * abs(morphPhase), sz * 0.1);
+      float dotSize = (s * 0.3 * dotScale) + (weightMod * 0.5);
+      ellipse(0, 0, dotSize, dotSize);
+      popStyle();
     }
   }
 }
