@@ -1,8 +1,8 @@
 /*
  * Kinetic Raster Clock
- * Version: 2026.02.05.18.45.10
- * Fixed transition jumps. Persistent background cell properties.
- * Smooth easing-in and easing-out of the clock phase.
+ * Version: 2026.02.05.18.45.30
+ * Fixes: Guaranteed visibility of background cells at clock peak.
+ * Optimized phase transition and persistent grid properties.
  */
 
 // --- Parameters ---
@@ -14,7 +14,7 @@ float PADDING = 40;           // Default: 40
 
 int GRID_COLS = 11;           // User Adjusted: 11
 int GRID_ROWS = 25;           // User Adjusted: 25
-boolean SHOW_GRID = true;     // Default: true
+boolean SHOW_GRID = false;     // Default: true
 
 boolean USE_24H = false;      // Default: false
 int PALETTE_INDEX = 1;        // User Adjusted: 1
@@ -33,11 +33,11 @@ boolean CYCLE_GLYPH_STYLE = true;
 boolean RANDOM_BG_GLYPHS = true;  
 
 // Animation Toggles
-boolean BG_COLOR_SHIFT = true;   
+boolean BG_COLOR_SHIFT = false;   
 
 // Alpha Parameters
-int BG_ALPHA_CHAOS = 160;     // Default: 160
-int BG_ALPHA_CLOCK = 100;     // Default: 100
+int BG_ALPHA_CHAOS = 255;     // User Adjusted: 200
+int BG_ALPHA_CLOCK = 20;     // User Adjusted: 140
 
 // Phase Timing (Seconds)
 float DURATION_CHAOS = 10.0;  // User Adjusted: 10
@@ -155,7 +155,6 @@ boolean[][] activeCells;
 float[][] pulsePhases;
 float[][] pulseSpeeds;
 int[][] cellGlyphStyles;
-int lastCycleIndex = -1;
 
 void setup() {
   size(480, 800);
@@ -174,7 +173,6 @@ void setup() {
   pulseSpeeds = new float[GRID_COLS][GRID_ROWS];
   cellGlyphStyles = new int[GRID_COLS][GRID_ROWS];
   
-  // Initialize persistent grid properties ONCE
   for (int i = 0; i < GRID_COLS; i++) {
     for (int j = 0; j < GRID_ROWS; j++) {
       pulsePhases[i][j] = random(TWO_PI) * PHASE_DIVERSITY;
@@ -205,17 +203,14 @@ void draw() {
   
   updateTimeGrid();
   
-  // Timing Logic
   float totalCycleTime = DURATION_CHAOS + DURATION_CLOCK;
   float currentTime = (millis() / 1000.0) % totalCycleTime;
   
-  float t; // Normalized visibility of the clock (0.0 chaos -> 1.0 clock)
+  float t; 
   if (currentTime < DURATION_CHAOS) {
-    // Chaos phase: Clock is easing IN
     float norm = currentTime / DURATION_CHAOS;
     t = (1.0 - cos(norm * PI)) / 2.0; 
   } else {
-    // Clock phase: Clock is easing OUT
     float norm = (currentTime - DURATION_CHAOS) / DURATION_CLOCK;
     t = (1.0 + cos(norm * PI)) / 2.0;
   }
@@ -232,7 +227,7 @@ void draw() {
 
 void updateTimeGrid() {
   int hRaw = hour();
-  if (!USE_24H) { hRaw = hRaw % 12; if (hRaw == 0) hRaw = 12; }
+  if (!USE_24H) { hRaw = hRaw % 12; if (hRaw == 12) hRaw = 12; else if (hRaw == 0) hRaw = 12; }
   String timeStr = nf(hRaw, 2) + nf(minute(), 2) + nf(second(), 2);
   int startX = (GRID_COLS - (2 * digitBoxW + GUTTER)) / 2;
   int startY = (GRID_ROWS - (3 * digitBoxH + 2 * GUTTER)) / 2;
@@ -259,7 +254,7 @@ void renderGrid(float t) {
   ellipseMode(CENTER);
   float maxD = cellW * MAX_GLYPH_SIZE_MULT;
   
-  // BG alpha lerps between 160 (Chaos) and 100 (Clock)
+  // Background alpha is always calculated
   int currentBgAlpha = int(lerp(BG_ALPHA_CHAOS, BG_ALPHA_CLOCK, t));
 
   for (int i = 0; i < GRID_COLS; i++) {
@@ -271,43 +266,48 @@ void renderGrid(float t) {
       float n = (sin(pulsePhases[i][j]) + 1) / 2.0;
       
       int drawColor = activeCells[i][j] ? accentColor : (BG_COLOR_SHIFT ? lerpColor(accentColor, altColor, t) : accentColor);
-      int finalAlpha = activeCells[i][j] ? int(lerp(BG_ALPHA_CHAOS, 255, t)) : currentBgAlpha;
       
-      // Morphing for clock cells only
-      int styleChaos = RANDOM_BG_GLYPHS ? cellGlyphStyles[i][j] : GLYPH_STYLE;
-      int styleClock = 0; // Solid Dot for Clock Phase
-
       if (activeCells[i][j]) {
-        // We morph quicker out of clock into chaos using a power curve on (1-t)
-        float morphFactor = (t < 0.5) ? pow(t * 2, 0.5) : 1.0; 
-        // In the chaos-to-clock (t increasing), we use t. 
-        // In clock-to-chaos (t decreasing), t is already easing, but we want the style to snap back to random.
+        // Morphing logic for clock cells: Style 0 (Stationary) vs Chaos Style
+        int chaosStyle = RANDOM_BG_GLYPHS ? cellGlyphStyles[i][j] : GLYPH_STYLE;
+        int clockAlpha = int(lerp(BG_ALPHA_CHAOS, 255, t));
         
-        // Simpler cross-fade morph based on t
-        drawGlyph(cx, cy, n, t, activeCells[i][j], int(finalAlpha * (1.0 - t)), maxD, styleChaos, drawColor);
-        drawGlyph(cx, cy, n, t, activeCells[i][j], int(finalAlpha * t), maxD, styleClock, drawColor);
+        // Use a power curve for morphing back to chaos faster
+        float morphT = (t < 0.5) ? pow(t * 2, 0.4) : 1.0; 
+        
+        if (t < 1.0) {
+          // Morphing between Chaos Style and Clock Style 0
+          drawGlyph(cx, cy, n, t, true, int(clockAlpha * (1.0 - morphT)), maxD, chaosStyle, drawColor);
+          drawGlyph(cx, cy, n, t, true, int(clockAlpha * morphT), maxD, 0, drawColor);
+        } else {
+          drawGlyph(cx, cy, n, t, true, 255, maxD, 0, drawColor);
+        }
       } else {
-        drawGlyph(cx, cy, n, t, activeCells[i][j], finalAlpha, maxD, styleChaos, drawColor);
+        // Background stays Background
+        int bgStyle = RANDOM_BG_GLYPHS ? cellGlyphStyles[i][j] : GLYPH_STYLE;
+        drawGlyph(cx, cy, n, t, false, currentBgAlpha, maxD, bgStyle, drawColor);
       }
     }
   }
 }
 
-void drawGlyph(float x, float y, float n, float t, boolean active, int alpha, float maxD, int style, int c) {
+void drawGlyph(float x, float y, float n, float clockT, boolean active, int alpha, float maxD, int style, int c) {
   if (alpha <= 0) return;
   push();
   translate(x, y);
   stroke(c, alpha);
   fill(c, alpha);
-  float curSize = lerp(cellW * 0.1, maxD, n);
-  if (active) curSize = lerp(curSize, maxD, t);
+  
+  // Size logic: background pulses, active clock cells lock to maxD at peak
+  float pulseSize = lerp(cellW * 0.1, maxD, n);
+  float finalSize = active ? lerp(pulseSize, maxD, clockT) : pulseSize;
 
   switch(style) {
-    case 0: noStroke(); ellipse(0, 0, curSize, curSize); break;
-    case 1: noFill(); strokeWeight(lerp(0.5, 2.0, t)); ellipse(0, 0, curSize, curSize); break;
-    case 2: noStroke(); ellipse(0, 0, curSize * 0.3, curSize * 0.3); noFill(); strokeWeight(0.5); ellipse(0, 0, curSize, curSize); break;
-    case 3: noFill(); strokeWeight(1.5); rotate(pulsePhases[(int)(x/cellW)%GRID_COLS][(int)(y/cellH)%GRID_ROWS] * 0.5); arc(0, 0, curSize, curSize, 0, HALF_PI); break;
-    case 4: noFill(); strokeWeight(0.5); for (int i = 1; i <= 3; i++) { float s = curSize * (i / 3.0); ellipse(0, 0, s, s); } break;
+    case 0: noStroke(); ellipse(0, 0, finalSize, finalSize); break;
+    case 1: noFill(); strokeWeight(lerp(0.5, 2.0, clockT)); ellipse(0, 0, finalSize, finalSize); break;
+    case 2: noStroke(); ellipse(0, 0, finalSize * 0.3, finalSize * 0.3); noFill(); strokeWeight(0.5); ellipse(0, 0, finalSize, finalSize); break;
+    case 3: noFill(); strokeWeight(1.5); rotate(pulsePhases[(int)(x/cellW)%GRID_COLS][(int)(y/cellH)%GRID_ROWS] * 0.5); arc(0, 0, finalSize, finalSize, 0, HALF_PI); break;
+    case 4: noFill(); strokeWeight(0.5); for (int i = 1; i <= 3; i++) { float s = finalSize * (i / 3.0); ellipse(0, 0, s, s); } break;
   }
   pop();
 }
