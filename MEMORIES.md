@@ -1,25 +1,41 @@
 /**
  * Processing Sketch Memories & Rules
- * Version: 2026.04.07.13.57.40
+ * Version: 2026.04.07.14.12.00
  * Description: Permanent implementation rules and design principles for all Processing projects.
  */
 
-/* 🛠️ Code Structure & Logic */
-// 1. Global Seed: Use a seed parameter to initialize random values.
-// 2. No Magic Numbers: All values at the top of the code as parameters.
-// 3. Default Values in Comments: Store original values for reference.
-// 4. Versioning: Use YYYY.MM.DD.HH.mm.SS formatted timestamps.
-// 5. Centering: Center output on the canvas by default.
-// 6. Focus Scope: Limit changes to what is requested.
+/* 🛠️ Technical Structure & Code Logic */
+// 1. Global Seed: Use a seed parameter to initialize random() values for reproducibility.
+// 2. No Magic Numbers: Parameterize ALL values at the top of the script.
+// 3. Default Values in Comments: Store original values next to parameters (e.g. `float r = 10; // 10`).
+// 4. Versioning: Use YYYY.MM.DD.HH.mm.SS formatted timestamps in the header.
+// 5. Canvas Setup: Default 480x800. Use `void settings() { size(SKETCH_WIDTH, SKETCH_HEIGHT); }` for dynamic sizing.
+// 6. Padding: Include a `padding` parameter (default 40) for the overall sketch area.
+// 7. Background Inversion: Allow background color to be easily inverted via parameter.
+// 8. Reserved Words: Do NOT use reserved words (like `color`) as variable names.
+// 9. Design Pattern: Use classes if it improves design; otherwise, keep it simple and clean.
+// 10. Implement Code: Do not use image generation tools; implement all visuals via code.
 
-/* 🎨 Design & Aesthetics */
-// 1. Color Palettes: 5 distinct arrays sourced from Adobe Kuler.
-// 2. Palette Selection: Use a paletteIndex parameter (0-4).
-// 3. Background: Allow background color to be picked from the palette.
-// 4. Rich Aesthetics: Vibrant colors, gradients, and micro-animations.
-// 5. No Placeholders: Generate actual assets where needed.
+/* 📁 Project Structure & Organization */
+// 1. Sub-Projects: Create a subfolder for each new PDE file.
+// 2. Default Path: New projects are placed under `projects/` by default.
+// 3. Nested Folders: Extra folder info specifies subfolders under `projects/`.
 
-/* 🤖 Interaction & Style */
-// 1. Brief Communication: Concise, direct, non-sycophantic.
-// 2. Revision Confirmation: Never declare "final" until verified working.
-// 3. Creative Freedom: Add visual polish beyond basic requirements.
+/* 🎨 Design, Aesthetics & Color */
+// 1. Color Palettes: 5 distinct hex arrays (Adobe Kuler) + 1 Grayscale + 1 Pure Black & White (7 total).
+// 2. Palette Selection: Use a `paletteIndex` parameter to switch active sets.
+// 3. Background Color: Must be selectable from the active palette.
+// 4. Rich Aesthetics: Prioritize premium visuals, smooth gradients, and micro-animations.
+// 5. Grid Logic: If using grids, add a show/hide toggle parameter (default: hide).
+
+/* 🎬 Animation & Rendering */
+// 1. Frame Limits: `MAX_FRAMES` (default 900).
+// 2. Saving: `SAVE_FRAMES` (default false). If true, save as `frames/####.tif`.
+// 3. Speed: `ANIMATION_SPEED` (default 30). 
+// 4. Loop Control: Only stop (noLoop()) if `SAVE_FRAMES` is true AND `frameCount >= MAX_FRAMES`.
+
+/* 🤖 Interaction & Delivery Style */
+// 1. Code Delivery: Always provide the FULL modified sketch, never just snippets.
+// 2. Brief Communication: Concise, direct, and non-sycophantic.
+// 3. Revision Confirmation: Never declare "final" until verified working.
+// 4. Creative Freedom: Add visual polish beyond basic requirements.
