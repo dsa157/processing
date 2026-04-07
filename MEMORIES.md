@@ -1,6 +1,6 @@
 /**
  * Processing Sketch Memories & Rules
- * Version: 2026.04.07.14.12.00
+ * Version: 2026.04.07.14.12.02
  * Description: Permanent implementation rules and design principles for all Processing projects.
  */
 
@@ -35,7 +35,6 @@
 // 4. Loop Control: Only stop (noLoop()) if `SAVE_FRAMES` is true AND `frameCount >= MAX_FRAMES`.
 
 /* 🤖 Interaction & Delivery Style */
-// 1. Code Delivery: Always provide the FULL modified sketch, never just snippets.
-// 2. Brief Communication: Concise, direct, and non-sycophantic.
-// 3. Revision Confirmation: Never declare "final" until verified working.
-// 4. Creative Freedom: Add visual polish beyond basic requirements.
+// 1. Brief Communication: Concise, direct, and non-sycophantic.
+// 2. Revision Confirmation: Never declare "final" until verified working.
+// 3. Creative Freedom: Add visual polish beyond basic requirements.
