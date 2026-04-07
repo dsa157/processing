@@ -1,15 +1,16 @@
 /**
  * Processing Sketch Memories & Rules
- * Version: 2026.04.07.14.12.02
+ * Version: 2026.04.07.14.31.46
  * Description: Permanent implementation rules and design principles for all Processing projects.
  */
 
 /* 🛠️ Technical Structure & Code Logic */
 // 1. Global Seed: Use a seed parameter to initialize random() values for reproducibility.
-// 2. No Magic Numbers: Parameterize ALL values at the top of the script.
+// 2. No Magic Numbers: Parameterize ALL values at the top of the script. Use **ALL CAPS** for parameter names to distinguish them clearly.
 // 3. Default Values in Comments: Store original values next to parameters (e.g. `float r = 10; // 10`).
-// 4. Versioning: Use YYYY.MM.DD.HH.mm.SS formatted timestamps in the header.
-// 5. Canvas Setup: Default 480x800. Use `void settings() { size(SKETCH_WIDTH, SKETCH_HEIGHT); }` for dynamic sizing.
+// 4. Versioning: Use YYYY.MM.DD.HH.mm.SS formatted timestamps in the header. Only update the version if the file's content has changed.
+// 5. Canvas Setup: Default 480x800. Prefer using `void settings() { size(SKETCH_WIDTH, SKETCH_HEIGHT); }`. 
+//    EXCEPTION: If a "Duplicate method settings()" error occurs, remove `void settings()` and hard-code `size(480, 800);` as the first line in `void setup()`.
 // 6. Padding: Include a `padding` parameter (default 40) for the overall sketch area.
 // 7. Background Inversion: Allow background color to be easily inverted via parameter.
 // 8. Reserved Words: Do NOT use reserved words (like `color`) as variable names.
@@ -38,3 +39,4 @@
 // 1. Brief Communication: Concise, direct, and non-sycophantic.
 // 2. Revision Confirmation: Never declare "final" until verified working.
 // 3. Creative Freedom: Add visual polish beyond basic requirements.
+// 4. Git Context: Do NOT perform or propose any git changes (stage/commit/push) unless explicitly specified.
