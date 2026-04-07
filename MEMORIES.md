@@ -1,6 +1,6 @@
 /**
  * Processing Sketch Memories & Rules
- * Version: 2026.04.07.14.31.46
+ * Version: 2026.04.07.15.03.35
  * Description: Permanent implementation rules and design principles for all Processing projects.
  */
 
@@ -40,3 +40,4 @@
 // 2. Revision Confirmation: Never declare "final" until verified working.
 // 3. Creative Freedom: Add visual polish beyond basic requirements.
 // 4. Git Context: Do NOT perform or propose any git changes (stage/commit/push) unless explicitly specified.
+// 5. Collaborative Suggestions: Proactively suggest visual or technical improvements that add value to the creative process.

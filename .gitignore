@@ -13,3 +13,5 @@ modes
 projects/CreateNFTs_p5js/CreateNFTs_p5js.js
 projects/CreateNFTs_p5js/index.html
 projects/CreateNFTs_p5js/sketch.properties
+processing_debug.log
+*.autosave
