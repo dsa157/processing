@@ -1,23 +1,26 @@
 /**
  * Truchet Pulses
- * Version: 2026.04.07.15.12.48
- * Description: A Smith-style Truchet tiling sketch featuring highly dynamic, organic pulse behaviors with wide-ranging stroke thicknesses.
+ * Version: 2026.04.07.15.26.34
+ * Description: A Smith-style Truchet tiling sketch featuring organic pulse behaviors and sound-reactive rotations driven by the Minim library.
  */
+
+import ddf.minim.*;
 
 // --- Global Constants & Canvas Settings ---
 int SKETCH_WIDTH = 480;      // 480: default width
 int SKETCH_HEIGHT = 800;     // 800: default height
 
 // --- Customizable Parameters ---
+String MUSIC_FILE = "islandman.mp3"; // "music.mp3": target audio file
 int GRID_COLS = 10;           // 10: number of tiles horizontally
 int GRID_ROWS = 18;           // 18: number of tiles vertically
 float PADDING = 40.0;        // 40.0: padding around the overall sketch area
-float ANIM_INCREMENT = 0.05;  // 0.05: rate of animation progression (t)
+float ANIM_INCREMENT = 0.01;  // 0.02: rate of animation progression (t)
 
 // --- Stroke & Pulse Controls ---
 float OUTER_STROKE = 10.0;    // 10.0: base thickness of the black outline
 float INNER_STROKE = 6.0;     // 6.0: base thickness of the color fill
-boolean ENABLE_ROTATION = false; // false: toggle discrete 90-degree rotations
+boolean ENABLE_ROTATION = true; // true: toggle rotation (now music triggered)
 boolean PULSE_WIDTHS = true;      // true: enable organic stroke width pulsing
 float PULSE_SPEED = 0.8;      // 0.8: speed of the breathing effect
 float PULSE_MIN_SCALE = 0.1;  // 0.1: minimum thickness factor
@@ -36,18 +39,23 @@ int ANIMATION_SPEED = 30;
 
 // --- Color Palettes ---
 String[][] HEX_PALETTES = {
-  {"#FFFFFF", "#008080", "#000000", "#FFD700", "#FF4500"}, // 0: "Neon Sunset"
-  {"#001F3F", "#39CCCC", "#000000", "#7FDBFF", "#01FF70"}, // 1: "Deep Sea Escape"
-  {"#2D4032", "#8B9467", "#000000", "#556B2F", "#EAEAEA"}, // 2: "Nordic Forest"
-  {"#FF4136", "#FFDC00", "#000000", "#FF851B", "#0074D9"}, // 3: "Vibrant Energy"
-  {"#FAD02E", "#D8334A", "#000000", "#F28D35", "#E8A87C"}, // 4: "Vintage Pastel"
-  {"#000000", "#999999", "#FFFFFF", "#666666", "#CCCCCC"}, // 5: "Grayscale"
-  {"#000000", "#FFFFFF", "#000000", "#FFFFFF", "#000000"}  // 6: "Black & White"
+  {"#FFFFFF", "#008080", "#000000", "#FFD700", "#FF4500"}, 
+  {"#001F3F", "#39CCCC", "#000000", "#7FDBFF", "#01FF70"}, 
+  {"#2D4032", "#8B9467", "#000000", "#556B2F", "#EAEAEA"}, 
+  {"#FF4136", "#FFDC00", "#000000", "#FF851B", "#0074D9"}, 
+  {"#FAD02E", "#D8334A", "#000000", "#F28D35", "#E8A87C"},
+  {"#000000", "#999999", "#FFFFFF", "#666666", "#CCCCCC"},
+  {"#000000", "#FFFFFF", "#000000", "#FFFFFF", "#000000"}
 };
 
 color[] activePalette;
 float t = 0;                 
 float tileSize;              
+float audioLevel = 0;
+
+// Minim objects
+Minim minim;
+AudioPlayer player;
 
 void setup() {
   size(480, 800); 
@@ -55,6 +63,11 @@ void setup() {
   pixelDensity(displayDensity());
   randomSeed(GLOBAL_SEED);
   noiseSeed(GLOBAL_SEED);
+  
+  // Setup Sound
+  minim = new Minim(this);
+  player = minim.loadFile(MUSIC_FILE);
+  if (player != null) player.loop();
   
   activePalette = new color[5];
   updatePalette();
@@ -72,6 +85,11 @@ void updatePalette() {
 
 void draw() {
   updatePalette();
+  
+  // Update music level
+  if (player != null) {
+    audioLevel = player.mix.level(); // Normalized level (0.0 - 1.0)
+  }
   
   color bgColor = activePalette[0];
   if (INVERT_BACKGROUND) bgColor = color(255 - red(bgColor), 255 - green(bgColor), 255 - blue(bgColor));
@@ -143,14 +161,13 @@ void drawTruchetLayer(float x, float y, float s, boolean type, int gridX, int gr
   translate(x + s/2, y + s/2);
   
   if (ENABLE_ROTATION) {
-    float distVal = dist(gridX, gridY, GRID_COLS/2, GRID_ROWS/2);
-    float rotationFactor = sin(t + distVal * 0.2);
-    float rotAngle = floor(rotationFactor * 2) * HALF_PI; 
+    // Rotation is now triggered/multiplied by audio level
+    float rotAngle = floor(audioLevel * 10.0) * HALF_PI; 
     rotate(rotAngle);
   }
   
   stroke(strokeC);
-  strokeWeight(max(0.01, weight)); // Support extremely thin lines
+  strokeWeight(max(0.01, weight)); 
   noFill();
   
   if (type) {
@@ -162,4 +179,10 @@ void drawTruchetLayer(float x, float y, float s, boolean type, int gridX, int gr
   }
   
   popMatrix();
+}
+
+void stop() {
+  if (player != null) player.close();
+  if (minim != null) minim.stop();
+  super.stop();
 }
