@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Vortices - Three.js Generative Art</title>
+    <!-- Google Fonts for Modern Premium Aesthetics -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesque:wght@300;400;600&family=Inter:wght@300;400;600&display=swap"
+        rel="stylesheet">
+
+    <style>
+        /* Modern Minimalist Art Style System */
+        :root {
+            --bg-color: #0b091a;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--bg-color);
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Centered Canvas Container with Premium Shadows (Obeying Rule 9 & Request 3) */
+        #canvas-container {
+            position: relative;
+            box-shadow: 0 30px 70px -10px rgba(0, 0, 0, 0.9);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        /* Minimalist HUD Overlay in Bottom-Right (Request 1 & 2) */
+        #hud-container {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            pointer-events: none;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+            opacity: 0.85;
+            transition: opacity 0.3s ease;
+        }
+    </style>
+
+    <!-- Import Map for Elegant Modular ES Modules Loading -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.147.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.147.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+
+<body>
+
+    <!-- Centered Canvas Container (Obeying Rule 9 & Request 3) -->
+    <div id="canvas-container">
+        <!-- Three.js Canvas will be dynamically injected here -->
+    </div>
+
+    <!-- HUD Overlay for Performance Monitoring (Can be turned off via SHOW_HUD parameter) -->
+    <div id="hud-container">
+        <div>FPS: <span id="hud-fps">--</span></div>
+        <div>ACTIVE BLOBS: <span id="hud-moons">0</span></div>
+        <div>TOTAL PARTICLES: <span id="hud-particles">--</span></div>
+        <div>PALETTE ID: <span id="hud-palette-id">--</span></div>
+        <div>VERSION: <span id="hud-version">--</span></div>
+    </div>
+
+    <!-- Main Generative Script Module -->
+    <script type="module">
+        /**
+         * Astro-Vortices: Glowing Saturnian Spiral System with Particle-Displacing Moons
+         * Author: Antigravity Code Generator
+         * Version: 2026.05.22.12.09.00
+         * Description: Self-contained generative Three.js art demonstrating a glowing morphing
+         *              volumetric particle-cloud planet core, spiral arm particle systems,
+         *              orbital plane wobble, seedable PRNG, and active particle-displacement wakes 
+         *              as glowing pulsing energy blobs spiral inward directly along spiral arm tracks.
+         */
+
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        // ==========================================
+        // ⚙️ GLOBAL PARAMETERS (Request 1 & 2 - Change these directly to customize the sketch)
+        // ==========================================
+        const PARAMS = {
+            // GLOBAL CONFIGS
+            VERSION: "2026.05.22.12.09.00", // Code version (YYYY.MM.DD.HH.mm.SS)
+            SEED: 54321,                   // 54321 - PRNG Global seed value for reproducibility
+            PALETTE_INDEX: 0,             // 0 - Color palette selector (0-6)
+            BACKGROUND_COLOR_INDEX: 0,    // 0 - Color from active palette used as space background
+            BACKGROUND_INVERT: false,     // false - Inverts the color selected from palette
+            CANVAS_WIDTH: 480,            // 480 - Output canvas width (Request 3)
+            CANVAS_HEIGHT: 800,           // 800 - Output canvas height (Request 3)
+            SHOW_HUD: true,               // true - Toggle minimalist HUD overlay in the bottom right
+
+            // PLANET PARAMETERS (Request 3 - Volumetric Dense Particle Sphere)
+            PLANET_RADIUS: 3.4,           // 3.4 - Central planet physical size
+            PLANET_PARTICLES: 24000,      // 24000 - Total dense stars in the planet cluster (Request 3)
+            PLANET_PARTICLE_SIZE: 0.16,   // 0.16 - Physical scale of individual planet particles
+            PLANET_ROT_SPEED: 0.004,      // 0.004 - Rotation rate of the planet particle cluster
+            PLANET_COLOR_CYCLE_SPEED: 0.35,// 0.35 - Speed of planetary gaseous color cycling (Request 1)
+
+            // SPIRAL ARMS PARAMETERS
+            SPIRAL_PARTICLES: 18000,      // 18000 - Total dust star particle count in arms
+            SPIRAL_ARMS: 7,               // 7 - Number of thick spiral arms
+            SPIRAL_TIGHTNESS: 0.28,       // 0.28 - Winding factor of logarithmic spiral shape
+            SPIRAL_RADIUS_MAX: 14.5,      // 14.5 - Max radial reach of arms
+            SPIRAL_THICKNESS: 1.5,        // 1.5 - Dispersion thickness factor of stars in arms
+            SPIRAL_ROT_SPEED: 0.002,      // 0.002 - Rotational speed of the dust arms
+
+            // PULSING ENERGY BLOB PARAMETERS (Request 1 & 2 - Volumetric gaseous eddies replacing solid moons)
+            BLOB_SPAWN_INTERVAL: 110,     // 110 - Cooldown between spawn pulses
+            BLOB_MAX_COUNT: 10,           // 10 - Maximum active pulsing blobs in arms
+            BLOB_RADIUS_SPAWN: 14.0,      // 14.0 - Spawning distance at arm tips
+            BLOB_DECAY_RATE: 0.038,       // 0.038 - Decay inward drift speed
+            BLOB_BASE_SIZE: 1.8,          // 1.8 - Base size of glowing gaseous sprites
+            BLOB_PULSE_SPEED: 5.5,        // 5.5 - Frequency speed of scale pulsations
+            
+            // 🌀 BLOB PARTICLE DISPLACEMENT PARAMETERS
+            BLOB_DISPLACEMENT_RADIUS: 1.8,  // 1.8 - Displacement influence radius
+            BLOB_DISPLACEMENT_FORCE: 0.09,  // 0.09 - Push force magnitude
+            BLOB_DISPLACEMENT_DAMPING: 0.93,// 0.93 - Speed to return/re-form particles (0.0-1.0)
+
+            // SYSTEM WOBBLE PARAMETERS
+            WOBBLE_SPEED: 0.32,           // 0.32 - Speed frequency of orbital wobble
+            WOBBLE_AMP: 0.16,             // 0.16 - Maximum tilt amplitude in radians
+
+            // POSTPROCESSING GLOW (Bloom effects)
+            BLOOM_STRENGTH: 1.6,          // 1.6 - Ambient aura strength
+            BLOOM_RADIUS: 0.6,            // 0.6 - Glow spread width
+            BLOOM_THRESHOLD: 0.12         // 0.12 - Highpass luminosity cutoff
+        };
+
+        // Deep copy of original parameter states for reference
+        const ORIGINAL_PARAMS = JSON.parse(JSON.stringify(PARAMS));
+
+        // ==========================================
+        // 🎨 COLOR PALETTES (Adobe Kuler Curated - Rule 10, 11, 12, 14)
+        // ==========================================
+        const COLOR_PALETTES = [
+            ['#0b091a', '#1a1b41', '#f26419', '#33a1fd', '#86e3ce'], // 0: Cosmic Neon (Deep space violets, energetic pink & cyan)
+            ['#110903', '#e4572e', '#f3a712', '#29335c', '#a8dadc'], // 1: Solar Eclipse (Bronze gold, obsidian, cyan glow)
+            ['#071e22', '#1d976c', '#66a5ad', '#a785db', '#ff847c'], // 2: Andromeda Nebula (Teal depths, lavender cloud, pink dust)
+            ['#020806', '#103939', '#5ab190', '#c2f970', '#8b5cf6'], // 3: Quantum Void (Acid matrix, neon emerald, deep purple)
+            ['#140510', '#63153e', '#ab1a58', '#e85d75', '#fceade'], // 4: Stardust Rose (Crimson plum, rose dust, pearl shimmer)
+            ['#0d0d0d', '#262626', '#666666', '#cccccc', '#f2f2f2'], // 5: Grayscale (Aesthetic monochrome star system)
+            ['#000000', '#ffffff', '#000000', '#ffffff', '#000000']  // 6: Stark Binary (High-contrast space bounds)
+        ];
+
+        const PALETTE_NAMES = [
+            "Cosmic Neon",
+            "Solar Eclipse",
+            "Andromeda Nebula",
+            "Quantum Void",
+            "Stardust Rose",
+            "Grayscale",
+            "Stark Binary"
+        ];
+
+        // ==========================================
+        // 🎲 SEEDABLE RANDOM GENERATOR (Rule 4)
+        // ==========================================
+        let prngState = PARAMS.SEED;
+        function seedRandom() {
+            let t = prngState += 0x6D2B79F5;
+            t = Math.imul(t ^ (t >>> 15), t | 1);
+            t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        }
+
+        // Helper Mulberry32 generator for independent streams
+        function mulberry32(a) {
+            return function () {
+                let t = a += 0x6D2B79F5;
+                t = Math.imul(t ^ (t >>> 15), t | 1);
+                t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            }
+        }
+
+        // ==========================================
+        // 🚀 SCENE CONTEXT GLOBALS
+        // ==========================================
+        let scene, camera, renderer, composer;
+        let controls, clock;
+        let mainPlanetMesh;
+        let spiralGroup, orbitalPlaneGroup;
+
+        // Dynamic Particle Displacement references (Request 4)
+        let spiralParticlesGeometry, spiralParticlesMesh;
+        let basePositions;  // Float32Array storing static starting spiral coordinates
+        let displacements;  // Float32Array tracking cumulative displacement vector per particle
+
+        let moonsArray = []; // Array tracking pulsing active energy blobs in arms
+        let shockwaveArray = [];
+        let planetGlowPulse = 0.0;
+        let spawnCooldown = 0;
+        let frameCount = 0;
+        let lastTime = 0;
+
+        // ==========================================
+        // 🪐 PLANET CUSTOM PARTICLE SHADERS (Request 3 - Color Patches & Attenuation)
+        // ==========================================
+        const planetVertexShader = `
+            uniform float uTime;
+            uniform float uCycleSpeed;
+            uniform float uParticleSize;
+            uniform vec3 uColors[5];
+            varying vec3 vColor;
+
+            void main() {
+                vec3 p = position;
+                float phase = uTime * uCycleSpeed;
+
+                // 3D dynamic gaseous waves forming organic color patches (Request 1 & 3)
+                float val = sin(p.x * 0.45 + phase) * 0.35 
+                          + cos(p.y * 0.55 - phase * 0.7) * 0.35
+                          + sin(p.z * 0.35 + phase * 0.4) * 0.3;
+
+                // Normalize to [0.0, 1.0]
+                float normVal = clamp((val + 1.0) * 0.5, 0.0, 1.0);
+
+                // Smoothly cycle colors through active palette indices [1] to [4]
+                vec3 col1 = mix(uColors[1], uColors[2], smoothstep(0.0, 0.33, normVal));
+                vec3 col2 = mix(col1, uColors[3], smoothstep(0.33, 0.66, normVal));
+                vColor = mix(col2, uColors[4], smoothstep(0.66, 1.0, normVal));
+
+                vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                gl_Position = projectionMatrix * mvPosition;
+
+                // Size attenuation: larger when closer to camera
+                gl_PointSize = uParticleSize * (350.0 / -mvPosition.z);
+            }
+        `;
+
+        const planetFragmentShader = `
+            uniform sampler2D uTexture;
+            varying vec3 vColor;
+
+            void main() {
+                vec4 texColor = texture2D(uTexture, gl_PointCoord);
+                if (texColor.a < 0.05) discard;
+                // Soft glowing volumetric stardust cloud texture
+                gl_FragColor = vec4(vColor, texColor.r * 0.85);
+            }
+        `;
+
+        // Creates soft-edged round stardust particle map
+        function createCircularParticleTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 32;
+            canvas.height = 32;
+            const ctx = canvas.getContext('2d');
+
+            const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+            grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+            grad.addColorStop(0.2, 'rgba(255, 255, 255, 0.85)');
+            grad.addColorStop(0.5, 'rgba(255, 255, 255, 0.3)');
+            grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 32, 32);
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // ==========================================
+        // 🚀 SCENE INITIALIZATION & BUILD
+        // ==========================================
+        function initScene() {
+            const container = document.getElementById('canvas-container');
+            container.innerHTML = ''; // Reset container state
+
+            // Set canvas size from parameters (Rule 9 & Request 3)
+            const width = PARAMS.CANVAS_WIDTH;
+            const height = PARAMS.CANVAS_HEIGHT;
+            container.style.width = width + 'px';
+            container.style.height = height + 'px';
+
+            // Show or hide HUD based on dynamic parameter
+            const hud = document.getElementById('hud-container');
+            hud.style.display = PARAMS.SHOW_HUD ? 'flex' : 'none';
+            document.getElementById('hud-version').innerText = PARAMS.VERSION;
+            document.getElementById('hud-palette-id').innerText = `${PARAMS.PALETTE_INDEX} (${PALETTE_NAMES[PARAMS.PALETTE_INDEX]})`;
+
+            // 1. Create Scene
+            scene = new THREE.Scene();
+
+            // Map background selection dynamically (Rule 11)
+            const palette = COLOR_PALETTES[PARAMS.PALETTE_INDEX];
+            let bgColorHex = palette[PARAMS.BACKGROUND_COLOR_INDEX];
+            if (PARAMS.BACKGROUND_INVERT) {
+                const invertedIdx = (palette.length - 1 - PARAMS.BACKGROUND_COLOR_INDEX + palette.length) % palette.length;
+                bgColorHex = palette[invertedIdx];
+            }
+            scene.background = new THREE.Color(bgColorHex);
+            document.body.style.backgroundColor = bgColorHex; // Tie page body background to active color
+
+            // 2. Camera Setup
+            camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+            camera.position.set(0, 13, 21);
+
+            // 3. Renderer with Premium ACES Film tone rendering
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.05;
+            container.appendChild(renderer.domElement);
+
+            // 4. Orbit Controls (Interactive camera pan/zoom)
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxDistance = 35;
+            controls.minDistance = 6;
+
+            // 5. Light Rig
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.15);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(palette[3], 1.35);
+            dirLight.position.set(10, 15, 10);
+            scene.add(dirLight);
+
+            const corePointLight = new THREE.PointLight(palette[4], 2.2, 35);
+            corePointLight.position.set(0, 0, 0);
+            scene.add(corePointLight);
+
+            // 6. Orbital Assemblies
+            orbitalPlaneGroup = new THREE.Group();
+            scene.add(orbitalPlaneGroup);
+
+            spiralGroup = new THREE.Group();
+            orbitalPlaneGroup.add(spiralGroup);
+
+            // 7. Postprocessing Unreal Bloom Compositing
+            const renderScene = new RenderPass(scene, camera);
+            const bloomPass = new UnrealBloomPass(
+                new THREE.Vector2(width, height),
+                PARAMS.BLOOM_STRENGTH,
+                PARAMS.BLOOM_RADIUS,
+                PARAMS.BLOOM_THRESHOLD
+            );
+
+            composer = new EffectComposer(renderer);
+            composer.addPass(renderScene);
+            composer.addPass(bloomPass);
+
+            clock = new THREE.Clock();
+
+            // 8. Build Scene Elements
+            buildPlanet();
+            buildSpiralRings();
+
+            updateHUD();
+        }
+
+        // ==========================================
+        // 🪐 PLANET DENSE VOLUMETRIC PARTICLE SPHERE (Request 3 - Outline removed)
+        // ==========================================
+        function buildPlanet() {
+            const pCount = PARAMS.PLANET_PARTICLES;
+            const positions = new Float32Array(pCount * 3);
+
+            const prng = mulberry32(PARAMS.SEED);
+
+            for (let i = 0; i < pCount; i++) {
+                // Volumetric spherical coordinates distribution (concentrated inside core radius)
+                const r = Math.pow(prng(), 0.55) * PARAMS.PLANET_RADIUS;
+                const theta = prng() * Math.PI * 2;
+                const phi = Math.acos(2.0 * prng() - 1.0);
+
+                positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+                positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+                positions[i * 3 + 2] = r * Math.cos(phi);
+            }
+
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+            const palette = COLOR_PALETTES[PARAMS.PALETTE_INDEX];
+            const uColorArray = palette.map(hex => new THREE.Color(hex));
+
+            const starTexture = createCircularParticleTexture();
+
+            // Custom Points Shader Material (Saves color cycling and morphing coordinates)
+            const planetMaterial = new THREE.ShaderMaterial({
+                vertexShader: planetVertexShader,
+                fragmentShader: planetFragmentShader,
+                uniforms: {
+                    uTime: { value: 0 },
+                    uCycleSpeed: { value: PARAMS.PLANET_COLOR_CYCLE_SPEED },
+                    uParticleSize: { value: PARAMS.PLANET_PARTICLE_SIZE },
+                    uColors: { value: uColorArray },
+                    uTexture: { value: starTexture }
+                },
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            // Replaces Mesh with a beautiful volumetric Points system (Request 3)
+            mainPlanetMesh = new THREE.Points(geometry, planetMaterial);
+            scene.add(mainPlanetMesh);
+        }
+
+        // ==========================================
+        // 🌀 SPIRAL DUST RING COMPOSITION (Logarithmic Spiral)
+        // ==========================================
+        function buildSpiralRings() {
+            if (spiralParticlesMesh) {
+                spiralGroup.remove(spiralParticlesMesh);
+                spiralParticlesGeometry.dispose();
+            }
+
+            const pCount = PARAMS.SPIRAL_PARTICLES;
+
+            // Allocate particle array streams
+            basePositions = new Float32Array(pCount * 3);
+            displacements = new Float32Array(pCount * 3);
+            const positions = new Float32Array(pCount * 3);
+            const colors = new Float32Array(pCount * 3);
+            const sizes = new Float32Array(pCount);
+
+            const prng = mulberry32(PARAMS.SEED);
+            const palette = COLOR_PALETTES[PARAMS.PALETTE_INDEX];
+
+            for (let i = 0; i < pCount; i++) {
+                const armIdx = i % PARAMS.SPIRAL_ARMS;
+                const angleOffset = (armIdx / PARAMS.SPIRAL_ARMS) * Math.PI * 2;
+
+                // Dust clusters exponentially closer to planet core for realism
+                const t = Math.pow(prng(), 1.6);
+                const r = PARAMS.PLANET_RADIUS + 0.4 + t * (PARAMS.SPIRAL_RADIUS_MAX - PARAMS.PLANET_RADIUS - 0.4);
+
+                // Math Logarithmic spiral coordinates
+                const theta = angleOffset + r * PARAMS.SPIRAL_TIGHTNESS;
+
+                const dispersionTheta = (prng() - 0.5) * (PARAMS.SPIRAL_THICKNESS / r);
+                const dispersionR = (prng() - 0.5) * PARAMS.SPIRAL_THICKNESS * 0.45;
+                const dispersionZ = (prng() - 0.5) * PARAMS.SPIRAL_THICKNESS * 0.12 * (1.0 - t * 0.55);
+
+                const finalR = r + dispersionR;
+                const finalTheta = theta + dispersionTheta;
+
+                const x = finalR * Math.cos(finalTheta);
+                const y = dispersionZ;
+                const z = finalR * Math.sin(finalTheta);
+
+                // Save base coordinate references for re-forming dynamics (Request 4)
+                basePositions[i * 3] = x;
+                basePositions[i * 3 + 1] = y;
+                basePositions[i * 3 + 2] = z;
+
+                // Active rendering coordinate starting setup
+                positions[i * 3] = x;
+                positions[i * 3 + 1] = y;
+                positions[i * 3 + 2] = z;
+
+                // Color mappings mapping radius distance
+                const colA = new THREE.Color(palette[2]);
+                const colB = new THREE.Color(palette[3]);
+                const colC = new THREE.Color(palette[4]);
+
+                let blendedColor;
+                if (t < 0.35) {
+                    blendedColor = colA.clone().lerp(colB, t / 0.35);
+                } else {
+                    blendedColor = colB.clone().lerp(colC, (t - 0.35) / 0.65);
+                }
+
+                // Shimmering color noise specs
+                blendedColor.r = Math.min(1.0, Math.max(0.0, blendedColor.r + (prng() - 0.5) * 0.08));
+                blendedColor.g = Math.min(1.0, Math.max(0.0, blendedColor.g + (prng() - 0.5) * 0.08));
+                blendedColor.b = Math.min(1.0, Math.max(0.0, blendedColor.b + (prng() - 0.5) * 0.08));
+
+                colors[i * 3] = blendedColor.r;
+                colors[i * 3 + 1] = blendedColor.g;
+                colors[i * 3 + 2] = blendedColor.b;
+
+                sizes[i] = (prng() * 1.6 + 0.6) * (1.0 - t * 0.45);
+            }
+
+            spiralParticlesGeometry = new THREE.BufferGeometry();
+            spiralParticlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            spiralParticlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const starTexture = createCircularParticleTexture();
+            const particlesMaterial = new THREE.PointsMaterial({
+                size: 0.15,
+                map: starTexture,
+                vertexColors: true,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                opacity: 0.85
+            });
+
+            spiralParticlesMesh = new THREE.Points(spiralParticlesGeometry, particlesMaterial);
+            spiralGroup.add(spiralParticlesMesh);
+        }
+
+        // ==========================================
+        // 🌀 PULSING ENERGY BLOB EDDIES (Request 1 & 2 - Moons/Trails removed)
+        // ==========================================
+        function spawnBlob() {
+            if (moonsArray.length >= PARAMS.BLOB_MAX_COUNT) return;
+
+            const prng = seedRandom;
+            const arm = Math.floor(prng() * PARAMS.SPIRAL_ARMS);
+
+            // Spawn blobs exactly starting at the outer tips of active spiral arms (Request 2 & 4)
+            const armAngle = (arm / PARAMS.SPIRAL_ARMS) * Math.PI * 2;
+            const startRadius = PARAMS.BLOB_RADIUS_SPAWN + (prng() - 0.5) * 0.3;
+
+            // Lock to the spiral arm angle layout track with a minor offset
+            const thetaOffset = (prng() - 0.5) * 0.04;
+
+            const palette = COLOR_PALETTES[PARAMS.PALETTE_INDEX];
+            const colorIdx = Math.floor(prng() * 3) + 2;
+            const blobColor = palette[colorIdx];
+
+            // Create glowing Volumetric gaseous Sprite (No solid sphere mesh, no trails - Request 2)
+            const spriteMaterial = new THREE.SpriteMaterial({
+                map: createCircularParticleTexture(),
+                color: new THREE.Color(blobColor),
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                opacity: 0.8
+            });
+
+            const sprite = new THREE.Sprite(spriteMaterial);
+            
+            const currentSpiralRot = spiralGroup ? spiralGroup.rotation.y : 0;
+            const startTheta = currentSpiralRot + armAngle + startRadius * PARAMS.SPIRAL_TIGHTNESS + thetaOffset;
+
+            const x = startRadius * Math.cos(startTheta);
+            const z = startRadius * Math.sin(startTheta);
+            const y = (prng() - 0.5) * 0.1; // flat near the spiral arm plane
+
+            sprite.position.set(x, y, z);
+            
+            // Randomize starting size scale slightly
+            const size = PARAMS.BLOB_BASE_SIZE * (0.85 + prng() * 0.3);
+            sprite.scale.set(size, size, 1.0);
+            
+            orbitalPlaneGroup.add(sprite);
+
+            // Register Blob node
+            const blobObj = {
+                sprite: sprite,
+                radius: startRadius,
+                armAngle: armAngle,
+                thetaOffset: thetaOffset,
+                yOffset: y,
+                color: blobColor,
+                baseSize: size,
+                pulsePhase: prng() * Math.PI * 2 // Random initial cycle oscillation phase (Request 1)
+            };
+
+            moonsArray.push(blobObj);
+            updateHUD();
+        }
+
+        // ==========================================
+        // 💥 PLANETARY BLOB ABSORPTION
+        // ==========================================
+        function triggerAbsorption(blob) {
+            const pos = blob.sprite.position;
+
+            planetGlowPulse = 1.0;
+
+            // Shockwave rings expanding
+            const ringGeo = new THREE.RingGeometry(0.1, 0.25, 32);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: new THREE.Color(blob.color),
+                side: THREE.DoubleSide,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                opacity: 0.9,
+                depthWrite: false
+            });
+
+            const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+            ringMesh.position.copy(pos);
+            ringMesh.lookAt(new THREE.Vector3(0, 0, 0));
+            ringMesh.rotateX(Math.PI / 2);
+            orbitalPlaneGroup.add(ringMesh);
+
+            shockwaveArray.push({
+                mesh: ringMesh,
+                geometry: ringGeo,
+                material: ringMat,
+                scale: 1.0,
+                opacity: 0.9,
+                growthSpeed: 0.15 + seedRandom() * 0.05
+            });
+
+            orbitalPlaneGroup.remove(blob.sprite);
+            blob.sprite.material.dispose();
+        }
+
+        function updateShockwaves() {
+            for (let i = shockwaveArray.length - 1; i >= 0; i--) {
+                const wave = shockwaveArray[i];
+                wave.scale += wave.growthSpeed;
+                wave.opacity -= 0.028;
+
+                wave.mesh.scale.set(wave.scale, wave.scale, 1.0);
+                wave.material.opacity = wave.opacity;
+
+                if (wave.opacity <= 0.0) {
+                    orbitalPlaneGroup.remove(wave.mesh);
+                    wave.geometry.dispose();
+                    wave.material.dispose();
+                    shockwaveArray.splice(i, 1);
+                }
+            }
+        }
+
+        // ==========================================
+        // 🔄 HUD UPDATES
+        // ==========================================
+        function updateHUD(fps = null) {
+            if (!PARAMS.SHOW_HUD) return;
+            if (fps !== null) {
+                document.getElementById('hud-fps').innerText = Math.round(fps);
+            }
+            document.getElementById('hud-moons').innerText = `${moonsArray.length}/${PARAMS.BLOB_MAX_COUNT}`;
+            document.getElementById('hud-particles').innerText = PARAMS.SPIRAL_PARTICLES + PARAMS.PLANET_PARTICLES;
+        }
+
+        // ==========================================
+        // 🎬 MASTER ANIMATION LOOP
+        // ==========================================
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const dt = clock.getDelta();
+            const elapsedTime = clock.getElapsedTime();
+            frameCount++;
+
+            // 1. Calculate FPS rates
+            const time = performance.now();
+            if (time > lastTime + 1000) {
+                const fps = (frameCount * 1000) / (time - lastTime);
+                updateHUD(fps);
+                frameCount = 0;
+                lastTime = time;
+            }
+
+            // 2. Interactive Camera updates
+            controls.update();
+
+            // 3. System wobble tilt precessions
+            const wobbleX = Math.sin(elapsedTime * PARAMS.WOBBLE_SPEED) * PARAMS.WOBBLE_AMP;
+            const wobbleZ = Math.cos(elapsedTime * PARAMS.WOBBLE_SPEED * 0.75) * PARAMS.WOBBLE_AMP;
+            orbitalPlaneGroup.rotation.x = wobbleX;
+            orbitalPlaneGroup.rotation.z = wobbleZ;
+
+            // 4. Stable spin rotations
+            spiralGroup.rotation.y += PARAMS.SPIRAL_ROT_SPEED;
+            mainPlanetMesh.rotation.y += PARAMS.PLANET_ROT_SPEED;
+
+            // 5. Inward Gaseous Blob Spiral Physics (Locked directly to spiral arm tracks - Request 2)
+            const absorptionRadius = PARAMS.PLANET_RADIUS + 0.15;
+            for (let i = moonsArray.length - 1; i >= 0; i--) {
+                const blob = moonsArray[i];
+
+                // Decay radius coordinates inward along path of the arm
+                blob.radius -= PARAMS.BLOB_DECAY_RATE * 60 * dt;
+
+                // Mathematically lock the angular position of the blob to follow the spiral arm track 
+                // in the opposite direction (outer tips inward - Request 2)
+                const blobTheta = spiralGroup.rotation.y + blob.armAngle + blob.radius * PARAMS.SPIRAL_TIGHTNESS + blob.thetaOffset;
+
+                // Coordinate Cartesian maps
+                const mx = blob.radius * Math.cos(blobTheta);
+                const mz = blob.radius * Math.sin(blobTheta);
+                const my = blob.yOffset + Math.sin(elapsedTime * 2.0 + blob.radius) * 0.05;
+
+                blob.sprite.position.set(mx, my, mz);
+
+                // Pulse the size of the sprite to keep visual blobs (Request 1)
+                const pulse = 1.0 + 0.3 * Math.sin(elapsedTime * PARAMS.BLOB_PULSE_SPEED + blob.pulsePhase);
+                blob.sprite.scale.set(blob.baseSize * pulse, blob.baseSize * pulse, 1.0);
+
+                // core absorption collision checking
+                if (blob.radius <= absorptionRadius) {
+                    triggerAbsorption(blob);
+                    moonsArray.splice(i, 1);
+                    updateHUD();
+                }
+            }
+
+            // 6. Spawn New Blobs
+            spawnCooldown++;
+            if (spawnCooldown >= PARAMS.BLOB_SPAWN_INTERVAL) {
+                spawnBlob();
+                spawnCooldown = 0;
+            }
+
+            // 7. Shockwave overlays
+            updateShockwaves();
+
+            // 🌀 8. ACTIVE PARTICLE DISPLACEMENT & ELASTIC RE-FORMING (Request 4)
+            const pCount = PARAMS.SPIRAL_PARTICLES;
+            const positions = spiralParticlesGeometry.attributes.position.array;
+
+            // Linear spring damping: particles return back to base coordinates when moons exit
+            const damp = PARAMS.BLOB_DISPLACEMENT_DAMPING;
+            for (let i = 0; i < pCount; i++) {
+                displacements[i * 3] *= damp;
+                displacements[i * 3 + 1] *= damp;
+                displacements[i * 3 + 2] *= damp;
+            }
+
+            // Map moon coordinate locations into local coordinates of rotating spiral
+            const rotY = spiralGroup.rotation.y;
+            const cosRot = Math.cos(-rotY);
+            const sinRot = Math.sin(-rotY);
+
+            const dispRadius = PARAMS.BLOB_DISPLACEMENT_RADIUS;
+            const dispRadiusSq = dispRadius * dispRadius;
+            const pushForce = PARAMS.BLOB_DISPLACEMENT_FORCE;
+
+            moonsArray.forEach(blob => {
+                const worldPos = blob.sprite.position;
+
+                // Inverse rotate world coordinates into local space of the rotating Points mesh
+                const lx = worldPos.x * cosRot - worldPos.z * sinRot;
+                const lz = worldPos.x * sinRot + worldPos.z * cosRot;
+                const ly = worldPos.y;
+
+                for (let i = 0; i < pCount; i++) {
+                    const px = basePositions[i * 3] + displacements[i * 3];
+
+                    // High-performance game-dev bounding box pre-filter
+                    // Instantly filters out 98% of outer particles without costly math
+                    if (Math.abs(px - lx) < dispRadius) {
+                        const pz = basePositions[i * 3 + 2] + displacements[i * 3 + 2];
+                        if (Math.abs(pz - lz) < dispRadius) {
+                            const py = basePositions[i * 3 + 1] + displacements[i * 3 + 1];
+                            const dx = px - lx;
+                            const dy = py - ly;
+                            const dz = pz - lz;
+
+                            const distSq = dx * dx + dy * dy + dz * dz;
+                            if (distSq < dispRadiusSq && distSq > 0.001) {
+                                const dist = Math.sqrt(distSq);
+
+                                // Push force decays smoothly to 0 at field edge
+                                const forceFactor = (1.0 - dist / dispRadius) * pushForce;
+
+                                displacements[i * 3] += (dx / dist) * forceFactor;
+                                displacements[i * 3 + 1] += (dy / dist) * forceFactor;
+                                displacements[i * 3 + 2] += (dz / dist) * forceFactor;
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Update local particle buffers with cumulative displacements
+            for (let i = 0; i < pCount; i++) {
+                positions[i * 3] = basePositions[i * 3] + displacements[i * 3];
+                positions[i * 3 + 1] = basePositions[i * 3 + 1] + displacements[i * 3 + 1];
+                positions[i * 3 + 2] = basePositions[i * 3 + 2] + displacements[i * 3 + 2];
+            }
+            spiralParticlesGeometry.attributes.position.needsUpdate = true;
+
+            // 🌀 9. Dynamic Planet Volumetric Swirling & Color Cycles (Request 1 & 3)
+            mainPlanetMesh.material.uniforms.uTime.value = elapsedTime;
+            
+            // Adjust base brightness in shader dynamically during absorption events
+            if (planetGlowPulse > 0.0) {
+                planetGlowPulse -= 0.035;
+                if (planetGlowPulse < 0.0) planetGlowPulse = 0.0;
+            }
+            mainPlanetMesh.material.uniforms.uParticleSize.value = PARAMS.PLANET_PARTICLE_SIZE + planetGlowPulse * 0.08;
+
+            // 10. Postprocessing render
+            composer.render();
+        }
+
+        // ==========================================
+        // 🎚️ INITIAL RUN
+        // ==========================================
+        initScene();
+        animate();
+    </script>
+</body>
+
+</html>
