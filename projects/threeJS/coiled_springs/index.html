@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coiled Springs - Generative Three.js Grid</title>
+    <!-- Google Fonts for Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesque:wght@300;400;600&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+
+    <style>
+        /* Modern Minimalist Styling System */
+        :root {
+            --bg-color: #080710;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-glow: rgba(76, 201, 240, 0.3);
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            --accent-color: #4cc9f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Fixed Dimensions Canvas Container with Premium Shadows (Obeying Rule 9 & Canvas Memories) */
+        #canvas-container {
+            position: relative;
+            width: 480px;
+            height: 800px;
+            box-shadow: 0 30px 70px -10px rgba(0, 0, 0, 0.9);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+            z-index: 1;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        /* Sleek HUD Overlay (Design Aesthetics Rule 1) */
+        #hud-overlay {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            pointer-events: none;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+            opacity: 0.8;
+        }
+
+        #hud-overlay div span {
+            color: var(--text-primary);
+            font-weight: bold;
+        }
+    </style>
+
+    <!-- Import Map for Elegant Modular ES Modules Loading -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.147.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.147.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+
+<body>
+
+    <!-- Centered Canvas Container (Obeying Rule 9, 480x800 size locked) -->
+    <div id="canvas-container"></div>
+
+    <!-- HUD Overlay for Performance Monitoring -->
+    <div id="hud-overlay">
+        <div>FPS: <span id="hud-fps">--</span></div>
+        <div>GRID SIZE: <span id="hud-grid">16 x 16</span></div>
+        <div>SPRINGS: <span id="hud-springs">256</span></div>
+        <div>ACTIVE PALETTE: <span id="hud-palette">Midnight Neon</span></div>
+        <div>SEED: <span id="hud-seed">--</span></div>
+        <div>VERSION: <span id="hud-version">--</span></div>
+    </div>
+
+    <!-- Main Generative Script Module -->
+    <script type="module">
+        /**
+         * Coiled Springs: 16x16 Grid of Pulses and Dynamic Staggered Animations
+         * Author: Antigravity Code Generator
+         * Version: 2026.05.22.13.44.03
+         * Description: Self-contained generative Three.js sketch displaying a 16x16 grid 
+         *              of coiled springs viewed from above. Springs are rendered in a single 
+         *              efficient draw call using custom ShaderMaterial, animated by a staggered 
+         *              wave system with real-time mouse interaction (tightening, loosening, 
+         *              and twisting) in an ultra-premium 480x800 canvas container without UI clutter.
+         */
+
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        // ==========================================
+        // ⚙️ GLOBAL PARAMETERS (Rule 7 & 8)
+        // ==========================================
+        const PARAMS = {
+            // System Configs
+            VERSION: "2026.05.22.13.44.03", // 2026.05.22.13.44.03 - Incrementing version timestamp
+            SEED: 424242,                 // 424242 - Global PRNG seed for reproducibility (Rule 4)
+            PALETTE_INDEX: 0,             // 0 - Selected color palette index (0-4) (Rule 13)
+            BACKGROUND_COLOR_INDEX: 0,    // 0 - Index from selected palette for background (Rule 11)
+
+            // Canvas Constraints (Memory Rules)
+            CANVAS_WIDTH: 480,            // 480 - Output locked canvas width
+            CANVAS_HEIGHT: 800,           // 800 - Output locked canvas height
+
+            // Grid settings
+            GRID_ROWS: 8,                // 16 - Number of rows in the 2D grid (Request 1)
+            GRID_COLS: 4,                // 16 - Number of columns in the 2D grid (Request 1)
+            GRID_SPACING: 1.6,            // 1.6 - Spatial spacing between spring centers
+
+            // Spring Geometry Settings
+            POINTS_PER_SPRING: 120,       // 120 - Detail points per spring line
+            BASE_TURNS: 5.5,              // 5.5 - Base spiral turns count (winds)
+            TURNS_DELTA: 1.8,             // 1.8 - Amplitude of turns tightening/loosening
+            INNER_RADIUS: 0.1,            // 0.1 - Inner radius of the spiral spring
+            OUTER_RADIUS: 0.65,           // 0.65 - Base outer radius of the spring
+            RADIUS_DELTA: 0.15,           // 0.15 - Outer radius shrinkage delta when tightening
+            RADIUS_POWER: 1.0,            // 1.0 - Power distribution of radius (1.0 = Archimedean)
+            SPRING_HEIGHT: 0.6,           // 0.6 - Helical 3D height depth of the spring (Z-axis)
+
+            // Animation & Wave Settings
+            PULSE_SPEED: 2.2,             // 2.2 - Master speed of the pulse animation
+            WAVE_FREQUENCY: 0.45,         // 0.45 - Frequency of wave ripple stagger
+            WAVE_TYPE: 0,                 // 0 - Active wave pattern (0: Radial, 1: Diagonal, 2: Spiral, 3: Random, 4: Noise)
+
+            // Mouse Interaction
+            MOUSE_RADIUS: 4.5,            // 4.5 - World space radius of mouse hover influence
+            MOUSE_FORCE: 1.2,             // 1.2 - Amplification factor of mouse tightening/loosening
+            MOUSE_MODE: 0,                // 0 - Mouse hover mode (0: Tighten, 1: Loosen, 2: Twist)
+
+            // Visual Style Settings
+            COLOR_INTENSITY: 0.8,         // 0.8 - Color saturation gradient intensity at spring tips
+            GRID_VISIBLE: false,           // true - Toggle visibility of backing alignment grid
+
+            // Bloom (Post-Processing) Settings
+            BLOOM_STRENGTH: 1.4,          // 1.4 - Bloom glow intensity
+            BLOOM_RADIUS: 0.5,            // 0.5 - Bloom scattering blur radius
+            BLOOM_THRESHOLD: 0.1,         // 0.1 - Bloom high-pass luminance threshold
+
+            // Camera settings
+            CAMERA_TILT: true,            // true - Allow initial camera tilt for 3D depth perspective
+            CAMERA_Z: 18.0                // 18.0 - Default camera Z height
+        };
+
+        // ==========================================
+        // 🎨 COLOR PALETTES (Adobe Kuler Curated - Rule 10, 11, 12, 13, 14)
+        // ==========================================
+        const COLOR_PALETTES = [
+            // 0: "Midnight Neon" - Vibrant cyan and purple highlights against a deep dark violet backdrop
+            ['#080612', '#7b2cbf', '#9d4edd', '#3a0ca3', '#4cc9f0'],
+            // 1: "Desert Solstice" - Hot copper, warm amber gold, obsidian depths, and bright sand accents
+            ['#140d07', '#ffb703', '#fb8500', '#219ebc', '#8ecae6'],
+            // 2: "Mint Ice" - Premium clean turquoise, icy mint green, frost white, and deep ocean base
+            ['#051515', '#2ec4b6', '#cbf3f0', '#ff9f1c', '#ffffff'],
+            // 3: "Cyber Punk" - Hyper electric magenta, dark indigo void, and neon glowing blues
+            ['#08020f', '#f72585', '#7209b7', '#3f37c9', '#4cc9f0'],
+            // 4: "Earthy Sage" - Natural deep forest slate, soothing pale sage, charcoal, and warm silver
+            ['#0e1210', '#3a5a40', '#588157', '#a3b18a', '#dad7cd']
+        ];
+
+        const PALETTE_NAMES = [
+            "Midnight Neon",
+            "Desert Solstice",
+            "Mint Ice",
+            "Cyber Punk",
+            "Earthy Sage"
+        ];
+
+        // ==========================================
+        // 🎲 SEEDABLE RANDOM GENERATOR (Rule 4)
+        // ==========================================
+        let prngState = PARAMS.SEED;
+        function seedRandom() {
+            let t = prngState += 0x6D2B79F5;
+            t = Math.imul(t ^ (t >>> 15), t | 1);
+            t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        }
+
+        function mulberry32(seedValue) {
+            return function () {
+                let t = seedValue += 0x6D2B79F5;
+                t = Math.imul(t ^ (t >>> 15), t | 1);
+                t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            }
+        }
+
+        // ==========================================
+        // 🚀 SCENE CONTEXT GLOBALS
+        // ==========================================
+        let scene, camera, renderer, composer;
+        let controls, clock;
+        let springGeometry, springMaterial, springMesh;
+        let gridHelper;
+        let frameCount = 0;
+        let lastTime = 0;
+
+        // Mouse and Raycasting
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2(-9999, -9999);
+        const gridPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0); // X-Y plane
+        const intersection = new THREE.Vector3(-9999, -9999, 0);
+
+        // ==========================================
+        // 🌀 CUSTOM GLSL SHADERS FOR SPRINGS
+        // ==========================================
+        const springVertexShader = `
+            uniform float uTime;
+            uniform float uBaseTurns;
+            uniform float uTurnsDelta;
+            uniform float uInnerRadius;
+            uniform float uOuterRadius;
+            uniform float uRadiusDelta;
+            uniform float uRadiusPower;
+            uniform float uSpringHeight;
+            uniform float uPulseSpeed;
+            uniform float uWaveFreq;
+            uniform int uWaveType;
+            uniform vec2 uMousePos;
+            uniform float uMouseRadius;
+            uniform float uMouseForce;
+            uniform int uMouseMode;
+
+            attribute vec3 aCenter;
+            attribute float aT;
+            attribute float aSpringIndex;
+            attribute float aPhaseOffset;
+
+            varying float vT;
+            varying float vSpringIndex;
+            varying float vPulseState;
+            varying float vMouseInfluence;
+
+            // Simple hash for shader noise
+            float hash(float n) { return fract(sin(n) * 43758.5453123); }
+
+            void main() {
+                // 1. Wave stagger patterns (Request 2)
+                float phaseOffset = 0.0;
+                
+                if (uWaveType == 0) {
+                    // Radial ripple from canvas center
+                    float distToCenter = length(aCenter.xy);
+                    phaseOffset = distToCenter * uWaveFreq;
+                } else if (uWaveType == 1) {
+                    // Diagonal linear wave
+                    phaseOffset = (aCenter.x + aCenter.y) * uWaveFreq;
+                } else if (uWaveType == 2) {
+                    // Spiral vortex wave
+                    float angle = atan(aCenter.y, aCenter.x);
+                    float distToCenter = length(aCenter.xy);
+                    phaseOffset = (angle + distToCenter * 0.5) * uWaveFreq;
+                } else if (uWaveType == 3) {
+                    // Seeded random staggered phases
+                    phaseOffset = aPhaseOffset;
+                } else if (uWaveType == 4) {
+                    // Double sine noise grid pattern
+                    phaseOffset = (sin(aCenter.x * uWaveFreq * 1.5) + cos(aCenter.y * uWaveFreq * 1.5)) * 1.8;
+                }
+
+                // 2. Main harmonic tightening/loosening pulse state
+                float pulse = sin(uTime * uPulseSpeed - phaseOffset);
+                vPulseState = pulse;
+
+                // 3. Mouse raycast intersection influence calculation
+                float distToMouse = distance(aCenter.xy, uMousePos);
+                float mouseInfluence = smoothstep(uMouseRadius, 0.0, distToMouse);
+                vMouseInfluence = mouseInfluence;
+
+                // Combine pulse with mouse action depending on active mode
+                float s = pulse;
+                if (uMouseMode == 0) {
+                    // Mouse tightens springs locally
+                    s = mix(pulse, 1.2, mouseInfluence * uMouseForce);
+                } else if (uMouseMode == 1) {
+                    // Mouse loosens springs locally
+                    s = mix(pulse, -1.2, mouseInfluence * uMouseForce);
+                }
+
+                // 4. Calculate dynamic spiral geometric parameters
+                float currentTurns = uBaseTurns + uTurnsDelta * s;
+                
+                if (uMouseMode == 2) {
+                    // Mouse twists the spring
+                    currentTurns += mouseInfluence * uMouseForce * 2.2;
+                }
+
+                float currentOuterRadius = uOuterRadius - uRadiusDelta * s;
+                
+                // Breath effect: hover pushes size slightly outward
+                currentOuterRadius *= (1.0 + mouseInfluence * uMouseForce * 0.12);
+
+                // Math spiral: calculate Archimedean helix coordinates
+                float theta = aT * currentTurns * 2.0 * 3.14159265;
+                float r = uInnerRadius + (currentOuterRadius - uInnerRadius) * pow(aT, uRadiusPower);
+
+                // Build 3D coordinates relative to spring center (X-Y plane with helical Z height depth)
+                float dx = r * cos(theta);
+                float dy = r * sin(theta);
+                float dz = uSpringHeight * (aT - 0.5);
+
+                vec3 localPos = vec3(dx, dy, dz);
+
+                // Interactive 3D tilt towards mouse for maximum volumetric depth
+                if (mouseInfluence > 0.0 && uSpringHeight > 0.0) {
+                    vec2 dir = normalize(aCenter.xy - uMousePos);
+                    float tiltAngle = mouseInfluence * uMouseForce * 0.28;
+                    localPos.z += (localPos.x * dir.x + localPos.y * dir.y) * tiltAngle;
+                }
+
+                // Apply to grid cell center (Rule 9 - Perfectly centered coordinates)
+                vec3 worldPos = aCenter + localPos;
+
+                vT = aT;
+                vSpringIndex = aSpringIndex;
+
+                vec4 mvPosition = modelViewMatrix * vec4(worldPos, 1.0);
+                gl_Position = projectionMatrix * mvPosition;
+            }
+        `;
+
+        const springFragmentShader = `
+            uniform vec3 uBaseColor;
+            uniform vec3 uAccentColor;
+            uniform float uColorIntensity;
+            uniform float uTime;
+            
+            varying float vT;
+            varying float vSpringIndex;
+            varying float vPulseState;
+            varying float vMouseInfluence;
+
+            void main() {
+                // Elegant white color base (Request 2)
+                vec3 springColor = vec3(1.0, 1.0, 1.0);
+                
+                // Smooth aesthetic gradient blending towards the outer edge of spring
+                float colorGrad = pow(vT, 2.0) * uColorIntensity;
+                colorGrad = clamp(colorGrad + vMouseInfluence * 0.25, 0.0, 1.0);
+
+                // Linear interpolation with selected active palette color
+                vec3 finalColor = mix(springColor, uAccentColor, colorGrad);
+
+                // Add premium moving light-pulse shimmer along the spring wire
+                float shimmer = sin(vT * 15.0 - uTime * 4.5) * 0.5 + 0.5;
+                finalColor += uAccentColor * shimmer * 0.18;
+
+                // Soft transparency near the core start and soft outer fade for anti-aliasing
+                float alpha = smoothstep(0.0, 0.12, vT);
+                alpha *= smoothstep(1.0, 0.85, vT);
+
+                gl_FragColor = vec4(finalColor, alpha * 0.95);
+            }
+        `;
+
+        // ==========================================
+        // 🚀 INITIALIZATION & SETUP
+        // ==========================================
+        function init() {
+            const container = document.getElementById('canvas-container');
+            container.innerHTML = ''; // Clear container
+
+            // Set fixed dimensions on the container dynamically (Canvas Memories)
+            const width = PARAMS.CANVAS_WIDTH;
+            const height = PARAMS.CANVAS_HEIGHT;
+            container.style.width = width + 'px';
+            container.style.height = height + 'px';
+
+            // Set HUD and labels
+            document.getElementById('hud-version').innerText = PARAMS.VERSION;
+            document.getElementById('hud-seed').innerText = PARAMS.SEED;
+            document.getElementById('hud-palette').innerText = PALETTE_NAMES[PARAMS.PALETTE_INDEX];
+
+            // 1. Create Scene
+            scene = new THREE.Scene();
+
+            const palette = COLOR_PALETTES[PARAMS.PALETTE_INDEX];
+            const bgColorHex = palette[PARAMS.BACKGROUND_COLOR_INDEX];
+            scene.background = new THREE.Color(bgColorHex);
+            document.body.style.backgroundColor = bgColorHex;
+
+            // 2. Camera Setup (Rule 9 - View from above, centered on 480x800 aspect ratio)
+            camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
+
+            // Set starting camera looking straight down with optional tilt for 3D depth
+            if (PARAMS.CAMERA_TILT) {
+                camera.position.set(0, -6.5, PARAMS.CAMERA_Z - 2.0);
+            } else {
+                camera.position.set(0, 0, PARAMS.CAMERA_Z);
+            }
+
+            // 3. WebGL Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.0;
+            container.appendChild(renderer.domElement);
+
+            // 4. Orbit Controls (Interactive camera panning)
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxDistance = 35.0;
+            controls.minDistance = 5.0;
+            // Lock rotation slightly to maintain the "viewed from above" feel
+            controls.maxPolarAngle = Math.PI / 2 - 0.05;
+
+            // 5. Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+            scene.add(ambientLight);
+
+            const pointLight = new THREE.PointLight(palette[4], 1.5, 30);
+            pointLight.position.set(0, 0, 8);
+            scene.add(pointLight);
+
+            // 6. Build Grid Springs Geometry
+            buildSpringsGeometry();
+
+            // 7. Add Backing Grid Helper
+            buildBackingGrid();
+
+            // 8. Unreal Bloom Compositing for Glowing Visuals (480x800 resolution)
+            const renderScene = new RenderPass(scene, camera);
+            const bloomPass = new UnrealBloomPass(
+                new THREE.Vector2(width, height),
+                PARAMS.BLOOM_STRENGTH,
+                PARAMS.BLOOM_RADIUS,
+                PARAMS.BLOOM_THRESHOLD
+            );
+
+            composer = new EffectComposer(renderer);
+            composer.addPass(renderScene);
+            composer.addPass(bloomPass);
+
+            clock = new THREE.Clock();
+
+            // Register Input Listeners
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('mousemove', onPointerMove);
+            window.addEventListener('touchmove', onPointerMove, { passive: true });
+            window.addEventListener('mouseleave', onPointerLeave);
+        }
+
+        // ==========================================
+        // 🌀 GENERATE 16x16 SPRING GEOMETRY IN A SINGLE DRAW CALL
+        // ==========================================
+        function buildSpringsGeometry() {
+            if (springMesh) {
+                scene.remove(springMesh);
+                springGeometry.dispose();
+                springMaterial.dispose();
+            }
+
+            const gridRows = PARAMS.GRID_ROWS;
+            const gridCols = PARAMS.GRID_COLS;
+            const pointsPerSpring = PARAMS.POINTS_PER_SPRING;
+            const spacing = PARAMS.GRID_SPACING;
+
+            const totalSprings = gridRows * gridCols;
+            const verticesPerSpring = 2 * (pointsPerSpring - 1);
+            const totalVertices = totalSprings * verticesPerSpring;
+
+            // Arrays for WebGL Buffer Attributes
+            const positions = new Float32Array(totalVertices * 3);
+            const centers = new Float32Array(totalVertices * 3);
+            const tParams = new Float32Array(totalVertices);
+            const springIndices = new Float32Array(totalVertices);
+            const phaseOffsets = new Float32Array(totalVertices);
+
+            // Initialize seed-based PRNG for staggered random phases (Rule 4)
+            const prng = mulberry32(PARAMS.SEED);
+
+            let vertexIdx = 0;
+            for (let r = 0; r < gridRows; r++) {
+                for (let c = 0; c < gridCols; c++) {
+                    const springIdx = r * gridCols + c;
+
+                    // Center coordinates of this grid cell (Rule 9 - centered on canvas)
+                    const cx = (c - (gridCols - 1) / 2) * spacing;
+                    const cy = (r - (gridRows - 1) / 2) * spacing;
+                    const cz = 0.0;
+
+                    // Generate a seeded phase offset unique to this spring
+                    const randomPhase = prng() * Math.PI * 2;
+
+                    for (let i = 0; i < pointsPerSpring - 1; i++) {
+                        const t1 = i / (pointsPerSpring - 1);
+                        const t2 = (i + 1) / (pointsPerSpring - 1);
+
+                        // Line Segment Vertex 1
+                        centers[vertexIdx * 3] = cx;
+                        centers[vertexIdx * 3 + 1] = cy;
+                        centers[vertexIdx * 3 + 2] = cz;
+                        tParams[vertexIdx] = t1;
+                        springIndices[vertexIdx] = springIdx;
+                        phaseOffsets[vertexIdx] = randomPhase;
+                        vertexIdx++;
+
+                        // Line Segment Vertex 2
+                        centers[vertexIdx * 3] = cx;
+                        centers[vertexIdx * 3 + 1] = cy;
+                        centers[vertexIdx * 3 + 2] = cz;
+                        tParams[vertexIdx] = t2;
+                        springIndices[vertexIdx] = springIdx;
+                        phaseOffsets[vertexIdx] = randomPhase;
+                        vertexIdx++;
+                    }
+                }
+            }
+
+            // Create Buffer Geometry
+            springGeometry = new THREE.BufferGeometry();
+            springGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            springGeometry.setAttribute('aCenter', new THREE.BufferAttribute(centers, 3));
+            springGeometry.setAttribute('aT', new THREE.BufferAttribute(tParams, 1));
+            springGeometry.setAttribute('aSpringIndex', new THREE.BufferAttribute(springIndices, 1));
+            springGeometry.setAttribute('aPhaseOffset', new THREE.BufferAttribute(phaseOffsets, 1));
+
+            // Create custom shader material
+            const palette = COLOR_PALETTES[PARAMS.PALETTE_INDEX];
+            springMaterial = new THREE.ShaderMaterial({
+                vertexShader: springVertexShader,
+                fragmentShader: springFragmentShader,
+                uniforms: {
+                    uTime: { value: 0.0 },
+                    uBaseTurns: { value: PARAMS.BASE_TURNS },
+                    uTurnsDelta: { value: PARAMS.TURNS_DELTA },
+                    uInnerRadius: { value: PARAMS.INNER_RADIUS },
+                    uOuterRadius: { value: PARAMS.OUTER_RADIUS },
+                    uRadiusDelta: { value: PARAMS.RADIUS_DELTA },
+                    uRadiusPower: { value: PARAMS.RADIUS_POWER },
+                    uSpringHeight: { value: PARAMS.SPRING_HEIGHT },
+                    uPulseSpeed: { value: PARAMS.PULSE_SPEED },
+                    uWaveFreq: { value: PARAMS.WAVE_FREQUENCY },
+                    uWaveType: { value: PARAMS.WAVE_TYPE },
+                    uMousePos: { value: new THREE.Vector2(-9999.0, -9999.0) },
+                    uMouseRadius: { value: PARAMS.MOUSE_RADIUS },
+                    uMouseForce: { value: PARAMS.MOUSE_FORCE },
+                    uMouseMode: { value: PARAMS.MOUSE_MODE },
+                    uBaseColor: { value: new THREE.Color('#ffffff') },
+                    uAccentColor: { value: new THREE.Color(palette[4]) },
+                    uColorIntensity: { value: PARAMS.COLOR_INTENSITY }
+                },
+                transparent: true,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending
+            });
+
+            // Single unified Lines system drawing 256 springs in a single draw call!
+            springMesh = new THREE.LineSegments(springGeometry, springMaterial);
+            scene.add(springMesh);
+        }
+
+        // ==========================================
+        // 🕸️ ALIGNMENT BACKING GRID DESIGN
+        // ==========================================
+        function buildBackingGrid() {
+            if (gridHelper) {
+                scene.remove(gridHelper);
+            }
+
+            if (!PARAMS.GRID_VISIBLE) return;
+
+            const gridCols = PARAMS.GRID_COLS;
+            const spacing = PARAMS.GRID_SPACING;
+            const size = gridCols * spacing;
+
+            const palette = COLOR_PALETTES[PARAMS.PALETTE_INDEX];
+
+            // Generate grid on X-Y plane (subtle lines)
+            gridHelper = new THREE.GridHelper(
+                size,
+                gridCols,
+                new THREE.Color(palette[1]).multiplyScalar(0.4),
+                new THREE.Color(palette[2]).multiplyScalar(0.12)
+            );
+
+            // Align perfectly with the X-Y springs plane
+            gridHelper.rotation.x = Math.PI / 2;
+            gridHelper.position.z = -PARAMS.SPRING_HEIGHT * 0.5 - 0.05;
+
+            scene.add(gridHelper);
+        }
+
+        // ==========================================
+        // 🖱️ MOUSE INTERACTION & RAYCASTING (Raycasts relative to centered canvas)
+        // ==========================================
+        function onPointerMove(e) {
+            let clientX, clientY;
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+
+            // Normalise coordinate space mapping exact canvas bounding client coordinates
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+
+            // Raycast intersection with the X-Y plane
+            raycaster.setFromCamera(mouse, camera);
+            raycaster.ray.intersectPlane(gridPlane, intersection);
+
+            if (springMaterial) {
+                springMaterial.uniforms.uMousePos.value.set(intersection.x, intersection.y);
+            }
+        }
+
+        function onPointerLeave() {
+            // Send mouse coordinates out of bounds when mouse exits viewport
+            if (springMaterial) {
+                springMaterial.uniforms.uMousePos.value.set(-9999.0, -9999.0);
+            }
+        }
+
+        // ==========================================
+        // 🔄 ANIMATION LOOP
+        // ==========================================
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const dt = clock.getDelta();
+            const elapsedTime = clock.getElapsedTime();
+            frameCount++;
+
+            // 1. Calculate FPS rates
+            const time = performance.now();
+            if (time > lastTime + 1000) {
+                const fps = (frameCount * 1000) / (time - lastTime);
+                document.getElementById('hud-fps').innerText = Math.round(fps);
+                frameCount = 0;
+                lastTime = time;
+            }
+
+            // 2. Interactive Camera updates
+            controls.update();
+
+            // 3. Update Custom Shader Time
+            if (springMaterial) {
+                springMaterial.uniforms.uTime.value = elapsedTime;
+            }
+
+            // 4. Render Scene with Postprocessing Bloom glow
+            composer.render();
+        }
+
+        // ==========================================
+        // 📐 RESIZING HANDLER
+        // ==========================================
+        function onWindowResize() {
+            // Resolution is locked at 480x800, centering is handled by CSS flex layout
+        }
+
+        // Start Sketch
+        init();
+        animate();
+
+    </script>
+</body>
+
+</html>

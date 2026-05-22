@@ -51,3 +51,8 @@ This workspace documents generalized architectural patterns, design standards, a
 1.  **Strict Resource Recycling**: Reuse a single global texture for all particle and spark systems rather than instantiating new canvas textures inside active loop events.
 2.  **Double Buffering Attribute Updates**: When updating particle coordinates, modify Float32Arrays and flag buffer attributes for updates (`needsUpdate = true`). Avoid creating/destroying objects during `animate()`.
 3.  **Disable Browser Cache**: Keep Chrome DevTools open with **Disable cache** checked in the Network tab to ensure local parameter changes reload instantly.
+4.  **Canvas Sizing**: Project canvases should always be exactly **480x800** in dimensions and centered on the window.
+5.  **Control UI Panel**: Do not show a control panel UI on the page for editing parameters; keep parameters in the code under a clean `PARAMS` configuration block at the top of the script.
+6.  **Agent Testing**: Do not run the automated agent tester unless explicitly instructed by the user.
+7.  **Version Control**: Do not run Git commands unless explicitly instructed by the user.
+
