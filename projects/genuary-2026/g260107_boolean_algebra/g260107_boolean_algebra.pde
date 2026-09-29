@@ -6,7 +6,7 @@
  */
 
 // --- Canvas Parameters ---
-int SKETCH_WIDTH = 480;       // Default: 480
+int SKETCH_WIDTH = 800;       // Default: 480
 int SKETCH_HEIGHT = 800;      // Default: 800
 int PADDING = 40;             // Default: 40
 
