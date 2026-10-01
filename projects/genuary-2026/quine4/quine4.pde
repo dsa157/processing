@@ -5,7 +5,7 @@
  */
 
 // --- Configuration Parameters ---
-int SKETCH_WIDTH = 480;       // Default: 480
+int SKETCH_WIDTH = 800;       // Default: 480
 int SKETCH_HEIGHT = 800;      // Default: 800
 int PADDING = 40;             // Default: 40
 int MAX_FRAMES = 900;         // Default: 900
@@ -17,7 +17,7 @@ int PALETTE_INDEX = 1;        // Default: 0 (0-4)
 boolean SHOW_GRID = false;    // Default: false
 
 // Typography Parameters
-float FONT_SIZE = 11;         // Default: 11
+float FONT_SIZE = 18;         // Default: 11
 float LINE_SPACING = 0.8;     // Default: 1.2
 float WAVE_AMPLITUDE = 25.0;  // Default: 25.0
 float WAVE_FREQUENCY = 0.05;  // Default: 0.05

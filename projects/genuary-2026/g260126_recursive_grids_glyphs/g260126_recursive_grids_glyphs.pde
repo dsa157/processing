@@ -1,7 +1,8 @@
 /**
  * Recursive Grid Zoom - Variation: Glyph Morph (Refined)
- * Version: 2026.01.20.10.55.00
+ * Version: 2026.10.01.15.46.00
  * * Changes:
+ * - Render full 3x3 outer ring for bleed glyphs so left, right, and corners remain seamless before and during zoom.
  * - Filtered library to: Diamond Frame, Nested Squares, X Target, Split Circle.
  * - Added GLYPH_SCALE parameter for internal sizing.
  * - Added DETAIL_SIZE and SHOW_DETAILS for corner/intersection decorations.
@@ -94,9 +95,13 @@ void draw() {
   pushMatrix();
   scale(currentZoom);
   
-  // --- 1. BLEED GLYPHS (Background) ---
-  drawGlyph(0, -gridStep * targetScale, START_SIZE, colorBleed, progress, GLYPH_TYPE);
-  drawGlyph(0, gridStep * targetScale, START_SIZE, colorBleed, progress, GLYPH_TYPE);
+  // --- 1. BLEED GLYPHS (Background - Outer 3x3 Ring) ---
+  for (int row = -1; row <= 1; row++) {
+    for (int col = -1; col <= 1; col++) {
+      if (row == 0 && col == 0) continue;
+      drawGlyph(col * gridStep * targetScale, row * gridStep * targetScale, START_SIZE, colorBleed, progress, GLYPH_TYPE);
+    }
+  }
   
   // --- 2. MAIN 3x3 GRID ---
   for (int row = -1; row <= 1; row++) {

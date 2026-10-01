@@ -1,8 +1,9 @@
 /**
  * Umlaut Kinetic Typography Animation
- * Version: 2026.09.30.14.21.27
+ * Version: 2026.09.30.16.01.30
  * Description: Renders a grid of rotating umlaut characters using a DIFFERENCE blend mode
  * buffer to create intricate overlapping typographic patterns. Converted from Processing (Java).
+ * Includes interactive font switching on mouse click and palette cycling on spacebar.
  */
 
 // ==========================================
@@ -14,7 +15,8 @@ let canvasWidth = 800; // Default: 450
 let canvasHeight = 800; // Default: 800
 
 let letters = ['ë', 'ö', 'ä', 'ü']; // Default: ['ë', 'ö', 'ä', 'ü']
-let fonts = ['Impact', 'Arial Black', 'sans-serif']; // Default: ['Impact', 'Arial Black', 'sans-serif']
+let fonts = ['Impact', 'Arial Black', 'Georgia', 'Courier New', 'sans-serif']; // Default: ['Impact', 'Arial Black', 'Georgia', 'Courier New', 'sans-serif']
+let activeFontIndex = 0; // Default: 0 (Index from fonts array)
 
 let defaultFontSize = 160; // Default: 160
 let xSpacing = 80; // Default: 80
@@ -53,7 +55,7 @@ function setup() {
   randomSeed(globalSeed);
   noiseSeed(globalSeed);
 
-  selectedFont = random(fonts);
+  selectedFont = fonts[activeFontIndex];
 
   // Initialize the offscreen graphics buffer for drawing
   pg = createGraphics(width, height);
@@ -105,6 +107,22 @@ function draw() {
     if (frameCount >= maxFrames) {
       noLoop();
     }
+  }
+}
+
+function mousePressed() {
+  // Cycle through fonts on mouse click
+  activeFontIndex = (activeFontIndex + 1) % fonts.length;
+  selectedFont = fonts[activeFontIndex];
+  if (pg) {
+    pg.textFont(selectedFont);
+  }
+}
+
+function keyPressed() {
+  // Cycle through color palettes on space bar press
+  if (key === ' ' || keyCode === 32) {
+    activePaletteIndex = (activePaletteIndex + 1) % PALETTES.length;
   }
 }
 
