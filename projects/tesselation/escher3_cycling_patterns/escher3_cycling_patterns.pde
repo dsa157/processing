@@ -5,7 +5,7 @@
  */
 
 // --- Global Parameters ---
-int SKETCH_WIDTH = 480;      // default: 480
+int SKETCH_WIDTH = 800;      // default: 480
 int SKETCH_HEIGHT = 800;     // default: 800
 int PADDING = 40;            // default: 40
 int SEED = 888;              // default: 42
@@ -16,7 +16,7 @@ boolean INVERT_COLORS = false; // default: false
 boolean SHOW_GRID = false;   // default: false
 
 // --- Visual Parameters ---
-int GRID_COLS = 9;          // default: 10
+int GRID_COLS = 25;          // default: 10
 float CYCLE_SPEED = 0.04;    // default: 0.04
 int PALETTE_INDEX = 6;       // 0-6 (6 is BW + Red)
 int INITIAL_PATTERN = 2;     // 0-9
