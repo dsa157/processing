@@ -9,7 +9,7 @@ boolean SAVEFRAMES = true;
 
 PVector[][] field;
 ArrayList<Particle> particles;
-int maxParticles = 50000;
+int maxParticles = 40000;
 
 void setup() {
   size(480, 800);
