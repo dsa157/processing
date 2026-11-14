@@ -52,8 +52,17 @@ let activePalette;
 let backgroundColor;
 let time = 0;
 
+function getCanvasSize() {
+  let scaleFactor = min(1, windowWidth / SKETCH_WIDTH, windowHeight / SKETCH_HEIGHT);
+  return {
+    w: floor(SKETCH_WIDTH * scaleFactor),
+    h: floor(SKETCH_HEIGHT * scaleFactor)
+  };
+}
+
 function setup() {
-  createCanvas(SKETCH_WIDTH, SKETCH_HEIGHT);
+  let size = getCanvasSize();
+  createCanvas(size.w, size.h);
   randomSeed(SEED_VALUE);
   frameRate(ANIMATION_SPEED);
 
@@ -61,24 +70,34 @@ function setup() {
   backgroundColor = INVERT_BG ? activePalette[3] : activePalette[0];
 }
 
+function windowResized() {
+  let size = getCanvasSize();
+  resizeCanvas(size.w, size.h);
+}
+
 function draw() {
   background(backgroundColor);
   time += TIME_STEP;
+
+  push();
+  scale(width / SKETCH_WIDTH, height / SKETCH_HEIGHT);
 
   // Outer Border/Frame
   noFill();
   stroke(activePalette[3]);
   strokeWeight(BORDER_WEIGHT);
-  rect(PADDING, PADDING, width - PADDING * 2, height - PADDING * 2);
+  rect(PADDING, PADDING, SKETCH_WIDTH - PADDING * 2, SKETCH_HEIGHT - PADDING * 2);
 
   // Center Composition
   push();
-  translate(width / 2, height / 2);
+  translate(SKETCH_WIDTH / 2, SKETCH_HEIGHT / 2);
 
   drawComplexBackground();
   drawKineticProfile();
   drawOverlayGrid();
   drawBauhausType();
+  pop();
+
   pop();
 
   // --- Frame Saving and Loop Management ---
@@ -94,12 +113,12 @@ function drawComplexBackground() {
   // Large Red Arc (Animated)
   fill(activePalette[1]);
   let arcOsc = map(sin(time * 0.5), -1, 1, PI, PI + QUARTER_PI);
-  arc(-width / 8, -height / 12, ARC_SIZE, ARC_SIZE, PI, arcOsc + PI, PIE);
+  arc(-SKETCH_WIDTH / 8, -SKETCH_HEIGHT / 12, ARC_SIZE, ARC_SIZE, PI, arcOsc + PI, PIE);
 
   // Solid Blue Block
   fill(activePalette[2]);
   let rectW = BASE_BLOCK_WIDTH + sin(time) * BLOCK_WIDTH_AMP;
-  rect(-width / 2 + PADDING + 20, height / 4, rectW, BLOCK_HEIGHT);
+  rect(-SKETCH_WIDTH / 2 + PADDING + 20, SKETCH_HEIGHT / 4, rectW, BLOCK_HEIGHT);
 }
 
 function drawKineticProfile() {
@@ -142,16 +161,16 @@ function drawOverlayGrid() {
 
   // Vertical Red Lines (Right Side)
   for (let i = 0; i < GRID_V_COUNT; i++) {
-    let x = width / 4 + (i * GRID_V_SPACING);
-    line(x, -height / 2 + PADDING, x, height / 2 - PADDING);
+    let x = SKETCH_WIDTH / 4 + (i * GRID_V_SPACING);
+    line(x, -SKETCH_HEIGHT / 2 + PADDING, x, SKETCH_HEIGHT / 2 - PADDING);
   }
 
   // Horizontal Blue Lines (Bottom Right)
   stroke(activePalette[2]);
   for (let i = 0; i < GRID_H_COUNT; i++) {
-    let y = height / 6 + (i * GRID_H_SPACING);
-    let xStart = width / 10 + (sin(time + i) * 20);
-    line(xStart, y, width / 2 - PADDING, y);
+    let y = SKETCH_HEIGHT / 6 + (i * GRID_H_SPACING);
+    let xStart = SKETCH_WIDTH / 10 + (sin(time + i) * 20);
+    line(xStart, y, SKETCH_WIDTH / 2 - PADDING, y);
   }
 }
 
@@ -160,17 +179,17 @@ function drawBauhausType() {
   rectMode(CORNER);
 
   // Top Title: "BAUHAUS" Simulation
-  let startX = -width / 2 + PADDING + 10;
-  let topY = -height / 2 + PADDING + 10;
+  let startX = -SKETCH_WIDTH / 2 + PADDING + 10;
+  let topY = -SKETCH_HEIGHT / 2 + PADDING + 10;
 
   for (let i = 0; i < TITLE_CHAR_COUNT; i++) {
     rect(startX + (i * (TITLE_CHAR_WIDTH + 15)), topY, TITLE_CHAR_WIDTH, TITLE_CHAR_HEIGHT);
   }
 
   // Bottom Footer: "B 4 3 U H A..." Simulation
-  let footerY = height / 2 - PADDING - 60;
+  let footerY = SKETCH_HEIGHT / 2 - PADDING - 60;
   for (let i = 0; i < FOOTER_CHAR_COUNT; i++) {
-    let x = -width / 2 + PADDING + 10 + (i * 40);
+    let x = -SKETCH_WIDTH / 2 + PADDING + 10 + (i * 40);
     rect(x, footerY, FOOTER_CHAR_WIDTH, FOOTER_CHAR_HEIGHT);
     // Tiny "Parameter" text simulation below footer
     rect(x, footerY + 40, 20, 4);

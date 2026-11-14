@@ -45,11 +45,34 @@ const palettes = [
 
 let zOff = 0.0;
 
+function getCanvasSize() {
+  if (windowWidth >= SKETCH_WIDTH && windowHeight >= SKETCH_HEIGHT) {
+    return { w: SKETCH_WIDTH, h: SKETCH_HEIGHT };
+  }
+
+  const targetAspect = 480 / 800;
+  let w, h;
+  if (windowWidth / windowHeight > targetAspect) {
+    h = windowHeight;
+    w = Math.floor(h * targetAspect);
+  } else {
+    w = windowWidth;
+    h = Math.floor(w / targetAspect);
+  }
+  return { w, h };
+}
+
 function setup() {
-  createCanvas(SKETCH_WIDTH, SKETCH_HEIGHT);
+  const { w, h } = getCanvasSize();
+  createCanvas(w, h);
   randomSeed(RANDOM_SEED);
   noiseSeed(RANDOM_SEED);
   frameRate(ANIMATION_SPEED);
+}
+
+function windowResized() {
+  const { w, h } = getCanvasSize();
+  resizeCanvas(w, h);
 }
 
 function draw() {

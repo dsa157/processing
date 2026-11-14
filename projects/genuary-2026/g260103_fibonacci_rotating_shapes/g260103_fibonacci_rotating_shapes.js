@@ -54,8 +54,24 @@ const PALETTES = [
 
 let systems = [];
 
+function getCanvasSize() {
+  const aspect = 480 / 800;
+  let w = windowWidth;
+  let h = windowHeight;
+  if (w >= SKETCH_WIDTH && h >= SKETCH_HEIGHT) {
+    return { w: SKETCH_WIDTH, h: SKETCH_HEIGHT };
+  }
+  if (w / h > aspect) {
+    w = h * aspect;
+  } else {
+    h = w / aspect;
+  }
+  return { w: floor(w), h: floor(h) };
+}
+
 function setup() {
-  createCanvas(SKETCH_WIDTH, SKETCH_HEIGHT, WEBGL);
+  const { w, h } = getCanvasSize();
+  createCanvas(w, h, WEBGL);
   frameRate(ANIMATION_SPEED);
   randomSeed(GLOBAL_SEED);
   noiseSeed(GLOBAL_SEED);
@@ -80,6 +96,11 @@ function setup() {
   }
 }
 
+function windowResized() {
+  const { w, h } = getCanvasSize();
+  resizeCanvas(w, h);
+}
+
 function draw() {
   const activePalette = PALETTES[PALETTE_INDEX];
   let currentBg = INVERT_BG ? activePalette[4] : activePalette[0];
@@ -94,6 +115,7 @@ function draw() {
   if (SHOW_GRID) drawDebugGrid(currentStroke);
 
   push();
+  scale(min(width / SKETCH_WIDTH, height / SKETCH_HEIGHT));
   translate(0, 0, Z_OFFSET);
 
   // Slow global rotation for visual interest

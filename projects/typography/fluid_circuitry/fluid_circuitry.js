@@ -50,7 +50,7 @@ let lineHueStep = 1.0; // Default: 1.0 (line hue progression per frame)
 
 // Frame saving / recording options
 let maxFrames = 600; // Default: 600
-let saveFrames = false; // Default: false
+let isSavingFrames = false; // Default: false
 
 // ==========================================
 // COLOR PALETTES (Curated from Adobe Color / Kuler)
@@ -102,13 +102,28 @@ let lineHue = 0;
 let lastChangeTime;
 let changeInterval;
 
+function getResponsiveCanvasSize() {
+  if (windowWidth >= canvasWidth && windowHeight >= canvasHeight) {
+    return { w: canvasWidth, h: canvasHeight };
+  }
+  const targetAspect = 480 / 800;
+  let w = windowWidth;
+  let h = w / targetAspect;
+  if (h > windowHeight) {
+    h = windowHeight;
+    w = h * targetAspect;
+  }
+  return { w: floor(w), h: floor(h) };
+}
+
 function setup() {
-  createCanvas(canvasWidth, canvasHeight);
+  let size = getResponsiveCanvasSize();
+  createCanvas(size.w, size.h);
   randomSeed(seed);
 
-  // Calculate offsets for centering the grid on canvas
-  offsetX = (width - cols * charSize) / 2;
-  offsetY = (height - rows * charSize) / 2;
+  // Calculate offsets for centering the grid in virtual canvas space
+  offsetX = (canvasWidth - cols * charSize) / 2;
+  offsetY = (canvasHeight - rows * charSize) / 2;
 
   // Initialize the grid and lines 2D arrays
   grid = [];
@@ -133,6 +148,13 @@ function setup() {
   textFont("Arial", 48);
 }
 
+function windowResized() {
+  let size = getResponsiveCanvasSize();
+  resizeCanvas(size.w, size.h);
+  let activePalette = PALETTES[activePaletteIndex];
+  background(color(activePalette.bg));
+}
+
 function draw() {
   // Fade the background slightly for motion blur / phosphor persistence
   let activePalette = PALETTES[activePaletteIndex];
@@ -149,6 +171,12 @@ function draw() {
   }
 
   // Draw and update each circuit line
+  push();
+  let s = max(width / canvasWidth, height / canvasHeight);
+  translate(width / 2, height / 2);
+  scale(s);
+  translate(-canvasWidth / 2, -canvasHeight / 2);
+
   for (let x = 0; x < cols; x++) {
     for (let y = 0; y < rows; y++) {
       if (lines[x][y]) {
@@ -165,12 +193,13 @@ function draw() {
       }
     }
   }
+  pop();
 
   // Pulsating glow and line color
   glowHue = (glowHue + glowHueStep) % 360;
   lineHue = (lineHue + lineHueStep) % 360;
 
-  if (saveFrames) {
+  if (isSavingFrames) {
     if (frameCount <= maxFrames) {
       saveCanvas(`frame_${nf(frameCount, 4)}`, "png");
     } else {
@@ -203,9 +232,9 @@ class CircuitLine {
     if (this.pathIndex < this.path.length - 1) {
       let target = this.path[this.pathIndex + 1];
       let dir = p5.Vector.sub(target, this.currentPos);
-      let dist = dir.mag();
+      let segDist = dir.mag();
 
-      if (dist < speed) {
+      if (segDist < speed) {
         this.currentPos = target.copy();
         this.pathIndex++;
       } else {

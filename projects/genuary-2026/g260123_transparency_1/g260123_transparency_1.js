@@ -55,8 +55,38 @@ let bgColor;
 let gridColor;
 let gridOffsets = [];
 
+function getCanvasSize() {
+  if (windowWidth < SKETCH_WIDTH) {
+    return {
+      w: windowWidth,
+      h: min(SKETCH_HEIGHT, windowHeight)
+    };
+  }
+  let size = min(SKETCH_WIDTH, SKETCH_HEIGHT, windowHeight);
+  return { w: size, h: size };
+}
+
+function getGridDimensions() {
+  return {
+    cols: GRID_COLS,
+    rows: windowWidth < SKETCH_WIDTH ? GRID_ROWS : GRID_COLS
+  };
+}
+
+function initGridOffsets() {
+  let { cols, rows } = getGridDimensions();
+  gridOffsets = [];
+  for (let i = 0; i < cols; i++) {
+    gridOffsets[i] = [];
+    for (let j = 0; j < rows; j++) {
+      gridOffsets[i][j] = random(TWO_PI);
+    }
+  }
+}
+
 function setup() {
-  createCanvas(SKETCH_WIDTH, SKETCH_HEIGHT);
+  let { w, h } = getCanvasSize();
+  createCanvas(w, h);
   frameRate(ANIMATION_SPEED);
   randomSeed(GLOBAL_SEED);
   noiseSeed(GLOBAL_SEED);
@@ -74,13 +104,21 @@ function setup() {
     particles.push(new Particle());
   }
 
-  gridOffsets = [];
-  for (let i = 0; i < GRID_COLS; i++) {
-    gridOffsets[i] = [];
-    for (let j = 0; j < GRID_ROWS; j++) {
-      gridOffsets[i][j] = random(TWO_PI);
-    }
+  initGridOffsets();
+}
+
+function windowResized() {
+  let { w, h } = getCanvasSize();
+  resizeCanvas(w, h);
+  ribbonLayer = createGraphics(width, height);
+  ribbonLayer.pixelDensity(1);
+  ribbonLayer.background(bgColor);
+
+  for (let p of particles) {
+    p.init();
   }
+
+  initGridOffsets();
 }
 
 function draw() {
@@ -112,13 +150,14 @@ function draw() {
 }
 
 function drawAsynchronousGrid() {
-  let gridW = (width - 2 * PADDING) / GRID_COLS;
-  let gridH = (height - 2 * PADDING) / GRID_ROWS;
+  let { cols, rows } = getGridDimensions();
+  let gridW = (width - 2 * PADDING) / cols;
+  let gridH = (height - 2 * PADDING) / rows;
 
   noStroke();
   let gc = color(gridColor);
-  for (let i = 0; i < GRID_COLS; i++) {
-    for (let j = 0; j < GRID_ROWS; j++) {
+  for (let i = 0; i < cols; i++) {
+    for (let j = 0; j < rows; j++) {
       let x = PADDING + i * gridW;
       let y = PADDING + j * gridH;
 

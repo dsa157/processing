@@ -61,7 +61,8 @@ let glyphs = [];
 let morphFactor = 0;
 
 function setup() {
-  createCanvas(SKETCH_WIDTH, SKETCH_HEIGHT);
+  let s = min(windowWidth, windowHeight, SKETCH_WIDTH);
+  createCanvas(s, s);
   randomSeed(GLOBAL_SEED);
   frameRate(ANIMATION_SPEED);
   rectMode(CENTER);
@@ -69,8 +70,8 @@ function setup() {
   let totalShapes = GRID_ROWS * GRID_COLS;
   glyphs = [];
 
-  let drawAreaW = width - (PADDING * 2);
-  let drawAreaH = height - (PADDING * 2);
+  let drawAreaW = SKETCH_WIDTH - (PADDING * 2);
+  let drawAreaH = SKETCH_HEIGHT - (PADDING * 2);
   let maxRadius = min(drawAreaW, drawAreaH) / 2.0;
 
   for (let r = 0; r < GRID_ROWS; r++) {
@@ -83,8 +84,8 @@ function setup() {
       let angle = map(c, 0, GRID_COLS, 0, TWO_PI);
       let radius = map(r, 0, GRID_ROWS, POLAR_MIN_RADIUS, maxRadius);
 
-      let px = (width / 2.0) + cos(angle) * radius;
-      let py = (height / 2.0) + sin(angle) * radius;
+      let px = (SKETCH_WIDTH / 2.0) + cos(angle) * radius;
+      let py = (SKETCH_HEIGHT / 2.0) + sin(angle) * radius;
 
       let colIndex = floor(random(1, 5));
       let baseCol = PALETTES[PALETTE_INDEX][colIndex];
@@ -100,6 +101,7 @@ function draw() {
     fillBG = color(255 - red(fillBG), 255 - green(fillBG), 255 - blue(fillBG));
   }
   background(fillBG);
+  scale(width / SKETCH_WIDTH);
 
   morphFactor = (sin(frameCount * MORPH_SPEED) + 1.0) / 2.0;
 
@@ -110,6 +112,11 @@ function draw() {
   if (SAVE_FRAMES) {
     if (frameCount >= MAX_FRAMES) noLoop();
   }
+}
+
+function windowResized() {
+  let s = min(windowWidth, windowHeight, SKETCH_WIDTH);
+  resizeCanvas(s, s);
 }
 
 class ComplexGlyph {

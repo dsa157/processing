@@ -17,3 +17,9 @@ processing_debug.log
 *.autosave
 *.mp3
 *.webm
+projects/P5JS_CreateNFTs/
+projects/CreateNFTs_p5js/
+wood/
+.DS_Store
+
+

@@ -319,13 +319,26 @@ function initScene() {
 
   // Event Listeners for Interactivity
   window.addEventListener("keydown", handleKeyDown);
+  window.addEventListener("resize", windowResized);
   renderer.domElement.addEventListener("click", () => {
     PALETTE_INDEX = (PALETTE_INDEX + 1) % PALETTES.length;
     updateColors();
   });
 
+  // Apply initial responsive sizing
+  windowResized();
+
   // Start Animation Loop
   requestAnimationFrame(animate);
+}
+
+// Resize canvas to fit smaller viewports while keeping desktop at SKETCH_WIDTH x SKETCH_HEIGHT
+function windowResized() {
+  if (!renderer || !camera) return;
+  const size = Math.min(SKETCH_WIDTH, SKETCH_HEIGHT, window.innerWidth, window.innerHeight);
+  camera.aspect = 1;
+  camera.updateProjectionMatrix();
+  renderer.setSize(size, size);
 }
 
 // Build wireframe cell outline squares for SHOW_GRID mode

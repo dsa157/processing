@@ -53,8 +53,23 @@ let PALETTES = [
 
 let nodes = [];
 
+function getCanvasSize() {
+  if (windowWidth >= SKETCH_WIDTH && windowHeight >= SKETCH_HEIGHT) {
+    return { w: SKETCH_WIDTH, h: SKETCH_HEIGHT };
+  }
+  const targetAspect = 480 / 800;
+  let w = windowWidth;
+  let h = w / targetAspect;
+  if (h > windowHeight) {
+    h = windowHeight;
+    w = h * targetAspect;
+  }
+  return { w: floor(w), h: floor(h) };
+}
+
 function setup() {
-  createCanvas(SKETCH_WIDTH, SKETCH_HEIGHT);
+  const { w, h } = getCanvasSize();
+  createCanvas(w, h);
   randomSeed(SEED_VAL);
   frameRate(ANIMATION_SPEED);
 
@@ -67,6 +82,15 @@ function setup() {
     let y = random(PADDING, height - PADDING);
     let label = TAG_POOL[floor(random(TAG_POOL.length))];
     nodes.push(new TagNode(x, y, label));
+  }
+}
+
+function windowResized() {
+  const { w, h } = getCanvasSize();
+  resizeCanvas(w, h);
+  for (let i = 0; i < nodes.length; i++) {
+    nodes[i].pos.x = constrain(nodes[i].pos.x, PADDING, width - PADDING);
+    nodes[i].pos.y = constrain(nodes[i].pos.y, PADDING, height - PADDING);
   }
 }
 
