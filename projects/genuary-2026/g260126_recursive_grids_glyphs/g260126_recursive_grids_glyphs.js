@@ -60,11 +60,31 @@ let PALETTE_INDEX = 3; // Default: 3
 // Variables
 let bg_color;
 
+function getCanvasSize() {
+  if (windowWidth >= SKETCH_WIDTH && windowHeight >= SKETCH_HEIGHT) {
+    return { w: SKETCH_WIDTH, h: SKETCH_HEIGHT };
+  }
+  const aspect = 480 / 800;
+  let w = windowWidth;
+  let h = w / aspect;
+  if (h > windowHeight) {
+    h = windowHeight;
+    w = h * aspect;
+  }
+  return { w: floor(w), h: floor(h) };
+}
+
 function setup() {
-  createCanvas(SKETCH_WIDTH, SKETCH_HEIGHT);
+  const size = getCanvasSize();
+  createCanvas(size.w, size.h);
   randomSeed(GLOBAL_SEED);
   frameRate(ANIMATION_SPEED);
   updateBackgroundColor();
+}
+
+function windowResized() {
+  const size = getCanvasSize();
+  resizeCanvas(size.w, size.h);
 }
 
 function updateBackgroundColor() {
@@ -262,14 +282,22 @@ function drawGlyphDesign(s, p, type, c) {
   }
 }
 
+function nextGlyph() {
+  GLYPH_TYPE = (GLYPH_TYPE + 1) % GLYPH_NAMES.length;
+}
+
 function mousePressed() {
-  PALETTE_INDEX = (PALETTE_INDEX + 1) % PALETTES.length;
-  updateBackgroundColor();
+  if (mouseX < width / 2) {
+    PALETTE_INDEX = (PALETTE_INDEX + 1) % PALETTES.length;
+    updateBackgroundColor();
+  } else {
+    nextGlyph();
+  }
 }
 
 function keyPressed() {
   if (key === ' ') {
-    GLYPH_TYPE = (GLYPH_TYPE + 1) % GLYPH_NAMES.length;
+    nextGlyph();
     return false; // Prevent browser scroll
   }
 }
