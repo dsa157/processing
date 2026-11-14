@@ -51,11 +51,31 @@ let SHAPE_COLOR_INDEX = 1; // index within active palette
 
 // =============================================================================
 
+function getCanvasSize() {
+  if (windowWidth >= SKETCH_WIDTH && windowHeight >= SKETCH_HEIGHT) {
+    return { w: SKETCH_WIDTH, h: SKETCH_HEIGHT };
+  }
+  const targetAspect = 480 / 800;
+  const windowAspect = windowWidth / windowHeight;
+  if (windowAspect > targetAspect) {
+    const h = windowHeight;
+    return { w: Math.floor(h * targetAspect), h };
+  }
+  const w = windowWidth;
+  return { w, h: Math.floor(w / targetAspect) };
+}
+
 function setup() {
-  createCanvas(SKETCH_WIDTH, SKETCH_HEIGHT);
+  const { w, h } = getCanvasSize();
+  createCanvas(w, h);
   randomSeed(SEED_VALUE);
   frameRate(ANIMATION_SPEED);
   rectMode(CENTER);
+}
+
+function windowResized() {
+  const { w, h } = getCanvasSize();
+  resizeCanvas(w, h);
 }
 
 function draw() {
@@ -137,10 +157,10 @@ function renderShape(x, y, w, h) {
 
   let scaleFactor = map(wave, -1, 1, 0.15, SHAPE_MAX_SIZE);
   let weight      = map(wave, -1, 1, 0.5, 3.0);
-  let alpha       = map(opacityWave, -1, 1, 15, 255);
+  let alphaVal    = map(opacityWave, -1, 1, 15, 255);
 
   let shapeCol = INVERT_COLORS ? bgCol : fgCol;
-  stroke(red(shapeCol), green(shapeCol), blue(shapeCol), alpha);
+  stroke(red(shapeCol), green(shapeCol), blue(shapeCol), alphaVal);
   strokeWeight(weight);
   rect(0, 0, w * scaleFactor, h * scaleFactor);
 

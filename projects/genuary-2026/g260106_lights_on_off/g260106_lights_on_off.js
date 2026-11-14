@@ -14,7 +14,7 @@
  */
 
 // --- Canvas & Layout Parameters ---
-const SKETCH_WIDTH = 480;          // Default: 480
+const SKETCH_WIDTH = 800;          // Default: 480
 const SKETCH_HEIGHT = 800;         // Default: 800
 const PADDING = 40;                // Default: 40
 const SEED_VALUE = 42;             // Default: 42
@@ -81,8 +81,23 @@ let particles = [];
 let glitchOffset = 0.0;
 let activePalette = [];
 
+function getCanvasSize() {
+  if (windowWidth >= SKETCH_WIDTH && windowHeight >= SKETCH_HEIGHT) {
+    return { w: SKETCH_WIDTH, h: SKETCH_HEIGHT };
+  }
+  const targetAspect = 480 / 800;
+  let w = windowWidth;
+  let h = w / targetAspect;
+  if (h > windowHeight) {
+    h = windowHeight;
+    w = h * targetAspect;
+  }
+  return { w: floor(w), h: floor(h) };
+}
+
 function setup() {
-  createCanvas(SKETCH_WIDTH, SKETCH_HEIGHT);
+  const { w, h } = getCanvasSize();
+  createCanvas(w, h);
   randomSeed(SEED_VALUE);
   noiseSeed(SEED_VALUE);
   frameRate(ANIMATION_SPEED);
@@ -93,6 +108,11 @@ function setup() {
   for (let i = 0; i < PARTICLE_COUNT; i++) {
     particles.push(new Particle());
   }
+}
+
+function windowResized() {
+  const { w, h } = getCanvasSize();
+  resizeCanvas(w, h);
 }
 
 function draw() {
@@ -171,7 +191,7 @@ class Particle {
     this.acc = createVector(0, 0);
     this.maxSpeed = random(MIN_MAX_SPEED, MAX_MAX_SPEED);
     this.pSize = random(MIN_SIZE, MAX_SIZE);
-    
+
     // Choose particle color from palette (excluding background dark index 0)
     const colorIndex = floor(random(1, activePalette.length));
     this.hexColor = activePalette[colorIndex];
@@ -213,7 +233,7 @@ class Particle {
       strokeWeight(STROKE_WEIGHT_SQUARE);
       rectMode(CENTER);
       rect(0, 0, this.pSize, this.pSize);
-      
+
       // Occasional glitch stretching
       if (glitchOffset > 5) {
         line(-this.pSize, 0, this.pSize * 2, 0);

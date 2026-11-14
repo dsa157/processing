@@ -4,7 +4,7 @@
  */
 
 // --- Parameters ---
-let SKETCH_WIDTH = 480;       // Default: 480
+let SKETCH_WIDTH = 800;       // Default: 480
 let SKETCH_HEIGHT = 800;      // Default: 800
 let MAX_FRAMES = 900;         // Default: 900
 let SAVE_FRAMES = false;      // Default: false
@@ -34,11 +34,26 @@ let TRAVELER_SPEED = 6.0;   // Default: 6.0
 let SHOW_GRID = false;      // Default: false (Grid lines removed)
 
 // Global Variables
-let rotationY = 0;
+let boxRotationY = 0;
 let travelers = [];
 
+function getCanvasSize() {
+  if (windowWidth >= SKETCH_WIDTH && windowHeight >= SKETCH_HEIGHT) {
+    return { w: SKETCH_WIDTH, h: SKETCH_HEIGHT };
+  }
+  const targetAspect = 480 / 800;
+  let w = windowWidth;
+  let h = w / targetAspect;
+  if (h > windowHeight) {
+    h = windowHeight;
+    w = h * targetAspect;
+  }
+  return { w: floor(w), h: floor(h) };
+}
+
 function setup() {
-  createCanvas(SKETCH_WIDTH, SKETCH_HEIGHT, WEBGL);
+  const { w, h } = getCanvasSize();
+  createCanvas(w, h, WEBGL);
   randomSeed(GLOBAL_SEED);
   frameRate(ANIMATION_SPEED);
 
@@ -46,6 +61,11 @@ function setup() {
   for (let i = 0; i < TRAVELER_COUNT; i++) {
     travelers.push(new Traveler());
   }
+}
+
+function windowResized() {
+  const { w, h } = getCanvasSize();
+  resizeCanvas(w, h);
 }
 
 function draw() {
@@ -56,6 +76,9 @@ function draw() {
   }
   background(activeBg);
 
+  let scaleFactor = min(width / SKETCH_WIDTH, height / SKETCH_HEIGHT);
+  scale(scaleFactor);
+
   translate(0, 0, -100);
 
   // Lighting
@@ -63,12 +86,12 @@ function draw() {
   pointLight(255, 255, 255, 400, -400, 500);
 
   // Rotation and Wobble
-  rotationY += 0.015;
+  boxRotationY += 0.015;
   let wobbleX = sin(frameCount * 0.04) * WOBBLE_STRENGTH;
   let wobbleZ = cos(frameCount * 0.02) * WOBBLE_STRENGTH;
 
   push();
-  rotateY(rotationY);
+  rotateY(boxRotationY);
   rotateX(wobbleX);
   rotateZ(wobbleZ);
 
@@ -123,16 +146,16 @@ function drawFaceWith9Holes(sz, holeSz) {
       beginShape(QUADS);
       // Constructing geometry around holes without internal divider strokes
       vertex(cx - innerH, cy - innerH, 0); vertex(cx + innerH, cy - innerH, 0);
-      vertex(cx + innerH, cy - hh, 0);     vertex(cx - innerH, cy - hh, 0);
+      vertex(cx + innerH, cy - hh, 0); vertex(cx - innerH, cy - hh, 0);
 
-      vertex(cx - innerH, cy + hh, 0);     vertex(cx + innerH, cy + hh, 0);
+      vertex(cx - innerH, cy + hh, 0); vertex(cx + innerH, cy + hh, 0);
       vertex(cx + innerH, cy + innerH, 0); vertex(cx - innerH, cy + innerH, 0);
 
-      vertex(cx - innerH, cy - hh, 0);     vertex(cx - hh, cy - hh, 0);
-      vertex(cx - hh, cy + hh, 0);         vertex(cx - innerH, cy + hh, 0);
+      vertex(cx - innerH, cy - hh, 0); vertex(cx - hh, cy - hh, 0);
+      vertex(cx - hh, cy + hh, 0); vertex(cx - innerH, cy + hh, 0);
 
-      vertex(cx + hh, cy - hh, 0);         vertex(cx + innerH, cy - hh, 0);
-      vertex(cx + innerH, cy + hh, 0);     vertex(cx + hh, cy + hh, 0);
+      vertex(cx + hh, cy - hh, 0); vertex(cx + innerH, cy - hh, 0);
+      vertex(cx + innerH, cy + hh, 0); vertex(cx + hh, cy + hh, 0);
       endShape();
     }
   }

@@ -4,7 +4,7 @@
  */
 
 // --- Global Parameters ---
-let SKETCH_WIDTH = 480;       // Default: 480
+let SKETCH_WIDTH = 800;       // Default: 480
 let SKETCH_HEIGHT = 800;      // Default: 800
 let RANDOM_SEED = 12345;      // Default: 12345
 let PADDING = 40;             // Default: 40
@@ -42,8 +42,17 @@ let backgroundColor;
 let colorGrid;
 let gridRows, gridCols;
 
+function getCanvasSize() {
+  let scaleFactor = min(1, windowWidth / SKETCH_WIDTH, windowHeight / SKETCH_HEIGHT);
+  return {
+    w: floor(SKETCH_WIDTH * scaleFactor),
+    h: floor(SKETCH_HEIGHT * scaleFactor)
+  };
+}
+
 function setup() {
-  createCanvas(SKETCH_WIDTH, SKETCH_HEIGHT);
+  let { w, h } = getCanvasSize();
+  createCanvas(w, h);
   randomSeed(RANDOM_SEED);
   frameRate(ANIMATION_SPEED);
 
@@ -59,6 +68,11 @@ function setup() {
   gridCols = ceil(SKETCH_WIDTH / horizDist) + 6;
 
   initializeColorGrid();
+}
+
+function windowResized() {
+  let { w, h } = getCanvasSize();
+  resizeCanvas(w, h);
 }
 
 /**
@@ -111,6 +125,7 @@ function draw() {
   let horizDist = sqrt(3) * HEX_RADIUS;
 
   push();
+  scale(width / SKETCH_WIDTH, height / SKETCH_HEIGHT);
   // Move origin back significantly to cover left/top margins
   translate(-horizDist * 1.5, -vertDist * 1.5);
 
@@ -160,12 +175,12 @@ function drawTightSpiral(radius, c, morph) {
     let y2 = sin(angle2) * radius;
 
     // Sampling for curvature
-    for (let step = 0; step <= 1.0; step += 0.04) {
-      let tx = lerp(x1, x2, step);
-      let ty = lerp(y1, y2, step);
+    for (let t = 0; t <= 1.0; t += 0.04) {
+      let tx = lerp(x1, x2, t);
+      let ty = lerp(y1, y2, t);
 
       let normalAngle = angle1 + HALF_PI;
-      let offset = calculateSpiral(step, morph);
+      let offset = calculateSpiral(t, morph);
 
       vertex(tx + cos(normalAngle) * offset, ty + sin(normalAngle) * offset);
     }

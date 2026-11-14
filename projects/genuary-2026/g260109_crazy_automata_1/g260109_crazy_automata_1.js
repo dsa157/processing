@@ -7,7 +7,7 @@
  */
 
 // --- Parameters ---
-let SKETCH_WIDTH = 480;          // default: 480
+let SKETCH_WIDTH = 800;          // default: 480
 let SKETCH_HEIGHT = 800;         // default: 800
 let PADDING = 20;                // default: 40
 let SEED = 6789;                 // default: 12345
@@ -44,8 +44,17 @@ let bg_color;
 let current_colors = [];
 let cellW, cellH;
 
+function getCanvasSize() {
+  let s = Math.min(windowWidth / SKETCH_WIDTH, windowHeight / SKETCH_HEIGHT, 1);
+  return {
+    w: Math.floor(SKETCH_WIDTH * s),
+    h: Math.floor(SKETCH_HEIGHT * s)
+  };
+}
+
 function setup() {
-  createCanvas(SKETCH_WIDTH, SKETCH_HEIGHT);
+  let size = getCanvasSize();
+  createCanvas(size.w, size.h);
   randomSeed(SEED);
   noiseSeed(SEED);
   frameRate(ANIMATION_SPEED);
@@ -60,8 +69,8 @@ function setup() {
     bg_color = current_colors[0];
   }
 
-  let availableW = width - (2 * PADDING);
-  let availableH = height - (2 * PADDING);
+  let availableW = SKETCH_WIDTH - (2 * PADDING);
+  let availableH = SKETCH_HEIGHT - (2 * PADDING);
   cellW = availableW / COLS;
   cellH = availableH / ROWS;
 
@@ -74,9 +83,15 @@ function setup() {
   }
 }
 
+function windowResized() {
+  let size = getCanvasSize();
+  resizeCanvas(size.w, size.h);
+}
+
 function draw() {
   background(bg_color);
   push();
+  scale(width / SKETCH_WIDTH, height / SKETCH_HEIGHT);
   translate(PADDING, PADDING);
 
   // 1. Update states

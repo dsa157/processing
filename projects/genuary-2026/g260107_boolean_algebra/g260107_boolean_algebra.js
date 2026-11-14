@@ -6,7 +6,7 @@
  */
 
 // --- Canvas Parameters ---
-let SKETCH_WIDTH = 480;       // Default: 480
+let SKETCH_WIDTH = 800;       // Default: 480
 let SKETCH_HEIGHT = 800;      // Default: 800
 let PADDING = 40;             // Default: 40
 
@@ -125,13 +125,33 @@ function hexToRgbNormalized(hex) {
   return [r, g, b];
 }
 
+function getCanvasSize() {
+  if (windowWidth >= SKETCH_WIDTH && windowHeight >= SKETCH_HEIGHT) {
+    return [SKETCH_WIDTH, SKETCH_HEIGHT];
+  }
+  const targetAspect = 480 / 800;
+  let w = windowWidth;
+  let h = w / targetAspect;
+  if (h > windowHeight) {
+    h = windowHeight;
+    w = h * targetAspect;
+  }
+  return [floor(w), floor(h)];
+}
+
 function setup() {
-  createCanvas(SKETCH_WIDTH, SKETCH_HEIGHT, WEBGL);
+  const [w, h] = getCanvasSize();
+  createCanvas(w, h, WEBGL);
   randomSeed(SEED_VALUE);
   frameRate(ANIMATION_SPEED);
   pixelDensity(1);
 
   xorShader = createShader(vertSource, fragSource);
+}
+
+function windowResized() {
+  const [w, h] = getCanvasSize();
+  resizeCanvas(w, h);
 }
 
 function draw() {
@@ -155,9 +175,9 @@ function draw() {
   shader(xorShader);
 
   // Pass Uniforms to Shader
-  xorShader.setUniform("u_resolution", [float(width), float(height)]);
+  xorShader.setUniform("u_resolution", [width, height]);
   xorShader.setUniform("u_time", timeVar);
-  xorShader.setUniform("u_padding", float(PADDING));
+  xorShader.setUniform("u_padding", PADDING);
   xorShader.setUniform("u_showGrid", SHOW_GRID ? 1.0 : 0.0);
   xorShader.setUniform("u_colorMode", INVERT_COLORS ? 1.0 : 0.0);
   xorShader.setUniform("u_thickness", THICKNESS_RATIO);

@@ -57,8 +57,23 @@ let states = [];
 let currentIdx = 0, nextIdx = 1;
 let progress = 0;
 
+function getCanvasSize() {
+  if (windowWidth >= SKETCH_WIDTH && windowHeight >= SKETCH_HEIGHT) {
+    return [SKETCH_WIDTH, SKETCH_HEIGHT];
+  }
+  let targetAspect = 480 / 800;
+  let w = windowWidth;
+  let h = w / targetAspect;
+  if (h > windowHeight) {
+    h = windowHeight;
+    w = h * targetAspect;
+  }
+  return [floor(w), floor(h)];
+}
+
 function setup() {
-  createCanvas(SKETCH_WIDTH, SKETCH_HEIGHT);
+  let [w, h] = getCanvasSize();
+  createCanvas(w, h);
   randomSeed(SEED);
   frameRate(ANIMATION_SPEED);
 
@@ -84,6 +99,11 @@ function setup() {
       }
     }
   }
+}
+
+function windowResized() {
+  let [w, h] = getCanvasSize();
+  resizeCanvas(w, h);
 }
 
 function draw() {

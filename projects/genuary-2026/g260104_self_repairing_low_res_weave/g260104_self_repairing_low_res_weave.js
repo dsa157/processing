@@ -48,17 +48,37 @@ let PALETTES = [
   ["#2d3142", "#4f5d75", "#bfc0c0", "#ef8354", "#ffffff"]
 ];
 
-let ACTIVE_PALETTE_INDEX = 0; // Active palette selector: 0
+let ACTIVE_PALETTE_INDEX = 1; // Active palette selector: 0
 let BG_COLOR_INDEX = 0;       // Background color index within palette: 0
 
 let circles = [];
 
+function getCanvasSize() {
+  if (windowWidth >= SKETCH_WIDTH && windowHeight >= SKETCH_HEIGHT) {
+    return { w: SKETCH_WIDTH, h: SKETCH_HEIGHT };
+  }
+  const targetRatio = 480 / 800;
+  let w = windowWidth;
+  let h = w / targetRatio;
+  if (h > windowHeight) {
+    h = windowHeight;
+    w = h * targetRatio;
+  }
+  return { w: floor(w), h: floor(h) };
+}
+
 function setup() {
-  createCanvas(SKETCH_WIDTH, SKETCH_HEIGHT);
+  let { w, h } = getCanvasSize();
+  createCanvas(w, h);
   randomSeed(SEED);
   noiseSeed(SEED);
   frameRate(ANIMATION_SPEED);
   circles = [];
+}
+
+function windowResized() {
+  let { w, h } = getCanvasSize();
+  resizeCanvas(w, h);
 }
 
 function draw() {
@@ -66,14 +86,14 @@ function draw() {
 
   let innerW = width - (PADDING * 2);
   let innerH = height - (PADDING * 2);
-  
+
   // Update Impressions
   if (random(CIRCLE_CHANCE) < 1) {
     let pal = PALETTES[ACTIVE_PALETTE_INDEX % PALETTES.length];
     let randomColorIdx = floor(random(1, pal.length));
     circles.push(new Impression(random(PADDING, width - PADDING), random(PADDING, height - PADDING), randomColorIdx));
   }
-  
+
   for (let i = circles.length - 1; i >= 0; i--) {
     let c = circles[i];
     c.update();
@@ -81,7 +101,7 @@ function draw() {
       circles.splice(i, 1);
     }
   }
-  
+
   // Render Weave centered
   push();
   let offsetX = (width - innerW) / 2;
@@ -110,14 +130,14 @@ function renderLoom(w, h) {
 
   for (let x = 0; x < w; x += GRID_RES) {
     for (let y = 0; y < h; y += GRID_RES) {
-      
+
       let dispX = 0;
       let dispY = 0;
-      
+
       // Determine base thread colors
       let baseH = getPaletteColor(BASE_H_COLOR_INDEX);
       let baseV = getPaletteColor(BASE_V_COLOR_INDEX);
-      
+
       let targetH = baseH;
       let targetV = baseV;
 
@@ -128,11 +148,11 @@ function renderLoom(w, h) {
           let pct = map(d, 0, EFFECT_RADIUS, 1.0, 0);
           let alphaFactor = c.opacity / BLOB_INITIAL_OPACITY;
           let influence = pct * alphaFactor;
-          
+
           let angle = atan2((y + PADDING) - c.y, (x + PADDING) - c.x);
           dispX += cos(angle) * influence * ELASTICITY;
           dispY += sin(angle) * influence * ELASTICITY;
-          
+
           // Blend thread color toward blob color
           targetH = lerpColor(targetH, getPaletteColor(c.colorIdx), influence);
           targetV = lerpColor(targetV, getPaletteColor(c.colorIdx), influence);
@@ -140,7 +160,7 @@ function renderLoom(w, h) {
       }
 
       let n = noise((x + dispX) * NOISE_SCALE, (y + dispY) * NOISE_SCALE, t);
-      
+
       if (n > 0.5) {
         drawHLine(x + dispX, y + dispY, GRID_RES, targetH);
         drawVLine(x + dispX, y + dispY, GRID_RES, targetV);
@@ -192,7 +212,7 @@ class Impression {
     this.x = tx;
     this.y = ty;
     this.colorIdx = cIdx;
-    this.opacity = BLOB_INITIAL_OPACITY; 
+    this.opacity = BLOB_INITIAL_OPACITY;
     this.diameter = random(BLOB_MIN_DIAMETER, BLOB_MAX_DIAMETER);
   }
 
