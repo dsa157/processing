@@ -403,23 +403,37 @@ class AudioEngine {
   }
 }
 
+function getCanvasSize() {
+  let aspect = SKETCH_WIDTH / SKETCH_HEIGHT;
+  let w = Math.min(SKETCH_WIDTH, windowWidth);
+  let h = w / aspect;
+  if (h > windowHeight) {
+    h = windowHeight;
+    w = h * aspect;
+  }
+  return [Math.floor(w), Math.floor(h)];
+}
+
 async function setup() {
-  createCanvas(SKETCH_WIDTH, SKETCH_HEIGHT, WEBGL);
+  let [w, h] = getCanvasSize();
+  createCanvas(w, h, WEBGL);
   randomSeed(SEED_VALUE);
   frameRate(ANIMATION_SPEED);
   pixelDensity(displayDensity());
 
   audioEngine = new AudioEngine();
   await audioEngine.init(AUDIO_FILE);
+  audioEngine.play();
 
   let durationSeconds = audioEngine.getDuration();
   MAX_FRAMES = durationSeconds > 0 ? Math.floor(durationSeconds * ANIMATION_SPEED) : 0;
 
-  console.log("--- Audio Engine Loaded ---");
-  console.log("FPS: " + ANIMATION_SPEED + " | Target Limit: " + (MAX_FRAMES > 0 ? MAX_FRAMES : "Awaiting metadata"));
-  console.log("---------------------------");
-
   dualShader = createShader(vertSource, fragSource);
+}
+
+function windowResized() {
+  let [w, h] = getCanvasSize();
+  resizeCanvas(w, h);
 }
 
 function hexToRgb(hexStr) {

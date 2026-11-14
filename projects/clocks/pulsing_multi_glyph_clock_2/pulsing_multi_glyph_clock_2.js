@@ -178,19 +178,40 @@ const PALETTES = [
 let cellW, cellH;
 let bgColor, accentColor, altColor;
 let digitBoxW, digitBoxH;
+let currentPadding = PADDING;
 let activeCells;
 let pulsePhases;
 let pulseSpeeds;
 let cellGlyphStyles;
 
+function getCanvasSize() {
+  if (windowWidth >= SKETCH_WIDTH && windowHeight >= SKETCH_HEIGHT) {
+    return { w: SKETCH_WIDTH, h: SKETCH_HEIGHT };
+  }
+  const aspect = SKETCH_WIDTH / SKETCH_HEIGHT;
+  let w = windowWidth;
+  let h = w / aspect;
+  if (h > windowHeight) {
+    h = windowHeight;
+    w = h * aspect;
+  }
+  return { w: Math.floor(w), h: Math.floor(h) };
+}
+
+function updateLayout() {
+  currentPadding = PADDING * (width / SKETCH_WIDTH);
+  cellW = (width - 2 * currentPadding) / GRID_COLS;
+  cellH = (height - 2 * currentPadding) / GRID_ROWS;
+}
+
 function setup() {
-  createCanvas(SKETCH_WIDTH, SKETCH_HEIGHT);
+  const { w, h } = getCanvasSize();
+  createCanvas(w, h);
   pixelDensity(1);
   randomSeed(GLOBAL_SEED);
   frameRate(ANIMATION_SPEED);
 
-  cellW = (width - 2 * PADDING) / GRID_COLS;
-  cellH = (height - 2 * PADDING) / GRID_ROWS;
+  updateLayout();
   digitBoxW = Math.floor((GRID_COLS - GUTTER) / 2);
   digitBoxH = Math.floor((GRID_ROWS - (2 * GUTTER)) / 3);
 
@@ -208,6 +229,12 @@ function setup() {
       cellGlyphStyles[i][j] = Math.floor(random(5));
     }
   }
+}
+
+function windowResized() {
+  const { w, h } = getCanvasSize();
+  resizeCanvas(w, h);
+  updateLayout();
 }
 
 function updatePaletteColors() {
@@ -294,8 +321,8 @@ function renderGrid(t) {
 
   for (let i = 0; i < GRID_COLS; i++) {
     for (let j = 0; j < GRID_ROWS; j++) {
-      let cx = PADDING + i * cellW + cellW / 2;
-      let cy = PADDING + j * cellH + cellH / 2;
+      let cx = currentPadding + i * cellW + cellW / 2;
+      let cy = currentPadding + j * cellH + cellH / 2;
 
       pulsePhases[i][j] += pulseSpeeds[i][j];
       let n = (sin(pulsePhases[i][j]) + 1) / 2.0;
@@ -379,9 +406,9 @@ function drawGridOverlay() {
   stroke(red(accentColor), green(accentColor), blue(accentColor), GRID_OVERLAY_ALPHA);
   strokeWeight(GRID_OVERLAY_STROKE_WEIGHT);
   for (let i = 0; i <= GRID_COLS; i++) {
-    line(PADDING + i * cellW, PADDING, PADDING + i * cellW, height - PADDING);
+    line(currentPadding + i * cellW, currentPadding, currentPadding + i * cellW, height - currentPadding);
   }
   for (let j = 0; j <= GRID_ROWS; j++) {
-    line(PADDING, PADDING + j * cellH, width - PADDING, PADDING + j * cellH);
+    line(currentPadding, currentPadding + j * cellH, width - currentPadding, currentPadding + j * cellH);
   }
 }
