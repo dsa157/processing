@@ -226,15 +226,15 @@ class SubdivisionShape {
 
   drawSubdividedShape(currentProgress) {
     // The step is the lower subdivision level we are starting from (0 to MAX_SUBDIVISIONS - 1)
-    let step = floor(currentProgress);
-    step = constrain(step, 0, MAX_SUBDIVISIONS - 1);
+    let subdivStep = floor(currentProgress);
+    subdivStep = constrain(subdivStep, 0, MAX_SUBDIVISIONS - 1);
 
     // The interpolation factor is the progress from one integer level to the next (0.0 to 1.0)
-    let interpolationFactor = currentProgress - step;
+    let interpolationFactor = currentProgress - subdivStep;
 
     // Determine the start and end level indices for the interpolation
-    const startLevelIndex = step;
-    const endLevelIndex = step + 1;
+    const startLevelIndex = subdivStep;
+    const endLevelIndex = subdivStep + 1;
 
     // --- Determine Start and End Point Sets ---
     let startPoints;
@@ -308,8 +308,13 @@ class SubdivisionShape {
 
 // --- Setup ---
 
+function getCanvasSize() {
+  return min(SKETCH_WIDTH, SKETCH_HEIGHT, windowWidth, windowHeight);
+}
+
 function setup() {
-  createCanvas(SKETCH_WIDTH, SKETCH_HEIGHT);
+  const canvasSize = getCanvasSize();
+  createCanvas(canvasSize, canvasSize);
 
   // Setup Random Seed
   randomSeed(GLOBAL_SEED);
@@ -361,15 +366,25 @@ function setup() {
   }
 }
 
+function windowResized() {
+  const canvasSize = getCanvasSize();
+  resizeCanvas(canvasSize, canvasSize);
+}
+
 // --- Draw Loop ---
 
 function draw() {
   background(bgColor);
 
+  push();
+  scale(width / SKETCH_WIDTH);
+
   // Display all shapes asynchronously
   for (let shape of subdivisionShapes) {
     shape.display();
   }
+
+  pop();
 
   // --- Frame Saving ---
   if (SAVE_FRAMES) {

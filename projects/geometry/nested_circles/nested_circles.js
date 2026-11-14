@@ -202,8 +202,45 @@ function updateAllCircleColors() {
 // PROCESSING / P5.JS LIFECYCLE FUNCTIONS
 // ====================================================================
 
+function getCanvasSize() {
+  return min(SKETCH_WIDTH, windowWidth, windowHeight);
+}
+
+function getCurrentPadding() {
+  return PADDING * (width / SKETCH_WIDTH);
+}
+
+function initGrid() {
+  // Set the global seed for repeatable results
+  randomSeed(SEED_VALUE);
+  noiseSeed(SEED_VALUE);
+
+  let currentPadding = getCurrentPadding();
+
+  // Calculate cell dimensions
+  cellWidth = (width - 2 * currentPadding) / COLS;
+  cellHeight = (height - 2 * currentPadding) / ROWS;
+  let maxRadius = min(cellWidth, cellHeight) / 2.0;
+
+  // Initialize the grid of circles
+  circleGrid = [];
+  for (let r = 0; r < ROWS; r++) {
+    circleGrid[r] = [];
+    for (let c = 0; c < COLS; c++) {
+      // Calculate the center of the grid cell
+      let centerX = currentPadding + c * cellWidth + cellWidth / 2.0;
+      let centerY = currentPadding + r * cellHeight + cellHeight / 2.0;
+      let center = createVector(centerX, centerY);
+
+      // Create the outermost circle (depth 0)
+      circleGrid[r][c] = new NestedCircle(center, maxRadius, 0);
+    }
+  }
+}
+
 function setup() {
-  let canvas = createCanvas(SKETCH_WIDTH, SKETCH_HEIGHT);
+  let canvasSize = getCanvasSize();
+  let canvas = createCanvas(canvasSize, canvasSize);
   // Center output on the canvas container
   if (canvas.parent()) {
     canvas.style('display', 'block');
@@ -213,29 +250,13 @@ function setup() {
   // Setup frame rate
   frameRate(ANIMATION_SPEED);
 
-  // Set the global seed for repeatable results
-  randomSeed(SEED_VALUE);
-  noiseSeed(SEED_VALUE);
+  initGrid();
+}
 
-  // Calculate cell dimensions
-  cellWidth = (SKETCH_WIDTH - 2 * PADDING) / COLS;
-  cellHeight = (SKETCH_HEIGHT - 2 * PADDING) / ROWS;
-  let maxRadius = min(cellWidth, cellHeight) / 2.0;
-
-  // Initialize the grid of circles
-  circleGrid = [];
-  for (let r = 0; r < ROWS; r++) {
-    circleGrid[r] = [];
-    for (let c = 0; c < COLS; c++) {
-      // Calculate the center of the grid cell
-      let centerX = PADDING + c * cellWidth + cellWidth / 2.0;
-      let centerY = PADDING + r * cellHeight + cellHeight / 2.0;
-      let center = createVector(centerX, centerY);
-
-      // Create the outermost circle (depth 0)
-      circleGrid[r][c] = new NestedCircle(center, maxRadius, 0);
-    }
-  }
+function windowResized() {
+  let canvasSize = getCanvasSize();
+  resizeCanvas(canvasSize, canvasSize);
+  initGrid();
 }
 
 function draw() {
@@ -252,7 +273,7 @@ function draw() {
         let gridLineColor = color(red(fgCol), green(fgCol), blue(fgCol), 50);
         stroke(gridLineColor); // Semi-transparent for grid lines
         strokeWeight(1);
-        rect(PADDING + c * cellWidth, PADDING + r * cellHeight, cellWidth, cellHeight);
+        rect(getCurrentPadding() + c * cellWidth, getCurrentPadding() + r * cellHeight, cellWidth, cellHeight);
       }
 
       // Update and display the circle hierarchy
